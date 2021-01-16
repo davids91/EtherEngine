@@ -20,8 +20,8 @@ class Cell:
     target_ratio = PHI
     requested_aether = 0
     requested_nether = 0
-    available_aether = float(random.uniform(0,10))
-    available_nether = float(random.uniform(0,10))
+    available_aether = 0
+    available_nether = 0
 
     def __init__(self):
         random.seed(datetime.now())
@@ -29,8 +29,8 @@ class Cell:
         self.nether = float(random.uniform(0,10))
         requested_aether = 0
         requested_nether = 0
-        available_aether = float(random.uniform(0,10))
-        available_nether = float(random.uniform(0,10))
+        available_aether = 0
+        available_nether = 0
 
     def ratio(self):
         return float(self.nether / max(self.aether,0.000000000000001))
@@ -67,40 +67,44 @@ class Cell:
     def get_target_nether(self):
         return self.aether * (self.target_ratio + (1.0 - nether_dynamic)*(self.phi_delta()))
 
-    def step(self, nether_dynamic):
-        #decide target ratio
+    def step_pre_process(self):
         if(not math.isclose(self.target_ratio,self.ratio())):
+            #decide target ratio
             self.target_ratio = self.get_target_ratio()
 
             #calculate the requested ether
-            requested_aether = self.get_target_aether() - self.aether
-            requested_nether = self.get_target_nether() - self.nether
+            self.requested_aether = self.get_target_aether() - self.aether
+            self.requested_nether = self.get_target_nether() - self.nether
+
+            #calculate requested values for the polarities
+            self.aether += self.requested_aether
+            self.available_aether -= self.requested_aether
+            self.nether += self.requested_nether
+            self.available_nether -= self.requested_nether
+
+    def step(self, nether_dynamic):
+        self.step_pre_process()
+        if(not math.isclose(self.target_ratio,self.ratio())):
+
+            #restore ether values to before the pre-process stage
+            self.aether -= self.requested_aether
+            self.available_aether += self.requested_aether
+            self.nether -= self.requested_nether
+            self.available_nether += self.requested_nether
 
             #step in the direction of the target ratio
-            tmp_ether = self.get_ether_step(requested_aether,requested_aether) * 0.7
+            tmp_ether = self.get_ether_step(self.requested_aether,self.available_aether)
             self.aether += tmp_ether
             self.available_aether -= tmp_ether
-            tmp_ether = self.get_ether_step(requested_nether,requested_nether) * 0.7
+            tmp_ether = self.get_ether_step(self.requested_nether,self.available_nether)
             self.nether += tmp_ether
             self.available_nether -= tmp_ether
 
-            #radiate excess ether back into the reserves
-            requested_aether = self.get_target_aether() - self.aether
-            requested_nether = self.get_target_nether() - self.nether
-            self.aether -= requested_aether * 0.1
-            self.available_aether += requested_aether * 0.1
-            self.nether -= requested_nether * 0.1
-            self.available_aether += requested_nether * 0.1
-
-            #radiate out some of the reserves because of usage
-            tmp_ether = self.get_ether_step(requested_aether,self.available_aether) * 0.05
-            if( abs(self.available_aether - tmp_ether) < abs(self.available_aether) ):
-                self.aether -= tmp_ether
-                self.available_aether += tmp_ether * 0.9
-            tmp_ether = self.get_ether_step(requested_nether,self.available_nether) * 0.05
-            if( abs(self.available_nether - tmp_ether) < abs(self.available_nether) ):
-                self.nether -= tmp_ether
-                self.available_nether += tmp_ether * 0.9
+            #Equalize available polarity values to 0
+            self.aether += self.available_aether * 0.5
+            self.available_aether -= self.available_aether
+            self.nether += self.available_nether * 0.5
+            self.available_nether -= self.available_nether
 
 # Arguments #
 # [0] the file name for whatever reason
@@ -165,7 +169,7 @@ def re_calculate_cell(x,y):
     global target_ratio_plot
     watchdog = 0
     #while (not math.isclose(cell[x][y].ratio(),cell[x][y].target_ratio, abs_tol=1e-4) and (watchdog < 500)):
-    while(watchdog < 10):
+    while(watchdog < 50):
         ae_plot[x][y].append(cell[x][y].aether)
         ne_plot[x][y].append(cell[x][y].nether)
         ae_res_plot[x][y].append(cell[x][y].available_aether)

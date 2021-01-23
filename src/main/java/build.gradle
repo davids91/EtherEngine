@@ -1,6 +1,4 @@
 buildscript {
-    
-
     repositories {
         mavenLocal()
         mavenCentral()
@@ -21,7 +19,7 @@ allprojects {
     version = '1.0'
     ext {
         appName = "aether"
-        gdxVersion = '1.9.10'
+        gdxVersion = '1.9.12'
         roboVMVersion = '2.3.8'
         box2DLightsVersion = '1.4'
         ashleyVersion = '1.7.0'

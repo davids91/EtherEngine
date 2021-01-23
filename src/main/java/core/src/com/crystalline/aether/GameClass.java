@@ -18,14 +18,16 @@ import com.crystalline.aether.services.World;
 
 /**TODO:
  * - Display heat and cold
- * - Heat and cold to be counted in para-effect plane( ?)
+ * - Heat and cold to be counted in para-effect plane( ? )
  * - Create Ether crystals: it's not a target ratio, only when the ratio is already at that.
  * - "running" indicator
  * - debug panel to show pixel in focus
  * - Debug NANs
- * - push a to b
+ * - push a to b  ( material merges )
  * - typechange conflicts --> especially handle water to disappear when lava is near
  * - water to go sideways to the direction of less unit
+ * - Speed to be handled in more itreations, instead of handling multiple cell movements / iteration
+ * - "Move together" ?
  */
 
 public class GameClass extends ApplicationAdapter {

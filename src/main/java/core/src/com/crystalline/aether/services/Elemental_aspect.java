@@ -190,7 +190,7 @@ public class Elemental_aspect implements Reality_aspect {
                     while( /* look to the left for surfaces*/
                         (loop_var < 5) &&(0 < (y - loop_var))
                     ){
-                        if(blocks[x][y] == blocks[x][y]){
+                        if(blocks[x][y] == blocks[x][(y - loop_var)]){
                             ++surface_bloc_depth;
                         }
                         ++loop_var;
@@ -226,36 +226,37 @@ public class Elemental_aspect implements Reality_aspect {
                     &&Materials.movable(blocks[x][y], units[x][y]) /* and movable */
                     &&(Materials.is_same_mat(x,y,x,y-1,blocks, units)) /* but only if the block below them is the same */
                     &&(
-                        !(
-                            (!Materials.is_same_mat(x,y,x+1,y,blocks, units))
-                            &&(!Materials.is_same_mat(x,y,x-1,y,blocks, units))
-                            &&(Materials.is_same_mat(x,y,x+1,y-1,blocks, units))
-                            &&(Materials.is_same_mat(x,y,x-1,y-1,blocks, units))
-                        )&&
-                        !( /* if the cell is at least two blocks away from a "ledge" don't move */
-                            (Materials.is_same_mat(x,y,x+1,y-1,blocks, units))
-                            &&(Materials.is_same_mat(x,y,x-1,y-1,blocks, units))
-                            &&( ((x+2) >= (sizeX - 1))||(Materials.is_same_mat(x,y,x+2,y-1,blocks, units))   )
-                            &&( ((x-2) < 0)||(Materials.is_same_mat(x,y,x-2,y-1,blocks, units)) )
-                            &&(Materials.is_same_mat(x,y,x+1,y,blocks, units))
-                            &&(Materials.is_same_mat(x,y,x-1,y,blocks, units))
-                        )&&((
-                            get_weight(x-1,y-1,units) < get_weight(x,y-1,units)
-                            &&Materials.movable(blocks[x-1][y-1], units[x-1][y-1])
-                        )||(
-                            get_weight(x+1,y-1,units) < get_weight(x,y-1,units)
-                            &&Materials.movable(blocks[x+1][y-1], units[x+1][y-1])
-                        ))
-                        &&Materials.get_if_unstable_by_pressure(blocks[x][y], pressure[x][y])
+                        Materials.get_if_unstable_by_pressure(blocks[x][y], pressure[x][y])
                         &&(surface_block_depths.containsKey(Util.coordinate_to_hash(x,y,sizeX)))
                         &&(surface_block_depths.get(Util.coordinate_to_hash(x,y,sizeX)) >= 1)
                     )
                 ){
+                    /* decide the direction of the water */
+                    int go_left = 0;
+                    loop_var = 0;
+                    while( /* look to the left for surfaces*/
+                            (loop_var < 6) &&(0 < (x - loop_var))
+                    ){
+                        if(blocks[x][y] == blocks[x - loop_var][y]){
+                            --go_left;
+                        }
+                        ++loop_var;
+                    }
+
+                    loop_var = 0;
+                    while( /* look to the left for surfaces*/
+                            (loop_var < 6) &&(sizeX > (x + loop_var))
+                    ){
+                        if(blocks[x][y] == blocks[x + loop_var][y]){
+                            ++go_left;
+                        }
+                        ++loop_var;
+                    }
+
                     if(
                         (get_weight(x-1,y,units) <= get_weight(x,y,units))
+                        &&(0 < go_left)
                         &&(get_weight(x-1,y,units) <= get_weight(x+1,y,units))
-                        &&!( ((x+2) >= (sizeX - 1))||(Materials.is_same_mat(x,y,x+2,y,blocks, units))   ) /*!Note: This is here to eliminate a pattern where a column of water would stand by itself */
-                        &&!( ((x-2) < 0)||(Materials.is_same_mat(x,y,x-2,y,blocks, units)) )                /* ^^^ */
                         &&Materials.movable(blocks[x-1][y], units[x-1][y])
                         &&(!Materials.is_same_mat(x,y,x-1,y,blocks, units))
                         &&(!already_changed.contains(Util.coordinate_to_hash(x-1,y,sizeX)))
@@ -274,7 +275,6 @@ public class Elemental_aspect implements Reality_aspect {
                         already_changed.add(Util.coordinate_to_hash(x+1,y,sizeX));
                     }
                 }
-                /* TODO: weight to include materials on top */
                 /* TODO: Pressure system to split/merge materials */
                 /* TODO: speed of material */
             }

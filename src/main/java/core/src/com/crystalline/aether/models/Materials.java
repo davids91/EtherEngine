@@ -41,7 +41,7 @@ public class Materials {
     };
 
     public static final float[][] type_unit_scales = {
-        {0.0f,5.0f,10.0f,50.0f,500.0f,1000.0f}, /* Earth */
+        {0.0f,2.0f,3.5f,70.0f,700.0f,1000.0f}, /* Earth */
         {10.0f,20.0f},  /* Water */
         {0.0f, 20.0f}, /* Air*/
         {100.0f,300.0f,500.0f}, /* Fire */

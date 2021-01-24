@@ -22,6 +22,11 @@ public class Util {
             sizeX = sizeX_;
         }
 
+        public MyCell(MyCell other){
+            super(other.x,other.y);
+            sizeX = other.sizeX;
+        }
+
         public MyCell(float x, float y, int sizeX_) {
             super(x, y);
             sizeX = sizeX_;

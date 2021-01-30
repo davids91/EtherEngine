@@ -3,11 +3,13 @@ package com.crystalline.aether;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.ArrowShapeBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
@@ -36,31 +38,26 @@ public class GameClass extends ApplicationAdapter {
 
 	OrthographicCamera camera;
 	ShapeRenderer shapeRenderer;
-	MeshBuilder meshbuilder;
-	Mesh debug_arrows;
 	BitmapFont font;
 
 	World world;
 	float addition = 5.0f;
 
-	final int[] world_block_number = {20,20};
+	final int[] world_block_number = {200,200};
 	final float world_block_size = 100.0f;
-	final float block_radius = world_block_size/2.0f;
 	final float[] world_size = {world_block_number[0] * world_block_size, world_block_number[1] * world_block_size};
 
-	private boolean debugging = true;
+	private boolean debug_panel_shown = false;
 
 	@Override
 	public void create () {
-		Gdx.gl.glClearColor(0.9f, 0.5f, 0.8f, 1);
+		Gdx.gl.glClearColor(0, 0.1f, 0.1f, 1);
 		camera = new OrthographicCamera();
-		camera.setToOrtho(false,world_size[0], world_size[1]);
+		camera.setToOrtho(false,world_block_number[0] * world_block_size, world_block_number[1] * world_block_size);
 		camera.update();
 
 		batch = new SpriteBatch();
 		shapeRenderer = new ShapeRenderer();
-		meshbuilder = new MeshBuilder();
-
 		img_aether = new Texture("aether.png");
 		img_nether = new Texture("nether.png");
 		font = new BitmapFont();
@@ -74,8 +71,8 @@ public class GameClass extends ApplicationAdapter {
 		my_game_loop();
 
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
+		batch.setProjectionMatrix(camera.combined);
 		TextureRegion lofaszbazdmeg = new TextureRegion(new Texture(world.getWorldImage(mouseInWorld2D,(addition/10.0f), world.get_eth_plane())));
 		lofaszbazdmeg.flip(false,true);
 		batch.draw(lofaszbazdmeg,0,0,world_size[0],world_size[1]);
@@ -83,43 +80,20 @@ public class GameClass extends ApplicationAdapter {
 			for(int y = 0; y < world_block_number[1]; ++y){
 //				drawblock(x,y, (world.get_eth_plane().aether_value_at(x,y)/Math.max(world.get_eth_plane().aether_value_at(x,y),world.get_eth_plane().nether_value_at(x,y))), img_aether);
 //				drawblock(x,y, (world.get_eth_plane().nether_value_at(x,y)/Math.max(world.get_eth_plane().aether_value_at(x,y),world.get_eth_plane().nether_value_at(x,y))), img_nether);
-		        draw_velo(x,y);
+//		        draw_velo(x,y);
 			}
 		}
 		batch.end();
-//		drawGrid(1.0f, world_block_size);
-
-		/* draw velocity arrrays */
-		if(debugging){
-			meshbuilder.begin(VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal, GL20.GL_TRIANGLES);
-			for(int x = 0; x < world_block_number[0]; ++x){
-				for(int y = 0; y < world_block_number[1]; ++y){
-					if(0 < world.get_elm_plane().get_force(x,y).len())
-					ArrowShapeBuilder.build(
-						meshbuilder,
-//						x * world_block_size + block_radius, y * world_block_size + block_radius, 0,
-//						x * world_block_size + block_radius + world_block_size * world.get_elm_plane().get_force(x,y).cpy().nor().x,
-//						y * world_block_size + block_radius + world_block_size * world.get_elm_plane().get_force(x,y).cpy().nor().y, 0,
-							x * world_block_size + block_radius, y * world_block_size + block_radius, 0,
-							x * world_block_size + block_radius + world_block_size * world.get_elm_plane().get_force(x,y).x,
-							y * world_block_size + block_radius + world_block_size * world.get_elm_plane().get_force(x,y).y, 0,
-						0.1f,0.5f,10
-					);
-				}
-			}
-			debug_arrows = meshbuilder.end();
-			batch.begin();
-			debug_arrows.render(batch.getShader(), GL20.GL_TRIANGLES);
-			batch.end();
-		}
+		shapeRenderer.setProjectionMatrix(camera.combined);
+		//drawGrid(1.0f, world_block_size);
 	}
 
 	private void drawblock(int x, int y, float scale_, Texture tex){
 		float scale = Math.max( -1.0f, Math.min( 1.0f , scale_) );
 		batch.draw(
 			tex,
-			x * world_block_size + (block_radius) - (block_radius) * Math.abs(scale),
-			y * world_block_size + (block_radius) - (block_radius) * Math.abs(scale),
+			x * world_block_size + (world_block_size/2.0f) - (world_block_size/2.0f) * Math.abs(scale),
+			y * world_block_size + (world_block_size/2.0f) - (world_block_size/2.0f) * Math.abs(scale),
 			(Math.abs(scale) * world_block_size),
 			(Math.abs(scale) * world_block_size)
 		);
@@ -139,7 +113,7 @@ public class GameClass extends ApplicationAdapter {
 			batch,
 			String.format( "Ne: %.2f", world.get_eth_plane().nether_value_at(x,y) ),
 			x * world_block_size + (world_block_size/4.0f),
-			y * world_block_size + (block_radius)
+			y * world_block_size + (world_block_size/2.0f)
 		);
 		font.draw(
 			batch,
@@ -149,7 +123,7 @@ public class GameClass extends ApplicationAdapter {
 		);
 	}
 
-	private void draw_velo(int x, int y){
+	private void draw_velo(int x, int y){ /* TODO: draw arrows */
 		font.draw(
 			batch,
 			String.format( "U: %.2f", world.unit_at(x,y) ),
@@ -169,12 +143,11 @@ public class GameClass extends ApplicationAdapter {
 					world.get_elm_plane().get_force(x,y).y
 				),
 			x * world_block_size + (world_block_size/4.0f),
-			y * world_block_size + (block_radius)
+			y * world_block_size + (world_block_size/2.0f)
 		);
 	}
 
 	private void drawGrid(float lineWidth, float cellSize) {
-		shapeRenderer.setProjectionMatrix(camera.combined);
 		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 		shapeRenderer.setColor(Color.LIME);
 		for(float x = cellSize;x<world_size[0];x+=cellSize){
@@ -195,15 +168,11 @@ public class GameClass extends ApplicationAdapter {
 		mouseInCam3D.z = 0;
 		camera.unproject(mouseInCam3D);
 		mouseInWorld2D.x = (
-				(mouseInCam3D.x - (block_radius) + (world_block_size/4.0f))
+				(mouseInCam3D.x - (world_block_size/2.0f) + (world_block_size/4.0f))
 						/ world_block_size);
 		mouseInWorld2D.y = (
-				(mouseInCam3D.y - (block_radius) + (world_block_size/4.0f))
+				(mouseInCam3D.y - (world_block_size/2.0f) + (world_block_size/4.0f))
 						/ world_block_size);
-
-		if(Gdx.input.isKeyJustPressed(Input.Keys.F1)){
-			debugging = !debugging;
-		}
 
 		if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)){
 			addition *= 1.1f;

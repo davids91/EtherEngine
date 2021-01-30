@@ -8,9 +8,9 @@ public class Ethereal_aspect implements Reality_aspect {
     protected final int sizeX;
     protected final int sizeY;
 
-    private final float [][] aether_values; /* Stationary substance */
-    private final float [][] nether_values; /* Moving substance */
-    private final float [][] target_ratios;
+    private float [][] aether_values; /* Stationary substance */
+    private float [][] nether_values; /* Moving substance */
+    private float [][] target_ratios;
 
     private static final float nether_dynamic = 0.9f;
 
@@ -191,55 +191,21 @@ public class Ethereal_aspect implements Reality_aspect {
 
     @Override
     public void process_types(float[][] units, Vector2[][] velocity, World parent){
+        float old_unit;
         /* Take over unit changes from Elemental plane */
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 target_ratios[x][y] = Materials.nether_ratios[parent.elemental_plane.element_at(x,y).ordinal()];
-                take_over_unit_changes(x,y, units);
+                old_unit = (nether_values[x][y] + aether_values[x][y])/2.0f;
+                nether_values[x][y] *= units[x][y] / old_unit;
+                aether_values[x][y] *= units[x][y] / old_unit;
             }
         }
     }
 
     @Override
-    public void take_over_unit_changes(int x, int y, float[][] units) {
-        float old_unit = (nether_values[x][y] + aether_values[x][y])/2.0f;
-        nether_values[x][y] *= units[x][y] / old_unit;
-        aether_values[x][y] *= units[x][y] / old_unit;
-    }
-
-    @Override
-    public void merge_a_to_b(int ax, int ay, int bx, int by) {
-        aether_values[bx][by] += aether_values[ax][ay];
-        nether_values[bx][by] += nether_values[ax][ay];
-        correct_values_for_target_ratio(bx,by);
-        aether_values[ax][ay] = 0.0f;
-        nether_values[ax][ay] = 0.0f;
-    }
-
-    @Override
-    public void split_a_to_b(int ax, int ay, int bx, int by) {
-        aether_values[ax][ay] /= 2.0f;
-        nether_values[ax][ay] /= 2.0f;
-        aether_values[bx][by] = aether_values[ax][ay];
-        nether_values[bx][by] = nether_values[ax][ay];
-        target_ratios[bx][by] = target_ratios[ax][ay];
-        correct_values_for_target_ratio(ax,ay);
-        correct_values_for_target_ratio(bx,by);
-    }
-
-    private void correct_values_for_target_ratio(int x, int y){
-        if(nether_values[x][y] < (aether_values[x][y] * target_ratios[x][y])){
-            /* radiate out aether to match the Ether ratio */
-            aether_values[x][y] = nether_values[x][y] / target_ratios[x][y];
-        }else if(nether_values[x][y] > (aether_values[x][y] * target_ratios[x][y])){
-            /* radiate out nether to match the Ether ratio */
-            nether_values[x][y] = aether_values[x][y] * target_ratios[x][y];
-        }
-    }
-
-    @Override
     public void process_mechanics(float[][] units, Vector2[][] velocity, World parent) {
-        process_types(units, velocity, parent);
+
     }
 
     @Override
@@ -306,10 +272,19 @@ public class Ethereal_aspect implements Reality_aspect {
     }
 
     public void add_aether_to(int posX, int posY, float value){
+//        for (int nx = Math.max(0, (posX - 1)); nx < Math.min(sizeX, posX + 2); ++nx) {
+//            for (int ny = Math.max(0, (posY - 1)); ny < Math.min(sizeY, posY + 2); ++ny) {
+//                aether_values[nx][ny] = Math.max(0.001f,aether_values[nx][ny]+value);
+//            }
+//        }
         aether_values[posX][posY] = Math.max(0.001f,aether_values[posX][posY]+value);
     }
     public void add_nether_to(int posX, int posY, float value){
         nether_values[posX][posY] = Math.max(0.001f,nether_values[posX][posY]+value);
+    }
+
+    public void change_element_to(int x, int y, Materials.Names type){
+        target_ratios[x][y] = Materials.nether_ratios[type.ordinal()];
     }
 
 }

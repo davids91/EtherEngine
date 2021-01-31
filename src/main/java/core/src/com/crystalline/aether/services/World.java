@@ -11,6 +11,7 @@ import com.crystalline.aether.models.Materials;
  *  - Heat gate
  *  - Speed gate ( to block or enchance the speed of objects )
  *  - Speed to be a vector like unit
+ *  - Eliminate Velocity array or find use for it
  */
 public class World {
     protected final int sizeX;
@@ -78,6 +79,14 @@ public class World {
         Vector2 tmp_vec = velocity[to.get_i_x()][to.get_i_y()];
         velocity[to.get_i_x()][to.get_i_y()] = velocity[from.get_i_x()][from.get_i_y()];
         velocity[from.get_i_x()][from.get_i_y()] = tmp_vec;
+    }
+
+    public void merge_a_into_b(Util.MyCell a, Util.MyCell b){
+        ethereal_plane.switch_values(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
+        elemental_plane.switch_values(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
+
+        units[a.get_i_x()][a.get_i_y()] += units[b.get_i_x()][b.get_i_y()];
+        units[b.get_i_x()][b.get_i_y()] = 0.0f;
     }
 
     public void main_loop(float step){

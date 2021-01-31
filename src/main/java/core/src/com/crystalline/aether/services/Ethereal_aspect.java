@@ -204,6 +204,14 @@ public class Ethereal_aspect implements Reality_aspect {
     }
 
     @Override
+    public void merge_a_to_b(int ax, int ay, int bx, int by) {
+        aether_values[ax][ay] += aether_values[bx][by];
+        nether_values[ax][ay] += nether_values[bx][by];
+        aether_values[bx][by] += 0.01f;
+        nether_values[bx][by] += 0.01f;
+    }
+
+    @Override
     public void process_mechanics(float[][] units, Vector2[][] velocity, World parent) {
 
     }
@@ -272,19 +280,10 @@ public class Ethereal_aspect implements Reality_aspect {
     }
 
     public void add_aether_to(int posX, int posY, float value){
-//        for (int nx = Math.max(0, (posX - 1)); nx < Math.min(sizeX, posX + 2); ++nx) {
-//            for (int ny = Math.max(0, (posY - 1)); ny < Math.min(sizeY, posY + 2); ++ny) {
-//                aether_values[nx][ny] = Math.max(0.001f,aether_values[nx][ny]+value);
-//            }
-//        }
         aether_values[posX][posY] = Math.max(0.001f,aether_values[posX][posY]+value);
     }
     public void add_nether_to(int posX, int posY, float value){
         nether_values[posX][posY] = Math.max(0.001f,nether_values[posX][posY]+value);
-    }
-
-    public void change_element_to(int x, int y, Materials.Names type){
-        target_ratios[x][y] = Materials.nether_ratios[type.ordinal()];
     }
 
 }

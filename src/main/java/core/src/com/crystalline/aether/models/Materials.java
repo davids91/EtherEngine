@@ -30,7 +30,7 @@ public class Materials {
         (PHI * PHI), /* Water */
         (PHI * PHI * PHI), /* Air */
         (PHI * PHI * PHI * PHI), /* Fire */
-        0.0f, /* Nothing */
+//        0.0f, /* Nothing */
     };
 
     /* Names.Materials --> { normal pressure tolerance, pressure threshold to move, pressure threshold to merge} */
@@ -39,7 +39,7 @@ public class Materials {
         {2.0f,4.0f}, /* Water */
         {0.001f,0.02f}, /* Air */
         {50.0f,75.0f,100.0f}, /* Fire */
-        {0} /* Nothing */
+//        {0,0} /* Nothing */
     };
 
     public static final float[][] type_color_scale = {
@@ -47,7 +47,7 @@ public class Materials {
         {10.0f,20.0f},  /* Water */
         {0.0f, 20.0f}, /* Air*/
         {100.0f,300.0f,500.0f}, /* Fire */
-        {0} /* Nothing */
+//        {0,0} /* Nothing */
     };
 
     public static boolean is_same_mat(int ax, int ay, int bx, int by, Materials.Names[][] types, float[][] units){
@@ -91,9 +91,13 @@ public class Materials {
 
     public static boolean a_can_be_merged_into_b(int ax, int ay, int bx, int by, Materials.Names[][] types, float[][] units){
         return(
-            is_same_mat(ax,ay, bx,by, types,units) /* If the materials are the same in the 2 cells */
-            &&is_same_mat(types[ax][ay], units[ax][ay], (units[ax][ay] + units[bx][by]) ) /* and would remain the same should they merge */
-        )||(Names.Nothing == types[bx][by]);
+            is_same_mat(ax,ay, bx,by, types, units) /* If the materials are the same in the 2 cells */
+            &&(!is_hard(types[ax][ay], units[ax][ay]))
+            &&(
+                is_same_mat(types[ax][ay], units[ax][ay], (units[ax][ay] + units[bx][by]) ) /* and would remain the same should they merge */
+                ||(Names.Nothing == types[bx][by])
+            )
+        );
     }
 
     public static boolean movable(Names type, float unit){

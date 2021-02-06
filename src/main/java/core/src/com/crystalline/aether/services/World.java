@@ -82,11 +82,29 @@ public class World {
     }
 
     public void merge_a_into_b(Util.MyCell a, Util.MyCell b){
-        ethereal_plane.switch_values(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
-        elemental_plane.switch_values(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
+        ethereal_plane.merge_a_to_b(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
+        elemental_plane.merge_a_to_b(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
 
-        units[a.get_i_x()][a.get_i_y()] += units[b.get_i_x()][b.get_i_y()];
-        units[b.get_i_x()][b.get_i_y()] = 0.0f;
+        units[b.get_i_x()][b.get_i_y()] += units[a.get_i_x()][a.get_i_y()];
+        units[a.get_i_x()][a.get_i_y()] = 0.0f;
+
+        elemental_plane.take_over_unit_changes(a.get_i_x(),a.get_i_y(),units);
+        elemental_plane.take_over_unit_changes(b.get_i_x(),b.get_i_y(),units);
+        ethereal_plane.take_over_unit_changes(a.get_i_x(),a.get_i_y(),units);
+        ethereal_plane.take_over_unit_changes(b.get_i_x(),b.get_i_y(),units);
+    }
+
+    public void split_a_into_b(Util.MyCell a, Util.MyCell b){ /* TODO: Sometimes movement disturbs Ether */
+        ethereal_plane.split_a_to_b(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
+        elemental_plane.split_a_to_b(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
+
+        units[a.get_i_x()][a.get_i_y()] /= 2.0f;
+        units[b.get_i_x()][b.get_i_y()] += units[a.get_i_x()][a.get_i_y()];
+
+        elemental_plane.take_over_unit_changes(a.get_i_x(),a.get_i_y(),units);
+        elemental_plane.take_over_unit_changes(b.get_i_x(),b.get_i_y(),units);
+        ethereal_plane.take_over_unit_changes(a.get_i_x(),a.get_i_y(),units);
+        ethereal_plane.take_over_unit_changes(b.get_i_x(),b.get_i_y(),units);
     }
 
     public void main_loop(float step){
@@ -101,7 +119,7 @@ public class World {
         /** ============= PROCESS MECHANICS ============= **/
         /* Elemental calculates pressures and forces */
         elemental_plane.process_mechanics(units, velocity, this);
-        ethereal_plane.process_mechanics(units, velocity, this); /* <-- This is currently empty.. */
+        ethereal_plane.process_mechanics(units, velocity, this);
 
         /** ============= PROCESS TYPES ============= **/
         elemental_plane.process_types(units, velocity, this);
@@ -127,8 +145,8 @@ public class World {
     }
     public void add_nether_to(int x, int y, float value){
         ethereal_plane.add_nether_to(x,y,value);
-        elemental_plane.define_by(ethereal_plane);
         ethereal_plane.determine_units(units,this);
+        elemental_plane.define_by(ethereal_plane);
     }
 
     public float unit_at(int posX, int posY){

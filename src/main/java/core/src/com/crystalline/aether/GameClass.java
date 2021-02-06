@@ -3,17 +3,16 @@ package com.crystalline.aether;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.ArrowShapeBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.Materials;
 import com.crystalline.aether.services.World;
 
@@ -38,31 +37,42 @@ public class GameClass extends ApplicationAdapter {
 
 	OrthographicCamera camera;
 	ShapeRenderer shapeRenderer;
+	MeshBuilder meshbuilder;
+	Mesh debug_arrows;
 	BitmapFont font;
 
+	Config conf = new Config();
 	World world;
 	float addition = 5.0f;
 
-	final int[] world_block_number = {200,200};
-	final float world_block_size = 100.0f;
-	final float[] world_size = {world_block_number[0] * world_block_size, world_block_number[1] * world_block_size};
-
-	private boolean debug_panel_shown = false;
+	private enum Debug_state {
+		OFF,TEXT,NORMAL_ARROWS,ARROWS;
+		private static Debug_state[] vals = values();
+		public Debug_state next(){ return vals[(this.ordinal() + 1) % vals.length]; }
+		public Debug_state previous(){
+			if(0 == this.ordinal())
+				return vals[vals.length-1];
+			else return vals[this.ordinal() -1];
+		}
+	}
+	private Debug_state debug_state = Debug_state.OFF;
 
 	@Override
 	public void create () {
-		Gdx.gl.glClearColor(0, 0.1f, 0.1f, 1);
+		Gdx.gl.glClearColor(0.9f, 0.5f, 0.8f, 1);
 		camera = new OrthographicCamera();
-		camera.setToOrtho(false,world_block_number[0] * world_block_size, world_block_number[1] * world_block_size);
+		camera.setToOrtho(false,conf.world_size[0], conf.world_size[1]);
 		camera.update();
 
 		batch = new SpriteBatch();
 		shapeRenderer = new ShapeRenderer();
+		meshbuilder = new MeshBuilder();
+
 		img_aether = new Texture("aether.png");
 		img_nether = new Texture("nether.png");
 		font = new BitmapFont();
 
-		world = new World(world_block_number[0], world_block_number[1]);
+		world = new World(conf);
 		world.pond_with_grill();
 	}
 
@@ -71,90 +81,121 @@ public class GameClass extends ApplicationAdapter {
 		my_game_loop();
 
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-		batch.begin();
 		batch.setProjectionMatrix(camera.combined);
+		batch.begin();
 		TextureRegion lofaszbazdmeg = new TextureRegion(new Texture(world.getWorldImage(mouseInWorld2D,(addition/10.0f), world.get_eth_plane())));
 		lofaszbazdmeg.flip(false,true);
-		batch.draw(lofaszbazdmeg,0,0,world_size[0],world_size[1]);
-		for(int x = 0; x < world_block_number[0]; ++x){
-			for(int y = 0; y < world_block_number[1]; ++y){
+		batch.draw(lofaszbazdmeg,0,0,conf.world_size[0],conf.world_size[1]);
+		if(Debug_state.TEXT == debug_state)
+		for(int x = (int)Math.max(0.0f,(mouseInWorld2D.x - 20)); x < Math.min((mouseInWorld2D.x + 20),conf.world_block_number[0]); ++x){
+			for(int y = (int)Math.max(0.0f,(mouseInWorld2D.y - 20)); y < Math.min((mouseInWorld2D.y + 20),conf.world_block_number[1]); ++y){
 //				drawblock(x,y, (world.get_eth_plane().aether_value_at(x,y)/Math.max(world.get_eth_plane().aether_value_at(x,y),world.get_eth_plane().nether_value_at(x,y))), img_aether);
 //				drawblock(x,y, (world.get_eth_plane().nether_value_at(x,y)/Math.max(world.get_eth_plane().aether_value_at(x,y),world.get_eth_plane().nether_value_at(x,y))), img_nether);
-//		        draw_velo(x,y);
+		        draw_velo(x,y);
 			}
 		}
 		batch.end();
-		shapeRenderer.setProjectionMatrix(camera.combined);
-		//drawGrid(1.0f, world_block_size);
+//		drawGrid(1.0f, world_block_size);
+
+		/* draw velocity arrrays */
+		if((Debug_state.NORMAL_ARROWS == debug_state) || (Debug_state.ARROWS == debug_state)){
+			meshbuilder.clear();
+			meshbuilder.begin(VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal, GL20.GL_TRIANGLES);
+			for(int x = (int)Math.max(0.0f,(mouseInWorld2D.x - 10)); x < Math.min((mouseInWorld2D.x + 10),conf.world_block_number[0]); ++x){
+				for(int y = (int)Math.max(0.0f,(mouseInWorld2D.y - 10)); y < Math.min((mouseInWorld2D.y + 10),conf.world_block_number[1]); ++y){
+					if(0 < world.get_elm_plane().get_force(x,y).len()){
+						if (Debug_state.NORMAL_ARROWS == debug_state) {
+							ArrowShapeBuilder.build(
+							meshbuilder,
+							x * conf.world_block_size + conf.block_radius, y * conf.world_block_size + conf.block_radius, 0,
+							x * conf.world_block_size + conf.block_radius + conf.world_block_size * world.get_elm_plane().get_force(x,y).cpy().nor().x,
+							y * conf.world_block_size + conf.block_radius + conf.world_block_size * world.get_elm_plane().get_force(x,y).cpy().nor().y, 0,
+							0.1f,0.5f,4
+							);
+						}else{
+							ArrowShapeBuilder.build(
+							meshbuilder,
+							x * conf.world_block_size + conf.block_radius,
+							y * conf.world_block_size + conf.block_radius, 0,
+							x * conf.world_block_size + conf.block_radius
+									+ conf.world_block_size * Math.max(-conf.world_size[0], Math.min(conf.world_size[0],world.get_elm_plane().get_force(x,y).x)),
+							y * conf.world_block_size + conf.block_radius
+									+ conf.world_block_size * Math.max(-conf.world_size[1], Math.min(conf.world_size[1],world.get_elm_plane().get_force(x,y).y)), 0,
+							0.1f,0.5f,4
+							);
+						}
+					}
+				}
+			}
+			debug_arrows = meshbuilder.end();
+			batch.begin();
+			debug_arrows.render(batch.getShader(), GL20.GL_TRIANGLES);
+			batch.end();
+		}
 	}
 
 	private void drawblock(int x, int y, float scale_, Texture tex){
 		float scale = Math.max( -1.0f, Math.min( 1.0f , scale_) );
 		batch.draw(
 			tex,
-			x * world_block_size + (world_block_size/2.0f) - (world_block_size/2.0f) * Math.abs(scale),
-			y * world_block_size + (world_block_size/2.0f) - (world_block_size/2.0f) * Math.abs(scale),
-			(Math.abs(scale) * world_block_size),
-			(Math.abs(scale) * world_block_size)
+			x * conf.world_block_size + (conf.block_radius) - (conf.block_radius) * Math.abs(scale),
+			y * conf.world_block_size + (conf.block_radius) - (conf.block_radius) * Math.abs(scale),
+			(Math.abs(scale) * conf.world_block_size),
+			(Math.abs(scale) * conf.world_block_size)
 		);
 		font.draw(
 			batch,
 			String.format( "U: %.2f", world.unit_at(x,y) ),
-			x * world_block_size + (world_block_size/4.0f),
-			y * world_block_size + (4.0f * world_block_size/5.0f)
+			x * conf.world_block_size + (conf.world_block_size/4.0f),
+			y * conf.world_block_size + (4.0f * conf.world_block_size/5.0f)
 		);
 		font.draw(
 			batch,
 			String.format( "Ae: %.2f", world.get_eth_plane().aether_value_at(x,y) ),
-			x * world_block_size + (world_block_size/4.0f),
-			y * world_block_size + (3.0f * world_block_size/5.0f)
+			x * conf.world_block_size + (conf.world_block_size/4.0f),
+			y * conf.world_block_size + (3.0f * conf.world_block_size/5.0f)
 		);
 		font.draw(
 			batch,
 			String.format( "Ne: %.2f", world.get_eth_plane().nether_value_at(x,y) ),
-			x * world_block_size + (world_block_size/4.0f),
-			y * world_block_size + (world_block_size/2.0f)
+			x * conf.world_block_size + (conf.world_block_size/4.0f),
+			y * conf.world_block_size + (conf.block_radius)
 		);
 		font.draw(
 			batch,
 			String.format( "R: %.2f", world.get_eth_plane().get_ratio(x,y) ),
-			x * world_block_size + (world_block_size/4.0f),
-			y * world_block_size + (world_block_size/5.0f)
+			x * conf.world_block_size + (conf.world_block_size/4.0f),
+			y * conf.world_block_size + (conf.world_block_size/5.0f)
 		);
 	}
 
-	private void draw_velo(int x, int y){ /* TODO: draw arrows */
+	private void draw_velo(int x, int y){
 		font.draw(
 			batch,
 			String.format( "U: %.2f", world.unit_at(x,y) ),
-			x * world_block_size + (world_block_size/4.0f),
-			y * world_block_size + (4.0f * world_block_size/5.0f)
+			x * conf.world_block_size + (conf.world_block_size/4.0f),
+			y * conf.world_block_size + (4.0f * conf.world_block_size/5.0f)
 		);
 		font.draw(
 			batch,
-			String.format( "v(%.2f, %.2f)", world.get_velo(x,y).x, world.get_velo(x,y).y ),
-			x * world_block_size + (world_block_size/4.0f),
-			y * world_block_size + (3.0f * world_block_size/5.0f)
-		);
-		font.draw(
-			batch,
-				String.format( "f(%.2f, %.2f)",
+				String.format( "%.2f, %.2f",
 					world.get_elm_plane().get_force(x,y).x,
 					world.get_elm_plane().get_force(x,y).y
 				),
-			x * world_block_size + (world_block_size/4.0f),
-			y * world_block_size + (world_block_size/2.0f)
+			x * conf.world_block_size + (conf.world_block_size/4.0f),
+			y * conf.world_block_size + (conf.block_radius)
 		);
 	}
 
 	private void drawGrid(float lineWidth, float cellSize) {
+		shapeRenderer.setProjectionMatrix(camera.combined);
 		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 		shapeRenderer.setColor(Color.LIME);
-		for(float x = cellSize;x<world_size[0];x+=cellSize){
-			shapeRenderer.rect(x,0,lineWidth,world_size[1]);
+		for(float x = cellSize;x<conf.world_size[0];x+=cellSize){
+			shapeRenderer.rect(x,0,lineWidth,conf.world_size[1]);
 		}
-		for(float y = cellSize;y<world_size[0];y+=cellSize){
-			shapeRenderer.rect(0,y,world_size[0],lineWidth);
+		for(float y = cellSize;y<conf.world_size[0];y+=cellSize){
+			shapeRenderer.rect(0,y,conf.world_size[0],lineWidth);
 		}
 		shapeRenderer.end();
 	}
@@ -168,11 +209,18 @@ public class GameClass extends ApplicationAdapter {
 		mouseInCam3D.z = 0;
 		camera.unproject(mouseInCam3D);
 		mouseInWorld2D.x = (
-				(mouseInCam3D.x - (world_block_size/2.0f) + (world_block_size/4.0f))
-						/ world_block_size);
+				(mouseInCam3D.x - (conf.block_radius) + (conf.world_block_size/4.0f))
+						/ conf.world_block_size);
 		mouseInWorld2D.y = (
-				(mouseInCam3D.y - (world_block_size/2.0f) + (world_block_size/4.0f))
-						/ world_block_size);
+				(mouseInCam3D.y - (conf.block_radius) + (conf.world_block_size/4.0f))
+						/ conf.world_block_size);
+
+		if(Gdx.input.isKeyJustPressed(Input.Keys.F1)){
+			debug_state = debug_state.previous();
+		}
+		if(Gdx.input.isKeyJustPressed(Input.Keys.F2)){
+			debug_state = debug_state.next();
+		}
 
 		if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)){
 			addition *= 1.1f;
@@ -205,14 +253,29 @@ public class GameClass extends ApplicationAdapter {
 			world.main_loop(0.01f);
 		}
 		if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
-			float pressure = world.unit_at((int)mouseInWorld2D.x,world_block_number[1]-1);
-			for(int i = world_block_number[1]-2; i >= mouseInWorld2D.y; --i ){
-				pressure += world.unit_at((int)mouseInWorld2D.x, i);
+			if(conf.world_block_number[0] == first_point.get_i_x()){
+				System.out.print("force at cursor:" + world.get_elm_plane().get_force((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) + "[");
+				first_point.set(mouseInWorld2D);
+			}else{
+				System.out.print("nx,x==>" + (int)mouseInWorld2D.x + "," + first_point.get_i_x() + ";");
+				System.out.print("w diff: " + -(world.get_weight((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) - world.get_weight(first_point)) + ";");
+				System.out.println("nx-x diff: " + ((int)mouseInWorld2D.x - first_point.get_i_x()) + "]");
+				float tmp = 0;
+				for (int nx = (first_point.get_i_x() - 1); nx < (first_point.get_i_x() + 2); ++nx) {
+					for (int ny = (first_point.get_i_y() - 1); ny < (first_point.get_i_y() + 2); ++ny) {
+						float weight_difference = Math.max(-2.5f, Math.min(2.5f,(world.get_weight(first_point) - world.get_weight(nx,ny))));
+						System.out.print("("+nx+","+ny+")"+(nx-first_point.get_i_x()) * weight_difference+";");
+						tmp += (nx-first_point.get_i_x()) * weight_difference;
+					}
+				}
+				System.out.println("Final force delta x : " + tmp);
+				first_point.x = conf.world_block_number[0];
 			}
-			System.out.println("Pressure at point at("+mouseInWorld2D.x+","+mouseInWorld2D.y+"):" + pressure);
 		}
 	}
-	
+
+	Util.MyCell first_point = new Util.MyCell(1,1,conf.world_block_number[0]);
+
 	@Override
 	public void dispose () {
 		batch.dispose();

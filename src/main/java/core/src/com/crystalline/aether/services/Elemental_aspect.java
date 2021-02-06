@@ -1,13 +1,15 @@
 package com.crystalline.aether.services;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.math.Vector2;
+import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.Materials;
 import com.crystalline.aether.models.Reality_aspect;
 import com.crystalline.aether.Util;
 
 import java.util.*;
 
-public class Elemental_aspect implements Reality_aspect {
+public class Elemental_aspect extends Reality_aspect {
     protected final int sizeX;
     protected final int sizeY;
     Materials.Names[][] blocks;
@@ -15,9 +17,10 @@ public class Elemental_aspect implements Reality_aspect {
 
     private final Random rnd = new Random();
 
-    public Elemental_aspect(int sizeX_, int sizeY_){
-        sizeX = sizeX_;
-        sizeY = sizeY_;
+    public Elemental_aspect(Config conf_){
+        super(conf_);
+        sizeX = conf.world_block_number[0];
+        sizeY = conf.world_block_number[1];
         blocks = new Materials.Names[sizeX][sizeY];
         forces = new Vector2[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
@@ -84,7 +87,7 @@ public class Elemental_aspect implements Reality_aspect {
     }
 
     @Override
-    public void process_units(float[][] units, Vector2[][] velocity, World parent){
+    public void process_units(float[][] units, World parent){
         float[][] avgs = new float[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
@@ -104,7 +107,7 @@ public class Elemental_aspect implements Reality_aspect {
     }
 
     @Override
-    public void process_types(float[][] units, Vector2[][] velocity, World parent) {
+    public void process_types(float[][] units, World parent) {
         for(int x = sizeX - 1;x > 0; --x){
             for(int y = sizeY - 1 ; y > 0; --y) {
                 blocks[x][y] = parent.ethereal_plane.element_at(x,y);
@@ -141,7 +144,7 @@ public class Elemental_aspect implements Reality_aspect {
 
     }
 
-    private float get_weight(int x, int y, float[][] units){
+    public float get_weight(int x, int y, float[][] units){
         /* TODO: Weight to include pressure somehow? or at least the same materials on top */
         return (units[x][y] * Materials.type_specific_gravity[blocks[x][y].ordinal()][1]);
     }
@@ -174,181 +177,41 @@ public class Elemental_aspect implements Reality_aspect {
     }
 
     @Override
-    public void process_mechanics(float[][] units, Vector2[][] velocity, World parent) {
+    public void process_mechanics(float[][] units, World parent) {
         HashMap<Util.MyCell, Util.MyCell> remaining_proposed_changes = new HashMap<>();
         for(int i = 0;i < 3;++i){
-            process_mechanics_backend(units,velocity,parent,remaining_proposed_changes);
+            process_mechanics_backend(units,parent,remaining_proposed_changes);
         }
-        for(int x = 1; x < sizeX-1; ++x){
-            for(int y = 1; y < sizeY-1; ++y){
-                velocity[x][y].set(0,0);
-            }
-        }
-    }
-
-    /**
-     *  A Function to try and propose cell pairs to change in this mechanics iteration
-     * @param units
-     * @param velocity
-     * @param source_cell
-     * @param target_cell
-     * @param already_proposed_changes
-     * @param already_changed
-     * @return whether or not the cells could be placed into the already proposed changes
-     */
-    private boolean evaluate_for_mechanics(
-        float[][] units, Vector2[][] velocity, Util.MyCell source_cell, Util.MyCell target_cell,
-        HashMap<Util.MyCell[], Util.MyCell[]> already_proposed_changes, HashSet<Integer> already_changed
-    ){
-        int x = source_cell.get_i_x();
-        int y = source_cell.get_i_y();
-        int intended_x = target_cell.get_i_x();
-        int intended_y = target_cell.get_i_y();
-        int nx = (int)(x - Math.max(-1.0,Math.min(velocity[x][y].x,1.0))); /* Neighbour */
-        int ny = (int)(y - Math.max(-1.0,Math.min(velocity[x][y].y,1.0)));
-        if(
-            !((x == intended_x) && (y == intended_y))
-            &&(!already_changed.contains(Util.coordinate_to_hash(intended_x,intended_y,sizeX))) /* TODO: In case the target is already changed don't collide */
-            &&(!already_changed.contains(Util.coordinate_to_hash(x,y,sizeX)))
-        ){
-            if( /* try to merge into */
-                Materials.movable(blocks[x][y], units[x][y])
-                &&Materials.is_same_mat(x, y, intended_x, intended_y, blocks, units) /* can only merge into the same material! */
-                &&Materials.a_can_be_merged_into_b(x,y,intended_x,intended_y, blocks, units)
-            ){
-                /* look for a neighbour to help with the merge */
-                if(
-                    !((x == nx) && (y == ny))
-                    &&!((intended_x == nx) && (intended_y == ny))
-                    &&!Materials.is_same_mat(x, y, nx, ny, blocks, units)
-                    &&Materials.movable(blocks[nx][ny], units[nx][ny])
-                    &&!already_changed.contains(Util.coordinate_to_hash(nx, ny, sizeX))
-                ){
-                    already_proposed_changes.put(
-                        new Util.MyCell[]{new Util.MyCell(nx, ny, sizeX), new Util.MyCell(x, y, sizeX)},
-                        new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX)}
-                    ); /* propose to merge the cell into it's target */
-                    already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
-                    already_changed.add(Util.coordinate_to_hash(nx, ny, sizeX));
-                    already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
-                    return true;
-                }else{
-                    for (nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
-                        for (ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
-                            if(
-                                !((x == nx) && (y == ny))
-                                &&!((intended_x == nx) && (intended_y == ny))
-                                &&!Materials.is_same_mat(x, y, nx, ny, blocks, units)
-                                &&Materials.movable(blocks[nx][ny], units[nx][ny])
-                                &&!already_changed.contains(Util.coordinate_to_hash(nx, ny, sizeX))
-                            ){
-                                already_proposed_changes.put(
-                                    new Util.MyCell[]{new Util.MyCell(nx,ny,sizeX), new Util.MyCell(x,y,sizeX)},
-                                    new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX)}
-                                ); /* propose to merge the cell into it's target */
-                                already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
-                                already_changed.add(Util.coordinate_to_hash(nx, ny, sizeX));
-                                already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }else if( /* try tp move away from material */
-                Materials.movable(blocks[x][y], units[x][y])
-                &&!Materials.is_same_mat(x, y, intended_x, intended_y, blocks, units) /* can only expand into a different material! */
-            ){
-                /* look for a neighbour of the intended to help with the expansion */
-                nx = (int)(intended_x + Math.max(-1.0,Math.min(velocity[x][y].x,1.0))); /* Neighbour */
-                ny = (int)(intended_y + Math.max(-1.0,Math.min(velocity[x][y].y,1.0)));
-                if(
-                    (nx < sizeX) && (nx >= 0)
-                    &&(ny < sizeX) && (ny >= 0)
-                    &&!((x == nx) && (y == ny))
-                    &&!((intended_x == nx) && (intended_y == ny))
-                    &&!Materials.is_same_mat(x, y, nx, ny, blocks, units)
-                    &&Materials.movable(blocks[nx][ny], units[nx][ny])
-                    &&!already_changed.contains(Util.coordinate_to_hash(nx, ny, sizeX))
-                ){
-                    already_proposed_changes.put(
-                        new Util.MyCell[]{new Util.MyCell(x, y, sizeX)},
-                        new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX), new Util.MyCell(nx, ny, sizeX)}
-                    ); /* propose to merge the cell into it's target */
-                    already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
-                    already_changed.add(Util.coordinate_to_hash(nx, ny, sizeX));
-                    already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
-                    return true;
-                }else{
-                    for (nx = Math.max(0, (intended_x - 1)); nx < Math.min(sizeX, intended_x + 2); ++nx) {
-                        for (ny = Math.max(0, (intended_y - 1)); ny < Math.min(sizeY, intended_y + 2); ++ny) {
-                            if(
-                                !((x == nx) && (y == ny))
-                                &&!((intended_x == nx) && (intended_y == ny))
-                                &&Materials.is_same_mat(intended_x, intended_y, nx, ny, blocks, units)
-                                &&Materials.movable(blocks[nx][ny], units[nx][ny])
-                                &&!already_changed.contains(Util.coordinate_to_hash(nx, ny, sizeX))
-                            ){
-                                already_proposed_changes.put(
-                                    new Util.MyCell[]{new Util.MyCell(x, y, sizeX)},
-                                    new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX), new Util.MyCell(nx, ny, sizeX)}
-                                ); /* propose to merge the cell into it's target */
-                                already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
-                                already_changed.add(Util.coordinate_to_hash(nx, ny, sizeX));
-                                already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
-                                return true;
-                            }
-                        }
-                    }
-                }
-
-            }
-
-            if(!already_changed.contains(Util.coordinate_to_hash(intended_x, intended_y, sizeX))){
-                already_proposed_changes.put(
-                    new Util.MyCell[]{new Util.MyCell(x,y,sizeX)},
-                    new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX)}
-                ); /* propose to switch the 2 */
-                already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
-                already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
-                return true;
-            }
-
-        }
-        return false;
+        /* TODO: Refine velocity to be based on "ticks" of movements, (rather than)/(in cooperation) with multiple processing loops  */
     }
 
     /* TODO: Make movable objects, depending of the solidness "merge into one another", leaving vacuum behind, which are to resolved at the end of the mechanics round */
-    public void process_mechanics_backend(float[][] units, Vector2[][] velocity, World parent, HashMap<Util.MyCell, Util.MyCell> previously_left_out_proposals){
+    public void process_mechanics_backend(float[][] units, World parent, HashMap<Util.MyCell, Util.MyCell> previously_left_out_proposals){
 
-        /* update forces based on context and calculate velocities based on forces */
-        for(int x = 1; x < sizeX-1; ++x){
+        /* update forces based on context, calculate intended velocities based on them */
+        for(int x = 1; x < sizeX-2; ++x){
             for(int y = sizeY-2; y > 0; --y){
                 if(!Materials.discardable(blocks[x][y], units[x][y])){
-                    if(Materials.movable(blocks[x][y], units[x][y])){ /* TODO: Figure out proper force system, so fores need be only modified by gravity, not reseted every loop */
-                        forces[x][y].set(Util.gravity.x * get_weight(x,y,units),Util.gravity.y * get_weight(x,y,units));
-                    }else{
-                        forces[x][y].set(0,0);
-                    }
-                    if(Materials.movable(blocks[x][y], units[x][y])){
+                    if(Materials.movable(blocks[x][y], units[x][y])){ /* TODO: Finalise force system, so gravity can be added, instead of being set  */
                         forces[x][y].add(Util.gravity.x * get_weight(x,y,units),Util.gravity.y * get_weight(x,y,units));
                     }
                     if(
-                        Materials.is_same_mat(x,y,x,y+1,blocks, units)
-                        &&(Materials.movable(blocks[x][y], units[x][y]))
+                            Materials.movable(blocks[x][y], units[x][y])
+                            &&(
+                                !Materials.is_same_mat(x,y,x+1,y,blocks, units)
+                                ||!Materials.is_same_mat(x,y,x-1,y,blocks, units)
+                            )
+                                    &&Materials.is_same_mat(x,y,x,y-1,blocks, units)
                     ){
                         for (int nx = (x - 1); nx < (x + 2); ++nx) {
                             for (int ny = (y - 1); ny < (y + 2); ++ny) {
-                                float weight_difference = (get_weight(x,y,units) - get_weight(nx,ny,units));//Math.max(-1.5f, Math.min(1.5f,(get_weight(x,y,units) - get_weight(nx,ny,units))));
-                                velocity[x][y].add(
-                                (ny % 2) * (nx-x)*weight_difference, (ny-y)*weight_difference / get_weight(x,y,units)
+                                float weight_difference = Math.max(-1.5f, Math.min(1.5f,(get_weight(x,y,units) - get_weight(nx,ny,units))));
+                                forces[x][y].add( /* TODO: Eliminate the possibility of columns of water */
+                                        (nx-x) * weight_difference, -forces[x][y].y
                                 );
                             }
                         }
                     }
-                    velocity[x][y].add(
-                    forces[x][y].x / get_weight(x,y,units),
-                    forces[x][y].y / get_weight(x,y,units)
-                    );
                 } /* If the cell is not air */
             }
         }
@@ -374,7 +237,7 @@ public class Elemental_aspect implements Reality_aspect {
         /* Take over proposals left out from the previous process loop */
         HashMap<Util.MyCell, Util.MyCell> remaining = new HashMap<>();
         for(Map.Entry<Util.MyCell, Util.MyCell> curr_change : previously_left_out_proposals.entrySet()){
-            if(!evaluate_for_mechanics(units, velocity, curr_change.getKey(), curr_change.getValue(),proposed_changes,already_changed)){
+            if(!evaluate_for_mechanics(units, curr_change.getKey(), curr_change.getValue(),proposed_changes,already_changed)){
                 remaining.put(curr_change.getKey(),curr_change.getValue());
             }
         }
@@ -389,15 +252,14 @@ public class Elemental_aspect implements Reality_aspect {
 //        for(int x = sizeX-2; x > 0; --x){
 //            for(int y = sizeY-2; y > 0; --y){
                 if(
-                    !Materials.discardable(blocks[x][y], units[x][y])
-                    &&(1.0f <= velocity[x][y].len())
+                        !Materials.discardable(blocks[x][y], units[x][y])
+                                &&(1.0f <= forces[x][y].len())
                 ){
                     intended_source_cell.set(x,y);
                     intended_target_cell.set(
-                        (float)(x + Math.max(-1.0,Math.min(velocity[x][y].x,1.0))),
-                        (float)(y + Math.max(-1.0,Math.min(velocity[x][y].y,1.0)))
+                            (x + Math.max(-1.0f,Math.min(forces[x][y].x,1.0f))), (y + Math.max(-1.0f,Math.min(forces[x][y].y,1.0f)))
                     );
-                    if(!evaluate_for_mechanics(units, velocity, intended_source_cell,intended_target_cell,proposed_changes,already_changed)){
+                    if(!evaluate_for_mechanics(units, intended_source_cell,intended_target_cell,proposed_changes,already_changed)){
                         previously_left_out_proposals.put(new Util.MyCell(intended_source_cell),new Util.MyCell(intended_target_cell));
                     }
                 }
@@ -406,99 +268,270 @@ public class Elemental_aspect implements Reality_aspect {
 
         /* apply changes */
         for(Map.Entry<Util.MyCell[], Util.MyCell[]> curr_change : proposed_changes.entrySet()){
+            int source_x = curr_change.getKey()[curr_change.getKey().length-1].get_i_x();
+            int source_y = curr_change.getKey()[curr_change.getKey().length-1].get_i_y();
+            int target_x = curr_change.getValue()[0].get_i_x();
+            int target_y = curr_change.getValue()[0].get_i_y();
             if(
-                ((curr_change.getKey().length > 0)&&(curr_change.getValue().length > 0))
-                &&(
-                    (curr_change.getKey().length == 1)
-                    &&!Materials.a_can_be_merged_into_b(
-                        curr_change.getKey()[curr_change.getKey().length-1].get_i_x(), curr_change.getKey()[curr_change.getKey().length-1].get_i_y(),
-                        curr_change.getValue()[0].get_i_x(), curr_change.getValue()[0].get_i_y(), blocks, units
+                    Materials.discardable(blocks[target_x][target_y],units[target_x][target_y])
+                            ||(
+                            (get_weight(source_x,source_y,units) > get_weight(target_x,target_y, units))
+                                    &&Materials.movable(blocks[target_x][target_y],units[target_x][target_y])
                     )
-                )
-            ){ /* if swapping or collision happens */
-                if(
-                    Materials.movable(
-                        blocks[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()],
-                        units[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()]
-                    )
-                    && /* TODO: Switch when the velocity and weight justifies it */
-                    Materials.discardable(
-                        blocks[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()],
-                        units[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()]
-                    )
-                ){
-                    velocity[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()].scl(0.1f);
-                    parent.switch_elements(curr_change.getKey()[curr_change.getKey().length-1],curr_change.getValue()[0]);
-                }else if(
-                    Materials.movable(
-                        blocks[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()],
-                        units[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()]
-                    )
-                    &&Materials.a_can_be_merged_into_b(
-                            curr_change.getKey()[curr_change.getKey().length-1].get_i_x(), curr_change.getKey()[curr_change.getKey().length-1].get_i_y(),
-                            curr_change.getValue()[0].get_i_x(), curr_change.getValue()[0].get_i_y(), blocks, units
-                    )
-                ){
-                    parent.split_a_into_b(curr_change.getKey()[curr_change.getKey().length-1], curr_change.getValue()[0]);
-                }else{ /* not swapping, not merging, collision! */
-                    /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
-                    float m1 = get_weight(curr_change.getKey()[curr_change.getKey().length-1].get_i_x(),curr_change.getKey()[curr_change.getKey().length-1].get_i_y(), units);
-                    Vector2 u1 = velocity[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()].cpy();
+            ){
+                /* swap the 2 cells, decreasing the forces on both */
+                parent.switch_elements(curr_change.getKey()[curr_change.getKey().length-1],curr_change.getValue()[0]);
+                forces[source_x][source_y].scl(0.8f);
+                forces[target_x][target_y].scl(0.8f);
+            }else{
+                /* The cells collide, updating forces, but no swapping */
+                /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
+                float m1 = get_weight(source_x, source_y, units);
+                Vector2 u1 = forces[source_x][source_y].cpy();
+                float m2 = get_weight(target_x, target_y, units);
+                Vector2 u2 = forces[target_x][target_y].cpy();
 
-                    float m2 = get_weight(curr_change.getValue()[0].get_i_x(),curr_change.getValue()[0].get_i_y(), units);
-                    Vector2 u2 = velocity[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()].cpy();
-
-                    /* TODO: Decide if collision is inelastic or not: When a collision puts two cells to the same trajectory */
-                    velocity[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()].set(
+                forces[source_x][source_y].set(
                         ((m1 - m2)/(m1+m2)*u1.x) + (2.0f*m2/(m1+m2))*u2.x,
                         ((m1 - m2)/(m1+m2)*u1.y) + (2.0f*m2/(m1+m2))*u2.y
+                );
+                if(Materials.movable(blocks[target_x][target_y],units[target_x][target_y])){
+                    /*!Note: it is supposed, that non-movable cells do not initiate movement */
+                    forces[target_x][target_y].set(
+                            (2.0f*m1/(m1+m2))*u1.x + ((m2-m1)/(m1+m2)*u2.x),
+                            (2.0f*m1/(m1+m2))*u1.y + ((m2-m1)/(m1+m2)*u2.y)
                     );
-//                    forces[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()].set(
-//                        velocity[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()]
-//                    );
-                    velocity[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()].set(
-                        (2.0f*m1/(m1+m2))*u1.x + ((m2-m1)/(m1+m2)*u2.x),
-                        (2.0f*m1/(m1+m2))*u1.y + ((m2-m1)/(m1+m2)*u2.y)
-                    );
-//                    forces[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()].set(
-//                        velocity[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()]
-//                    );
                 }
-            }else if( /* the source block array must have at least 2 elements to equalize the transition */
-                ((curr_change.getKey().length > 1)&&(curr_change.getValue().length > 0))
-            ){ /* not swapping, trying to move cells */
-                /* try to make space in the target block array */
-                for(int i = curr_change.getValue().length-1; i > 0; --i){
-                    /* merge the cell[i-1] into cell[i] if possible */
-                    if(
-                        Materials.a_can_be_merged_into_b(
-                            curr_change.getValue()[i-1].get_i_x(), curr_change.getValue()[i-1].get_i_y(),
-                            curr_change.getValue()[i].get_i_x(), curr_change.getValue()[i].get_i_y(), blocks,units
-                        )
-                    ){
-                        parent.merge_a_into_b(curr_change.getValue()[i-1], curr_change.getValue()[i]);
-                    }
-                }
-
-                /* move source block arrays last element into the first element of the target array */
-                if(Materials.a_can_be_merged_into_b(
-                    curr_change.getKey()[curr_change.getKey().length-1].get_i_x(), curr_change.getKey()[curr_change.getKey().length-1].get_i_y(),
-                    curr_change.getValue()[0].get_i_x(), curr_change.getValue()[0].get_i_y(), blocks,units
-                )){
-                    /* if(0 == spaces_freed_up){ // the source cell is merged into the target cell */
-                    /* - it doesn't matter in this case, as the source cell will be left for nothing, and the target cell will
-                    *    have its units updated by it; While thy type is overwritten by the source cell ( the same type or type "Nothing" is overwritten ) */
-                    parent.merge_a_into_b(curr_change.getKey()[curr_change.getKey().length-1], curr_change.getValue()[0]);
-
-                    /* trying to equalize the pressure in the source block array */ /* TODO: use more, than just the first element */
-                    parent.split_a_into_b(curr_change.getKey()[0],curr_change.getKey()[curr_change.getKey().length-1]);
-                } /* else: no action shall take place */
             }
+//            if( /* TODO: Re-introduce merges part 2 */
+//                ((curr_change.getKey().length > 0)&&(curr_change.getValue().length > 0))
+//                &&(
+//                    (curr_change.getKey().length == 1)
+//                    &&!Materials.a_can_be_merged_into_b(
+//                        curr_change.getKey()[curr_change.getKey().length-1].get_i_x(), curr_change.getKey()[curr_change.getKey().length-1].get_i_y(),
+//                        curr_change.getValue()[0].get_i_x(), curr_change.getValue()[0].get_i_y(), blocks, units
+//                    )
+//                )
+//            ){ /* if swapping or collision happens */
+//                if(
+//                    Materials.movable(
+//                        blocks[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()],
+//                        units[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()]
+//                    )
+//                    && /* TODO: Switch when the velocity and weight justifies it */
+//                    Materials.discardable(
+//                        blocks[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()],
+//                        units[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()]
+//                    )
+//                ){
+//                    velocity[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()].scl(0.1f);
+//                    parent.switch_elements(curr_change.getKey()[curr_change.getKey().length-1],curr_change.getValue()[0]);
+//                }else if(
+//                    Materials.movable(
+//                        blocks[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()],
+//                        units[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()]
+//                    )
+//                    &&Materials.a_can_be_merged_into_b(
+//                            curr_change.getKey()[curr_change.getKey().length-1].get_i_x(), curr_change.getKey()[curr_change.getKey().length-1].get_i_y(),
+//                            curr_change.getValue()[0].get_i_x(), curr_change.getValue()[0].get_i_y(), blocks, units
+//                    )
+//                ){
+//                    parent.split_a_into_b(curr_change.getKey()[curr_change.getKey().length-1], curr_change.getValue()[0]);
+//                }else{ /* not swapping, not merging, collision! */
+//                    /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
+//                    float m1 = get_weight(curr_change.getKey()[curr_change.getKey().length-1].get_i_x(),curr_change.getKey()[curr_change.getKey().length-1].get_i_y(), units);
+//                    Vector2 u1 = velocity[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()].cpy();
+//
+//                    float m2 = get_weight(curr_change.getValue()[0].get_i_x(),curr_change.getValue()[0].get_i_y(), units);
+//                    Vector2 u2 = velocity[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()].cpy();
+//
+//                    /* TODO: Decide if collision is inelastic or not: When a collision puts two cells to the same trajectory */
+//                    velocity[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()].set(
+//                        ((m1 - m2)/(m1+m2)*u1.x) + (2.0f*m2/(m1+m2))*u2.x,
+//                        ((m1 - m2)/(m1+m2)*u1.y) + (2.0f*m2/(m1+m2))*u2.y
+//                    );
+////                    forces[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()].set(
+////                        velocity[curr_change.getKey()[curr_change.getKey().length-1].get_i_x()][curr_change.getKey()[curr_change.getKey().length-1].get_i_y()]
+////                    );
+//                    velocity[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()].set(
+//                        (2.0f*m1/(m1+m2))*u1.x + ((m2-m1)/(m1+m2)*u2.x),
+//                        (2.0f*m1/(m1+m2))*u1.y + ((m2-m1)/(m1+m2)*u2.y)
+//                    );
+////                    forces[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()].set(
+////                        velocity[curr_change.getValue()[0].get_i_x()][curr_change.getValue()[0].get_i_y()]
+////                    );
+//                }
+//            }else if( /* the source block array must have at least 2 elements to equalize the transition */
+//                ((curr_change.getKey().length > 1)&&(curr_change.getValue().length > 0))
+//            ){ /* not swapping, trying to move cells */
+//                /* try to make space in the target block array */
+//                for(int i = curr_change.getValue().length-1; i > 0; --i){
+//                    /* merge the cell[i-1] into cell[i] if possible */
+//                    if(
+//                        Materials.a_can_be_merged_into_b(
+//                            curr_change.getValue()[i-1].get_i_x(), curr_change.getValue()[i-1].get_i_y(),
+//                            curr_change.getValue()[i].get_i_x(), curr_change.getValue()[i].get_i_y(), blocks,units
+//                        )
+//                    ){
+//                        parent.merge_a_into_b(curr_change.getValue()[i-1], curr_change.getValue()[i]);
+//                    }
+//                }
+//
+//                /* move source block arrays last element into the first element of the target array */
+//                if(Materials.a_can_be_merged_into_b(
+//                    curr_change.getKey()[curr_change.getKey().length-1].get_i_x(), curr_change.getKey()[curr_change.getKey().length-1].get_i_y(),
+//                    curr_change.getValue()[0].get_i_x(), curr_change.getValue()[0].get_i_y(), blocks,units
+//                )){
+//                    /* if(0 == spaces_freed_up){ // the source cell is merged into the target cell */
+//                    /* - it doesn't matter in this case, as the source cell will be left for nothing, and the target cell will
+//                    *    have its units updated by it; While thy type is overwritten by the source cell ( the same type or type "Nothing" is overwritten ) */
+//                    parent.merge_a_into_b(curr_change.getKey()[curr_change.getKey().length-1], curr_change.getValue()[0]);
+//
+//                    /* trying to equalize the pressure in the source block array */ /* TODO: use more, than just the first element */
+//                    parent.split_a_into_b(curr_change.getKey()[0],curr_change.getKey()[curr_change.getKey().length-1]);
+//                } /* else: no action shall take place */
+//            }
         }
     }
 
+    /**
+     *  A Function to try and propose cell pairs to change in this mechanics iteration
+     * @param units
+     * @param source_cell
+     * @param target_cell
+     * @param already_proposed_changes
+     * @param already_changed
+     * @return whether or not the cells could be placed into the already proposed changes
+     */
+    private boolean evaluate_for_mechanics(
+        float[][] units, Util.MyCell source_cell, Util.MyCell target_cell,
+        HashMap<Util.MyCell[], Util.MyCell[]> already_proposed_changes, HashSet<Integer> already_changed
+    ){
+        int x = source_cell.get_i_x();
+        int y = source_cell.get_i_y();
+        int intended_x = target_cell.get_i_x();
+        int intended_y = target_cell.get_i_y();
+        int nx = (int)(x - Math.max(-1.0,Math.min(forces[x][y].x,1.0))); /* Neighbour */
+        int ny = (int)(y - Math.max(-1.0,Math.min(forces[x][y].y,1.0)));
+        if(
+            !((x == intended_x) && (y == intended_y))
+            &&( /* In case both is discardable, then no operations shall commence */
+                !Materials.discardable(blocks[x][y],units[x][y])
+                ||!Materials.discardable(blocks[x][y],units[intended_x][intended_y])
+            )
+            &&(!already_changed.contains(Util.coordinate_to_hash(intended_x,intended_y,sizeX)))
+            &&(!already_changed.contains(Util.coordinate_to_hash(x,y,sizeX)))
+        ){
+            /* see if the two cells still intersect with forces included */
+            if(
+                2.0f > source_cell.cpy().sub(target_cell.cpy().add(forces[intended_x][intended_y])).len()
+            ){
+                already_proposed_changes.put(
+                        new Util.MyCell[]{new Util.MyCell(x,y,sizeX)},
+                        new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX)}
+                ); /* propose to switch the 2 */
+                already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
+                already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
+                return true;
+            }else return false;
+
+//            if( /* try to merge into */ /* TODO: Merges to be re-introduced */
+//                Materials.movable(blocks[x][y], units[x][y])
+//                &&Materials.is_same_mat(x, y, intended_x, intended_y, blocks, units) /* can only merge into the same material! */
+//                &&Materials.a_can_be_merged_into_b(x,y,intended_x,intended_y, blocks, units)
+//            ){
+//                /* look for a neighbour to help with the merge */
+//                if(
+//                    !((x == nx) && (y == ny))
+//                    &&!((intended_x == nx) && (intended_y == ny))
+//                    &&!Materials.is_same_mat(x, y, nx, ny, blocks, units)
+//                    &&Materials.movable(blocks[nx][ny], units[nx][ny])
+//                    &&!already_changed.contains(Util.coordinate_to_hash(nx, ny, sizeX))
+//                ){
+//                    already_proposed_changes.put(
+//                        new Util.MyCell[]{new Util.MyCell(nx, ny, sizeX), new Util.MyCell(x, y, sizeX)},
+//                        new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX)}
+//                    ); /* propose to merge the cell into it's target */
+//                    already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
+//                    already_changed.add(Util.coordinate_to_hash(nx, ny, sizeX));
+//                    already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
+//                    return true;
+//                }else{
+//                    for (nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
+//                        for (ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
+//                            if(
+//                                !((x == nx) && (y == ny))
+//                                &&!((intended_x == nx) && (intended_y == ny))
+//                                &&!Materials.is_same_mat(x, y, nx, ny, blocks, units)
+//                                &&Materials.movable(blocks[nx][ny], units[nx][ny])
+//                                &&!already_changed.contains(Util.coordinate_to_hash(nx, ny, sizeX))
+//                            ){
+//                                already_proposed_changes.put(
+//                                    new Util.MyCell[]{new Util.MyCell(nx,ny,sizeX), new Util.MyCell(x,y,sizeX)},
+//                                    new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX)}
+//                                ); /* propose to merge the cell into it's target */
+//                                already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
+//                                already_changed.add(Util.coordinate_to_hash(nx, ny, sizeX));
+//                                already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
+//                                return true;
+//                            }
+//                        }
+//                    }
+//                }
+//            }else if( /* try tp move away from material */
+//                Materials.movable(blocks[x][y], units[x][y])
+//                &&!Materials.is_same_mat(x, y, intended_x, intended_y, blocks, units) /* can only expand into a different material! */
+//            ){
+//                /* look for a neighbour of the intended to help with the expansion */
+//                nx = (int)(intended_x + Math.max(-1.0,Math.min(velocity[x][y].x,1.0))); /* Neighbour */
+//                ny = (int)(intended_y + Math.max(-1.0,Math.min(velocity[x][y].y,1.0)));
+//                if(
+//                    (nx < sizeX) && (nx >= 0)
+//                    &&(ny < sizeX) && (ny >= 0)
+//                    &&!((x == nx) && (y == ny))
+//                    &&!((intended_x == nx) && (intended_y == ny))
+//                    &&!Materials.is_same_mat(x, y, nx, ny, blocks, units)
+//                    &&Materials.movable(blocks[nx][ny], units[nx][ny])
+//                    &&!already_changed.contains(Util.coordinate_to_hash(nx, ny, sizeX))
+//                ){
+//                    already_proposed_changes.put(
+//                        new Util.MyCell[]{new Util.MyCell(x, y, sizeX)},
+//                        new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX), new Util.MyCell(nx, ny, sizeX)}
+//                    ); /* propose to merge the cell into it's target */
+//                    already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
+//                    already_changed.add(Util.coordinate_to_hash(nx, ny, sizeX));
+//                    already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
+//                    return true;
+//                }else{
+//                    for (nx = Math.max(0, (intended_x - 1)); nx < Math.min(sizeX, intended_x + 2); ++nx) {
+//                        for (ny = Math.max(0, (intended_y - 1)); ny < Math.min(sizeY, intended_y + 2); ++ny) {
+//                            if(
+//                                !((x == nx) && (y == ny))
+//                                &&!((intended_x == nx) && (intended_y == ny))
+//                                &&Materials.is_same_mat(intended_x, intended_y, nx, ny, blocks, units)
+//                                &&Materials.movable(blocks[nx][ny], units[nx][ny])
+//                                &&!already_changed.contains(Util.coordinate_to_hash(nx, ny, sizeX))
+//                            ){
+//                                already_proposed_changes.put(
+//                                    new Util.MyCell[]{new Util.MyCell(x, y, sizeX)},
+//                                    new Util.MyCell[]{new Util.MyCell(intended_x,intended_y,sizeX), new Util.MyCell(nx, ny, sizeX)}
+//                                ); /* propose to merge the cell into it's target */
+//                                already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
+//                                already_changed.add(Util.coordinate_to_hash(nx, ny, sizeX));
+//                                already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
+//                                return true;
+//                            }
+//                        }
+//                    }
+//                }
+//
+//            }
+        } /* Able to process mechanics on the 2 blocks */
+        return false;
+    }
+
     @Override
-    public void post_process(float[][] units, Vector2[][] velocity, World parent) {
+    public void post_process(float[][] units, World parent) {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 blocks[x][y] = parent.ethereal_plane.element_at(x,y);
@@ -529,7 +562,9 @@ public class Elemental_aspect implements Reality_aspect {
         for(float radius = 0.0f; radius < (floorHeight/2.0f); radius += 0.5f){
             for(float sector = (float)Math.PI * 0.95f; sector < Math.PI * 2.05f; sector += Math.PI / 180.0f){
                 posX = (int)(sizeX/2.0f + (float)Math.cos(sector) * radius);
+                posX = Math.max(0, Math.min(sizeX, posX));
                 posY = (int)(floorHeight + (float)Math.sin(sector) * radius);
+                posY = Math.max(0, Math.min(sizeY, posY));
 //                if(radius >= (floorHeight/2.1f)){ /* A rocky bottom */
 //                    units[posX][posY] = Math.min(100.0f,rnd.nextFloat() * 500.0f);
 //                    blocks[posX][posY] = Materials.Names.Earth;
@@ -563,7 +598,7 @@ public class Elemental_aspect implements Reality_aspect {
 //        }
 
         /* Create a fire */
-        posX = (int)(sizeX/2.0f - floorHeight/2.0f) - 2;
+        posX = (int)(sizeX/4.0f);
         posY = floorHeight + 1;
         blocks[posX][posY] = Materials.Names.Fire;
         blocks[posX-1][posY] = Materials.Names.Fire;

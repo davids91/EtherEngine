@@ -1,10 +1,11 @@
 package com.crystalline.aether.services;
 
 import com.badlogic.gdx.math.Vector2;
+import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.Materials;
 import com.crystalline.aether.models.Reality_aspect;
 
-public class Ethereal_aspect implements Reality_aspect {
+public class Ethereal_aspect extends Reality_aspect {
     protected final int sizeX;
     protected final int sizeY;
 
@@ -14,9 +15,10 @@ public class Ethereal_aspect implements Reality_aspect {
 
     private static final float nether_dynamic = 0.9f;
 
-    public Ethereal_aspect(int sizeX_, int sizeY_){
-        sizeX = sizeX_;
-        sizeY = sizeY_;
+    public Ethereal_aspect(Config conf_){
+        super(conf_);
+        sizeX = conf.world_block_number[0];
+        sizeY = conf.world_block_number[1];
         aether_values = new float[sizeX][sizeY];
         nether_values = new float[sizeX][sizeY];
         target_ratios = new float[sizeX][sizeY];
@@ -185,12 +187,12 @@ public class Ethereal_aspect implements Reality_aspect {
     }
 
     @Override
-    public void process_units(float[][] units, Vector2[][] velocity, World parent){
+    public void process_units(float[][] units, World parent){
         process_ether(units,parent,true);
     }
 
     @Override
-    public void process_types(float[][] units, Vector2[][] velocity, World parent){
+    public void process_types(float[][] units, World parent){
         /* Take over unit changes from Elemental plane */
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
@@ -238,12 +240,12 @@ public class Ethereal_aspect implements Reality_aspect {
     }
 
     @Override
-    public void process_mechanics(float[][] units, Vector2[][] velocity, World parent) {
-        process_types(units, velocity, parent);
+    public void process_mechanics(float[][] units, World parent) {
+        process_types(units, parent);
     }
 
     @Override
-    public void post_process(float[][] units, Vector2[][] velocity, World parent) {
+    public void post_process(float[][] units, World parent) {
         process_ether(units,parent,false);
         /* TODO: Decide para-modifiers ( e.g. heat ) */
     }

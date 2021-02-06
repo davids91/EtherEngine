@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.Util;
+import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.Materials;
 
 
@@ -14,6 +15,7 @@ import com.crystalline.aether.models.Materials;
  *  - Eliminate Velocity array or find use for it
  */
 public class World {
+    Config conf;
     protected final int sizeX;
     protected final int sizeY;
 
@@ -22,9 +24,10 @@ public class World {
     private final float [][] units;
     private final Vector2 [][] velocity;
 
-    public World(int sizeX_, int sizeY_){
-        sizeX = sizeX_;
-        sizeY = sizeY_;
+    public World(Config conf_){
+        conf = conf_;
+        sizeX = conf.world_block_number[0];
+        sizeY = conf.world_block_number[1];
         units = new float[sizeX][sizeY];
         velocity = new Vector2[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
@@ -32,8 +35,8 @@ public class World {
                 velocity[x][y] = new Vector2();
             }
         }
-        ethereal_plane = new Ethereal_aspect(sizeX, sizeY);
-        elemental_plane = new Elemental_aspect(sizeX, sizeY);
+        ethereal_plane = new Ethereal_aspect(conf);
+        elemental_plane = new Elemental_aspect(conf);
         ethereal_plane.determine_units(units,this);
     }
 
@@ -54,7 +57,7 @@ public class World {
         float average_val = 0.0f;
         float division = 0.0f;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
-            for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeX, y + 2); ++ny) {
+            for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
                 if(
                     //(50.0f > Math.abs(units[x][y] - units[nx][ny])) /* Only reach out only for the same solidity */
                     (Materials.compatibility.get(elemental_plane.element_at(x,y)).contains(elemental_plane.element_at(nx,ny)))
@@ -110,28 +113,28 @@ public class World {
     public void main_loop(float step){
         /** ============= PROCESS UNITS ============= **/
         /* Ethereal plane decides the units */
-        ethereal_plane.process_units(units, velocity,this);
+        ethereal_plane.process_units(units,this);
         ethereal_plane.determine_units(units, this);
 
         /* Elemental plane decides types */
-        elemental_plane.process_units(units, velocity, this);
+        elemental_plane.process_units(units, this);
 
         /** ============= PROCESS MECHANICS ============= **/
         /* Elemental calculates pressures and forces */
-        elemental_plane.process_mechanics(units, velocity, this);
-        ethereal_plane.process_mechanics(units, velocity, this);
+        elemental_plane.process_mechanics(units, this);
+        ethereal_plane.process_mechanics(units, this);
 
         /** ============= PROCESS TYPES ============= **/
-        elemental_plane.process_types(units, velocity, this);
+        elemental_plane.process_types(units, this);
 
         /* Ethereal tries to take over type changes from Elemental */
-        ethereal_plane.process_types(units, velocity,this);
+        ethereal_plane.process_types(units,this);
 
         /** ============= POST PROCESS ============= **/
-        ethereal_plane.post_process(units, velocity, this);
+        ethereal_plane.post_process(units, this);
 
         /* Elemental takes over finalised type changes from Ethereal */
-        elemental_plane.post_process(units, velocity, this);
+        elemental_plane.post_process(units, this);
     }
 
     public Ethereal_aspect get_eth_plane(){
@@ -149,13 +152,16 @@ public class World {
         elemental_plane.define_by(ethereal_plane);
     }
 
+    public float get_weight(int posX, int posY){
+        return get_elm_plane().get_weight(posX,posY, units);
+    }
+    public float get_weight(Util.MyCell pos){
+        return get_weight(pos.get_i_x(), pos.get_i_y());
+    }
+
     public float unit_at(int posX, int posY){
         return units[posX][posY];
     }
-    public Vector2 get_velo(int posX, int posY){
-        return velocity[posX][posY];
-    }
-
     public Pixmap getWorldImage(Vector2 focus, float radius, Ethereal_aspect plane){
         Pixmap worldImage = new Pixmap(sizeX,sizeY, Pixmap.Format.RGB888);
         for(int x = 0;x < sizeX; ++x){

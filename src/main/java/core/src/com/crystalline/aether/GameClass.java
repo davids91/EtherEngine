@@ -190,6 +190,12 @@ public class GameClass extends ApplicationAdapter {
 			x * conf.world_block_size + (conf.world_block_size/4.0f),
 			y * conf.world_block_size + (conf.block_radius)
 		);
+		font.draw(
+			batch,
+			String.format( "m: %.2f", world.get_weight(x,y) ),
+			x * conf.world_block_size + (conf.world_block_size/4.0f),
+			y * conf.world_block_size + (conf.world_block_size/5.0f)
+		);
 	}
 
 	private void drawGrid(float lineWidth, float cellSize) {

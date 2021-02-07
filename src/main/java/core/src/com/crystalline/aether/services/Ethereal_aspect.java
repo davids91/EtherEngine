@@ -11,8 +11,10 @@ public class Ethereal_aspect extends Reality_aspect {
 
     private final float [][] aether_values; /* Stationary substance */
     private final float [][] nether_values; /* Moving substance */
+    private final int [][] ratio_change_tick;
     private final float [][] target_ratios;
 
+    private static final int ticks_to_change = 3;
     private static final float nether_dynamic = 0.9f;
 
     public Ethereal_aspect(Config conf_){
@@ -22,6 +24,7 @@ public class Ethereal_aspect extends Reality_aspect {
         aether_values = new float[sizeX][sizeY];
         nether_values = new float[sizeX][sizeY];
         target_ratios = new float[sizeX][sizeY];
+        ratio_change_tick = new int[sizeX][sizeY];
     }
 
     public void define_by(Elemental_aspect plane, float [][] units){
@@ -81,7 +84,12 @@ public class Ethereal_aspect extends Reality_aspect {
 
         for (int x = 0; x < sizeX; ++x) {
             for (int y = 0; y < sizeY; ++y) {
-                if (decide_target_ratios) target_ratios[x][y] = get_target_ratio(x, y);
+                if (decide_target_ratios){
+                    if(0 == ratio_change_tick[x][y]){
+                        target_ratios[x][y] = get_target_ratio(x, y);
+                        ratio_change_tick[x][y] = ticks_to_change;
+                    }else --ratio_change_tick[x][y];
+                }
 
                 /* calculate the values ether is converging to */
                 requested_aether[x][y] = get_target_aether(x, y) - aether_values[x][y];
@@ -194,6 +202,7 @@ public class Ethereal_aspect extends Reality_aspect {
     @Override
     public void process_units(float[][] units, World parent){
         process_ether(units,parent,true);
+        determine_units(units,parent);
     }
 
     @Override

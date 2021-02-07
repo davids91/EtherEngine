@@ -113,11 +113,7 @@ public class World {
 
     public void main_loop(float step){
         /** ============= PROCESS UNITS ============= **/
-        /* Ethereal plane decides the units */
         ethereal_plane.process_units(units,this);
-        ethereal_plane.determine_units(units, this);
-
-        /* Elemental plane decides types */
         elemental_plane.process_units(units, this);
 
         /** ============= PROCESS MECHANICS ============= **/
@@ -127,9 +123,7 @@ public class World {
 
         /** ============= PROCESS TYPES ============= **/
         elemental_plane.process_types(units, this);
-
-        /* Ethereal tries to take over type changes from Elemental */
-        ethereal_plane.process_types(units,this);
+        ethereal_plane.process_types(units,this); /* Ethereal tries to take over type changes from Elemental */
 
         /** ============= POST PROCESS ============= **/
         ethereal_plane.post_process(units, this);

@@ -35,10 +35,10 @@ public class Materials {
 
     /* Names.Materials --> { normal pressure tolerance, pressure threshold to move, pressure threshold to merge} */
     public static final float[][] type_specific_gravity = {
-        {10.0f,20.0f,40.0f,80.0f,160.0f,320.0f}, /* Earth */
-        {2.0f,4.0f}, /* Water */
+        {2.0f,4.0f,8.0f,16.0f,32.0f,64.0f}, /* Earth */
+        {1.5f,2.0f}, /* Water */
         {0.001f,0.02f}, /* Air */
-        {50.0f,75.0f,100.0f}, /* Fire */
+        {2.0f,4.0f,8.0f}, /* Fire */
         {0,0} /* Nothing */
     };
 

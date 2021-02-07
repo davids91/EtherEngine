@@ -15,8 +15,11 @@ public class Elemental_aspect extends Reality_aspect {
     Materials.Names[][] blocks;
     Vector2 [][] forces;
     private final float[][] gravity_correction_amount;
+    private final float[][] velocity_ticks;
 
     private final Random rnd = new Random();
+
+    private final int velocity_max_ticks = 3;
 
     /* Debug variables */
     private final float[][] touched_by_mechanics;
@@ -27,14 +30,16 @@ public class Elemental_aspect extends Reality_aspect {
         sizeY = conf.world_block_number[1];
         blocks = new Materials.Names[sizeX][sizeY];
         forces = new Vector2[sizeX][sizeY];
-        touched_by_mechanics = new float[sizeX][sizeY];
         gravity_correction_amount = new float[sizeX][sizeY];
+        velocity_ticks = new float[sizeX][sizeY];
+        touched_by_mechanics = new float[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 blocks[x][y] = Materials.Names.Air;
                 forces[x][y] = new Vector2();
                 touched_by_mechanics[x][y] = 0;
                 gravity_correction_amount[x][y] = 0;
+                velocity_ticks[x][y] = velocity_max_ticks;
             }
         }
     }
@@ -192,6 +197,7 @@ public class Elemental_aspect extends Reality_aspect {
             for(int y = sizeY-2; y > 0; --y){
                 if(!Materials.discardable(blocks[x][y], units[x][y])){
                     gravity_correction_amount[x][y] = get_weight(x,y,units);
+                    velocity_ticks[x][y] = velocity_max_ticks;
                 } else{
                     forces[x][y].set(0,0); /* If the cell is not air */
                     gravity_correction_amount[x][y] = 0;
@@ -203,6 +209,7 @@ public class Elemental_aspect extends Reality_aspect {
         for(int i = 0;i <3;++i){
             process_mechanics_backend(units,parent,remaining_proposed_changes);
         }
+
         for(int x = 1; x < sizeX-1; ++x){
             for(int y = sizeY-2; y > 0; --y){
                 if(Materials.movable(blocks[x][y], units[x][y])){
@@ -302,8 +309,8 @@ public class Elemental_aspect extends Reality_aspect {
                 Util.gravity.y * get_weight(source_x,source_y,units)
                 );
                 parent.switch_elements(curr_change.getKey(),curr_change.getValue());
-                touched_by_mechanics[source_x][source_y] = 0;
-                touched_by_mechanics[target_x][target_y] = 0;
+                touched_by_mechanics[source_x][source_y] = 1;
+                touched_by_mechanics[target_x][target_y] = 1;
             }else{ /* The cells collide, updating forces, but no swapping */
                 float m1 = get_weight(source_x, source_y, units);
                 Vector2 u1 = forces[source_x][source_y].cpy().nor();
@@ -322,6 +329,7 @@ public class Elemental_aspect extends Reality_aspect {
                 Util.gravity.x * get_weight(source_x,source_y,units),
                 Util.gravity.y * get_weight(source_x,source_y,units)
                 );
+                gravity_correction_amount[source_x][source_y] = 0;
                 if(Materials.movable(blocks[target_x][target_y],units[target_x][target_y])){
                     result_speed.set( /*!Note: it is supposed, that non-movable cells do not initiate movement */
                         (2.0f*m1/(m1+m2))*u1.x + ((m2-m1)/(m1+m2)*u2.x),
@@ -332,6 +340,7 @@ public class Elemental_aspect extends Reality_aspect {
                     Util.gravity.x * get_weight(target_x,target_y,units),
                     Util.gravity.y * get_weight(target_x,target_y,units)
                     );
+                    gravity_correction_amount[target_x][target_y] = 0;
                 } /* do not update the force for unmovable objects */
                 touched_by_mechanics[source_x][source_y] = 1;
                 touched_by_mechanics[target_x][target_y] = 1;
@@ -390,17 +399,20 @@ public class Elemental_aspect extends Reality_aspect {
             &&(!already_changed.contains(Util.coordinate_to_hash(x,y,sizeX)))
             &&(!already_changed.contains(Util.coordinate_to_hash(intended_x,intended_y,sizeX)))
         ){
-            /* see if the two cells still intersect with forces included */
-            if( /* TODO: more accurate intention, taking both forces into consideration */
-                2.0f > source_cell.cpy().sub(target_cell.cpy().add(forces[intended_x][intended_y].cpy().nor())).len()
-            ){
-                already_proposed_changes.put(
-                    new Util.MyCell(x,y,sizeX),new Util.MyCell(intended_x,intended_y,sizeX)
-                ); /* propose to switch the 2 */
-                already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
-                already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
-                return true;
-            }else return false;
+            if(velocity_max_ticks == velocity_ticks[x][y]){
+                /* see if the two cells still intersect with forces included */
+                if( /* TODO: more accurate intention, taking both forces into consideration */
+                    2.0f > source_cell.cpy().sub(target_cell.cpy().add(forces[intended_x][intended_y].cpy().nor())).len()
+                ){
+                    already_proposed_changes.put(
+                            new Util.MyCell(x,y,sizeX),new Util.MyCell(intended_x,intended_y,sizeX)
+                    ); /* propose to switch the 2 */
+                    already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
+                    already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
+                    velocity_ticks[x][y] = 0;
+                    return true;
+                }
+            }else ++velocity_ticks[x][y];
         } /* Able to process mechanics on the 2 blocks */
         return false;
     }
@@ -469,6 +481,7 @@ public class Elemental_aspect extends Reality_aspect {
     }
 
     public Color getDebugColor(int x, int y, float[][] units){
+        /*TODO: Debug the diagonal red line */
         Color defColor = getColor(x,y, units).cpy();
         if(0 < touched_by_mechanics[x][y]){ /* it was modified.. */
             defColor.lerp(Color.RED, 0.5f);

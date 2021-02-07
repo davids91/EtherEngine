@@ -3,7 +3,7 @@ package com.crystalline.aether;
 import com.badlogic.gdx.math.Vector2;
 
 public class Util {
-    public static final Vector2 gravity = new Vector2(0f,-9.81f);
+    public static final Vector2 gravity = new Vector2(0f,-3.81f);
 
     public static int coordinate_to_hash(int x, int y, int max_x){
         return  (y * max_x) + x;

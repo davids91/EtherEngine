@@ -162,12 +162,18 @@ public class Ethereal_aspect extends Reality_aspect {
                 aether_values[x][y] += available_aether[x][y];
                 nether_values[x][y] += available_nether[x][y];
 
-                /* Surplus Nether to goes into heat */ /* TODO: make radiating out more fun (?)  */
+                /* Surplus Nether to goes into other effects */
                 if(nether_values[x][y] > aether_values[x][y] * target_ratios[x][y]) {
+                    parent.get_elm_plane().get_force(x,y).scl( /* Surplus Nether enhances movement */
+                        (nether_values[x][y] / (aether_values[x][y] * target_ratios[x][y]))
+                    );
                     nether_values[x][y] -= 0.5f * (nether_values[x][y] - (aether_values[x][y] * target_ratios[x][y]));
                 }
 
                 if(aether_values[x][y] > nether_values[x][y] / target_ratios[x][y]) {
+                    parent.get_elm_plane().get_force(x,y).scl( /* Surplus Aether depresses movement */
+                        ((nether_values[x][y] / target_ratios[x][y]) / aether_values[x][y])
+                    );
                     aether_values[x][y] -= 0.5f * (aether_values[x][y] - (nether_values[x][y] / target_ratios[x][y]));
                 }
 
@@ -183,7 +189,6 @@ public class Ethereal_aspect extends Reality_aspect {
                 }
             }
         }
-
     }
 
     @Override

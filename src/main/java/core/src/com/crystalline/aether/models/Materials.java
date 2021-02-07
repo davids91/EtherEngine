@@ -33,17 +33,16 @@ public class Materials {
 //        0.0f, /* Nothing */
     };
 
-    /* Names.Materials --> { normal pressure tolerance, pressure threshold to move, pressure threshold to merge} */
     public static final float[][] type_specific_gravity = {
-        {2.0f,4.0f,8.0f,16.0f,32.0f,64.0f}, /* Earth */
-        {1.5f,2.0f}, /* Water */
+        {4.0f,8.0f,16.0f,32.0f,64.0f,128.0f}, /* Earth */
+        {2.5f,4.0f}, /* Water */
         {0.001f,0.02f}, /* Air */
-        {2.0f,4.0f,8.0f}, /* Fire */
+        {2.5f,4.0f,8.0f}, /* Fire */
         {0,0} /* Nothing */
     };
 
     public static final float[][] type_color_scale = {
-        {0.0f,2.0f,3.5f,70.0f,700.0f,1000.0f}, /* Earth */
+        {0.0f,4.0f,8f,70.0f,700.0f,1000.0f}, /* Earth */
         {10.0f,20.0f},  /* Water */
         {0.0f, 20.0f}, /* Air*/
         {100.0f,300.0f,500.0f}, /* Fire */

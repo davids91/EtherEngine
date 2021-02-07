@@ -39,7 +39,7 @@ public class Materials {
         {2.0f,4.0f}, /* Water */
         {0.001f,0.02f}, /* Air */
         {50.0f,75.0f,100.0f}, /* Fire */
-//        {0,0} /* Nothing */
+        {0,0} /* Nothing */
     };
 
     public static final float[][] type_color_scale = {
@@ -47,7 +47,7 @@ public class Materials {
         {10.0f,20.0f},  /* Water */
         {0.0f, 20.0f}, /* Air*/
         {100.0f,300.0f,500.0f}, /* Fire */
-//        {0,0} /* Nothing */
+        {0,0} /* Nothing */
     };
 
     public static boolean is_same_mat(int ax, int ay, int bx, int by, Materials.Names[][] types, float[][] units){

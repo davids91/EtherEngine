@@ -33,6 +33,7 @@ public class World {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 velocity[x][y] = new Vector2();
+                units[x][y] = 0;
             }
         }
         ethereal_plane = new Ethereal_aspect(conf);
@@ -176,7 +177,8 @@ public class World {
                         (radius >= Math.abs(x - focus.x))
                                 &&(radius >= Math.abs(y - focus.y))
                 ) interpol = 0.2f;
-                Color finalColor = Materials.get_color(elemental_plane.element_at(x,y),units[x][y]).cpy().lerp(Color.GRAY, interpol);
+//                Color finalColor = elemental_plane.getDebugColor(x,y,units).lerp(Color.GRAY, interpol);
+                Color finalColor = elemental_plane.getColor(x,y,units).lerp(Color.GRAY, interpol);
                 float hsvv[] = new float[3];
                 finalColor.toHsv(hsvv);
                 float sat = plane.aether_value_at(x,y) / Math.max(plane.aether_value_at(x,y),plane.nether_value_at(x,y));

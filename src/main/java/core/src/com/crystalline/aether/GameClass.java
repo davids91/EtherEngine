@@ -103,13 +103,18 @@ public class GameClass extends ApplicationAdapter {
 			meshbuilder.begin(VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal, GL20.GL_TRIANGLES);
 			for(int x = (int)Math.max(0.0f,(mouseInWorld2D.x - 10)); x < Math.min((mouseInWorld2D.x + 10),conf.world_block_number[0]); ++x){
 				for(int y = (int)Math.max(0.0f,(mouseInWorld2D.y - 10)); y < Math.min((mouseInWorld2D.y + 10),conf.world_block_number[1]); ++y){
-					if(0 < world.get_elm_plane().get_force(x,y).len()){
+					if(
+						(
+							(Materials.Names.Nothing == debug_focus)
+							||(world.get_elm_plane().element_at(x,y) == debug_focus)
+						)&&(0 < world.get_elm_plane().get_force(x,y).len())
+					){
 						if (Debug_state.NORMAL_ARROWS == debug_state) {
 							ArrowShapeBuilder.build(
 							meshbuilder,
 							x * conf.world_block_size + conf.block_radius, y * conf.world_block_size + conf.block_radius, 0,
-							x * conf.world_block_size + conf.block_radius + conf.world_block_size * world.get_elm_plane().get_force(x,y).cpy().nor().x,
-							y * conf.world_block_size + conf.block_radius + conf.world_block_size * world.get_elm_plane().get_force(x,y).cpy().nor().y, 0,
+							x * conf.world_block_size + conf.block_radius + conf.world_block_size * world.get_elm_plane().get_force(x,y).cpy().nor().scl(conf.block_radius).x,
+							y * conf.world_block_size + conf.block_radius + conf.world_block_size * world.get_elm_plane().get_force(x,y).cpy().nor().scl(conf.block_radius).y, 0,
 							0.1f,0.5f,4
 							);
 						}else{
@@ -253,28 +258,48 @@ public class GameClass extends ApplicationAdapter {
 			world.main_loop(0.01f);
 		}
 		if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
-			if(conf.world_block_number[0] == first_point.get_i_x()){
-				System.out.print("force at cursor:" + world.get_elm_plane().get_force((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) + "[");
-				first_point.set(mouseInWorld2D);
+			Vector2 tmp_force = world.get_elm_plane().get_force((int)mouseInWorld2D.x,(int)mouseInWorld2D.y);
+			System.out.println("forces at ("+(int)mouseInWorld2D.x+","+(int)mouseInWorld2D.y+"):"
+					+ "(" + tmp_force.x + "," + tmp_force.y + ") + "
+					+ "("
+					+ (-tmp_force.x * (world.get_weight((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) / Math.max(0.001f, tmp_force.x))) + ","
+					+ (-tmp_force.y * (world.get_weight((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) / Math.max(0.001f, tmp_force.y)))
+					+ ")"
+					+ "("
+					+ -tmp_force.x + " * " + (world.get_weight((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) + "/" + Math.max(0.001f, tmp_force.x)) + ","
+					+ -tmp_force.y + " * " + (world.get_weight((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) + "/" + Math.max(0.001f, tmp_force.y))
+					+ ")"
+			);
+
+			if(Materials.Names.Nothing == debug_focus){
+				debug_focus = world.get_elm_plane().element_at((int)mouseInWorld2D.x,(int)mouseInWorld2D.y);
 			}else{
-				System.out.print("nx,x==>" + (int)mouseInWorld2D.x + "," + first_point.get_i_x() + ";");
-				System.out.print("w diff: " + -(world.get_weight((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) - world.get_weight(first_point)) + ";");
-				System.out.println("nx-x diff: " + ((int)mouseInWorld2D.x - first_point.get_i_x()) + "]");
-				float tmp = 0;
-				for (int nx = (first_point.get_i_x() - 1); nx < (first_point.get_i_x() + 2); ++nx) {
-					for (int ny = (first_point.get_i_y() - 1); ny < (first_point.get_i_y() + 2); ++ny) {
-						float weight_difference = Math.max(-2.5f, Math.min(2.5f,(world.get_weight(first_point) - world.get_weight(nx,ny))));
-						System.out.print("("+nx+","+ny+")"+(nx-first_point.get_i_x()) * weight_difference+";");
-						tmp += (nx-first_point.get_i_x()) * weight_difference;
-					}
-				}
-				System.out.println("Final force delta x : " + tmp);
-				first_point.x = conf.world_block_number[0];
+				debug_focus = Materials.Names.Nothing;
 			}
+
+//			if(conf.world_block_number[0] == first_point.get_i_x()){
+//				System.out.print("force at ("+(int)mouseInWorld2D.x+","+(int)mouseInWorld2D.y+"):" + world.get_elm_plane().get_force((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) + "[");
+//				first_point.set(mouseInWorld2D);
+//			}else{
+//				System.out.print("nx,x==>" + (int)mouseInWorld2D.x + "," + first_point.get_i_x() + ";");
+//				System.out.print("w diff: " + -(world.get_weight((int)mouseInWorld2D.x,(int)mouseInWorld2D.y) - world.get_weight(first_point)) + ";");
+//				System.out.println("nx-x diff: " + ((int)mouseInWorld2D.x - first_point.get_i_x()) + "]");
+////				float tmp = 0;
+////				for (int nx = (first_point.get_i_x() - 1); nx < (first_point.get_i_x() + 2); ++nx) {
+////					for (int ny = (first_point.get_i_y() - 1); ny < (first_point.get_i_y() + 2); ++ny) {
+////						float weight_difference = Math.max(-2.5f, Math.min(2.5f,(world.get_weight(first_point) - world.get_weight(nx,ny))));
+////						System.out.print("("+nx+","+ny+")"+(nx-first_point.get_i_x()) * weight_difference+";");
+////						tmp += (nx-first_point.get_i_x()) * weight_difference;
+////					}
+////				}
+////				System.out.println("Final force delta x : " + tmp);
+//				first_point.x = conf.world_block_number[0];
+//			}
 		}
 	}
 
 	Util.MyCell first_point = new Util.MyCell(1,1,conf.world_block_number[0]);
+	Materials.Names debug_focus = Materials.Names.Nothing;
 
 	@Override
 	public void dispose () {

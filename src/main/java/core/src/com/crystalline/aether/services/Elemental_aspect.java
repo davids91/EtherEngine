@@ -153,10 +153,10 @@ public class Elemental_aspect extends Reality_aspect {
 
                 if(Materials.Names.Air == blocks[x][y]) {
                     if(
-                        (0 < avg_of_block(x,y,units, Materials.Names.Fire))
+                        (0.2 < units[x][y])
                         &&(0 < avg_of_block(x,y,units, Materials.Names.Earth))
                         &&(0 == avg_of_block(x,y,units, Materials.Names.Water))
-                        &&(avg_of_block(x,y,units, Materials.Names.Air) <= avg_of_block(x,y,units, Materials.Names.Fire))
+                        &&(avg_of_block(x,y,units, Materials.Names.Air) < avg_of_block(x,y,units, Materials.Names.Fire))
                     ){
                         blocks[x][y] = Materials.Names.Fire;
                     }
@@ -167,7 +167,7 @@ public class Elemental_aspect extends Reality_aspect {
                 if(Materials.Names.Fire == blocks[x][y]){
                     if(
                         (Materials.Mecha_properties.Plasma == Materials.get_state(blocks[x][y], units[x][y]))
-                        && units[x][y] <= avg_of_block(x,y,units, Materials.Names.Fire)
+                        && (units[x][y] <= avg_of_block(x,y,units, Materials.Names.Fire))
                     ){
                         units[x][y] *= 0.8f;
                     }
@@ -189,11 +189,13 @@ public class Elemental_aspect extends Reality_aspect {
                             ||Materials.Mecha_properties.Plasma.ordinal() < Materials.get_state(Materials.Names.Fire, units[x][y]).ordinal()
                         ){
                             units[x][y] *= 0.8f;
-                            blocks[x][y] = Materials.Names.Fire;
+                            if(0.2f < units[x][y])blocks[x][y] = Materials.Names.Fire;
                         }
                     }
 
                 }
+                if(0.2 > units[x][y])
+                    units[x][y] = Math.abs(units[x][y] * 2.0f);
             }
         }
 
@@ -275,7 +277,27 @@ public class Elemental_aspect extends Reality_aspect {
     public void process_mechanics_backend(float[][] units, World parent, HashMap<Util.MyCell, Util.MyCell> previously_left_out_proposals){
         /* update forces based on context, calculate intended velocities based on them */
         for(int x = 1; x < sizeX-2; ++x){
-            for(int y = sizeY-2; y > 0; --y){
+            for(int y = 1; y < sizeY-2; ++y){
+                if(Materials.Names.Ether == blocks[x][y]){
+                    for (int nx = (x - 2); nx < (x + 3); ++nx) for (int ny = (y - 2); ny < (y + 3); ++ny) {
+                        if ( /* in the bounds of the chunk */
+                            (0 <= nx)&&(sizeX > nx)&&(0 <= ny)&&(sizeY > ny)
+                            &&( 1 < (Math.abs(x - nx) + Math.abs(y - ny)) ) /* after the not immediate neighbourhood */
+                        ){ /* Calculate forces from surplus ethers */
+                            float aether_diff = Math.max(-10.5f, Math.min(10.5f, (
+                                parent.get_eth_plane().aether_value_at(x,y) - parent.get_eth_plane().aether_value_at(nx,ny)
+                            )));
+                            float nether_diff = Math.max(-10.5f, Math.min(10.5f, (
+                                parent.get_eth_plane().nether_value_at(x,y) - parent.get_eth_plane().nether_value_at(nx,ny)
+                            ))); /* TODO: Forces to consume surplus ether */
+                            forces[x][y].add(
+                            (nx - x) * nether_diff + (nx - x) * aether_diff,
+                            (ny - y) * nether_diff + (ny - y) * aether_diff
+                            );
+                        }
+                    }
+                }
+
                 if(Materials.Mecha_properties.Fluid == Materials.get_state(blocks[x][y], units[x][y])){
                     if(/* the cells next to the current one are of different material  */
                         !Materials.is_same_mat(x, y,x+1,y, blocks, units)
@@ -345,6 +367,17 @@ public class Elemental_aspect extends Reality_aspect {
             int source_y = curr_change.getKey().get_i_y();
             int target_x = curr_change.getValue().get_i_x();
             int target_y = curr_change.getValue().get_i_y();
+            if(
+                Materials.Names.Ether == blocks[source_x][source_y]
+                &&Materials.Names.Ether != blocks[target_x][target_y]
+                &&(500.0 < forces[source_x][source_y].len())
+            ){ /* In case the material to move is Ether, and it has a relaitvely big force */ /* TODO: Make force transfer depending on the state of the matter, to make crystals stable */
+                forces[target_x][target_y].add(forces[source_x][source_y]);
+                blocks[source_x][source_y] = Materials.Names.Air;
+                forces[target_x][target_y].scl(units[source_x][source_y]);
+//                units[target_x][target_y] += units[source_x][source_y];
+                units[source_x][source_y] = 0.01f;
+            }else
             if(
                 Materials.discardable(blocks[target_x][target_y],units[target_x][target_y])
                 ||(
@@ -537,7 +570,7 @@ public class Elemental_aspect extends Reality_aspect {
         /*TODO: Debug the diagonal red line */
         Color defColor = getColor(x,y, units).cpy();
         if(0 < touched_by_mechanics[x][y]){ /* it was modified.. */
-            defColor.lerp(Color.RED, 0.5f);
+            defColor.lerp(Color.GREEN, 0.5f);
         }
         return defColor;
     }

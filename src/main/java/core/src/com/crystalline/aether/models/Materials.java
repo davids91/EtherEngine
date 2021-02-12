@@ -7,7 +7,7 @@ import java.util.*;
 
 public class Materials {
     public enum Names {
-        Earth, Water, Air, Fire, Nothing
+        Ether, Earth, Water, Air, Fire, Nothing
     }
 
     public enum Mecha_properties{
@@ -15,6 +15,7 @@ public class Materials {
     }
 
     public static final HashMap<Names,HashSet<Names>> compatibility = new HashMap<Names,HashSet<Names>>(){{
+        put(Names.Ether,new HashSet<>(Arrays.asList(Names.Earth, Names.Water, Names.Air, Names.Fire)));
         put(Names.Earth,new HashSet<>(Arrays.asList(Names.Earth, Names.Water, Names.Air, Names.Fire)));
         put(Names.Water,new HashSet<>(Arrays.asList(Names.Earth, Names.Water, Names.Air, Names.Fire)));
         put(Names.Air,new HashSet<>(Arrays.asList(Names.Earth, Names.Water, Names.Air, Names.Fire)));
@@ -26,6 +27,7 @@ public class Materials {
     public static final float PHI = 1.61803398875f;
     public static final float [] nether_ratios = {
         /* Ratio of sides of the golden rectangle */
+        1.0f, /* Ether */
         (PHI), /* Earth */
         (PHI * PHI), /* Water */
         (PHI * PHI * PHI), /* Air */
@@ -34,6 +36,7 @@ public class Materials {
     };
 
     public static final float[][] type_unit_selector = {
+        {0.0f, 50.0f},
         {0.0f,4.0f,8f,70.0f,700.0f,1000.0f}, /* Earth */
         {0,10.0f,20.0f},  /* Water */
         {0.0f, 10.0f}, /* Air*/
@@ -42,14 +45,16 @@ public class Materials {
     };
 
     public static final Color[][] type_colors = { /* TODO: Ether Crystals */ /* TODO: Ether Vapor */
+        {Color.PINK, Color.PURPLE}, /* Ether */
         {Color.TAN,Color.GOLDENROD,Color.BROWN,Color.GRAY,Color.SLATE,Color.TEAL}, /* Earth */
         {Color.ROYAL, Color.valueOf("#d9c9c9"), Color.NAVY}, /* Water */
-        {Color.SKY, Color.SKY}, /* Air, also Ait */
+        {Color.SKY, Color.SKY}, /* Air, also Air */
         {Color.FIREBRICK, Color.SCARLET, Color.CYAN}, /* Fire */
         {Color.CLEAR} /* Nothing */
     };
 
     public static final Mecha_properties[][] type_specific_state = {
+        {Mecha_properties.Gas, Mecha_properties.Granular}, /* Ether */
         {Mecha_properties.Granular, Mecha_properties.Granular,Mecha_properties.Solid, Mecha_properties.Crystal, Mecha_properties.Hard, Mecha_properties.Superhard}, /* Earth */
         {Mecha_properties.Fluid, Mecha_properties.Gas, Mecha_properties.Fluid},/* Water */
         {Mecha_properties.Negligible, Mecha_properties.Negligible}, /* Air */
@@ -58,7 +63,8 @@ public class Materials {
     };
 
     public static final float[][] type_specific_gravity = {
-        {4.0f,8.0f,16.0f,32.0f,64.0f,128.0f}, /* Earth */ /* TODO: GLass */
+        {0.0f,0.0f}, /* Ether */
+        {4.0f,8.0f,16.0f,32.0f,64.0f,128.0f}, /* Earth */ /* TODO: Glass */
         {2.5f,-0.2f,4.0f}, /* Water */ /* TODO: steam, foam and ice */
         {-0.002f, -0.001f}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */
         {-2.5f,2.0f,4.0f}, /* Fire */

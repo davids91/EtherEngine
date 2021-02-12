@@ -11,8 +11,6 @@ import com.crystalline.aether.models.Materials;
 /**TODO:
  *  - Heat gate
  *  - Speed gate ( to block or enchance the speed of objects )
- *  - Speed to be a vector like unit
- *  - Eliminate Velocity array or find use for it
  */
 public class World {
     Config conf;
@@ -22,17 +20,14 @@ public class World {
     Ethereal_aspect ethereal_plane;
     Elemental_aspect elemental_plane;
     private final float [][] units;
-    private final Vector2 [][] velocity;
 
     public World(Config conf_){
         conf = conf_;
         sizeX = conf.world_block_number[0];
         sizeY = conf.world_block_number[1];
         units = new float[sizeX][sizeY];
-        velocity = new Vector2[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                velocity[x][y] = new Vector2();
                 units[x][y] = 0;
             }
         }
@@ -42,11 +37,6 @@ public class World {
     }
 
     public void pond_with_grill(){
-        for(int x = 0;x < sizeX; ++x){
-            for(int y = 0; y < sizeY; ++y){
-                velocity[x][y].set(0,0);
-            }
-        }
         elemental_plane.pond_with_grill(units,(int)(sizeY/2.0f));
         elemental_plane.determine_units(units, this);
 
@@ -79,10 +69,6 @@ public class World {
         float tmp_val = units[to.get_i_x()][to.get_i_y()];
         units[to.get_i_x()][to.get_i_y()] = units[from.get_i_x()][from.get_i_y()];
         units[from.get_i_x()][from.get_i_y()] = tmp_val;
-
-        Vector2 tmp_vec = velocity[to.get_i_x()][to.get_i_y()];
-        velocity[to.get_i_x()][to.get_i_y()] = velocity[from.get_i_x()][from.get_i_y()];
-        velocity[from.get_i_x()][from.get_i_y()] = tmp_vec;
     }
 
     public void merge_a_into_b(Util.MyCell a, Util.MyCell b){
@@ -141,8 +127,15 @@ public class World {
         ethereal_plane.determine_units(units,this);
         elemental_plane.define_by(ethereal_plane);
     }
+
     public void add_nether_to(int x, int y, float value){
         ethereal_plane.add_nether_to(x,y,value);
+        ethereal_plane.determine_units(units,this);
+        elemental_plane.define_by(ethereal_plane);
+    }
+
+    public void try_to_equalize(int x, int y, float value) {
+        ethereal_plane.try_to_equalize(x,y,value);
         ethereal_plane.determine_units(units,this);
         elemental_plane.define_by(ethereal_plane);
     }
@@ -161,18 +154,27 @@ public class World {
         Pixmap worldImage = new Pixmap(sizeX,sizeY, Pixmap.Format.RGB888);
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                float interpol = 0.3f;
+                float interpol = 0.0f;
                 if(
 //                        (1.0f >= Math.abs(x - focus.x))
 //                        &&(1.0f >= Math.abs(y - focus.y))
                         (x == (int)focus.x) && (y == (int)focus.y)
-                ) interpol = 0.0f;
+                ) interpol = 0.7f;
                 else if(
                         (radius >= Math.abs(x - focus.x))
                                 &&(radius >= Math.abs(y - focus.y))
-                ) interpol = 0.2f;
-//                Color finalColor = elemental_plane.getDebugColor(x,y,units).lerp(Color.GRAY, interpol);
+                ) interpol = 0.8f;
+//                Color finalColor = Color.BLACK.lerp(Color.GRAY, interpol);
                 Color finalColor = elemental_plane.getColor(x,y,units).lerp(Color.GRAY, interpol);
+//                Color finalColor = elemental_plane.getDebugColor(x,y,units).lerp(Color.GRAY, interpol);
+
+//                if(0.1f < get_eth_plane().surplus_aether_at(x,y)){
+//                    finalColor.lerp(Color.BLUE, (get_eth_plane().surplus_aether_at(x,y)/get_eth_plane().aether_value_at(x,y)));
+//                }
+//                if(0.1f < get_eth_plane().surplus_nether_at(x,y)){
+//                    finalColor.lerp(Color.RED, (get_eth_plane().surplus_nether_at(x,y)/get_eth_plane().nether_value_at(x,y)));
+//                }
+
                 float hsvv[] = new float[3];
                 finalColor.toHsv(hsvv);
                 float sat = plane.aether_value_at(x,y) / Math.max(plane.aether_value_at(x,y),plane.nether_value_at(x,y));

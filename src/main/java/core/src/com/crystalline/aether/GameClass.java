@@ -25,8 +25,6 @@ import com.crystalline.aether.services.World;
  * - Debug NANs
  * - push a to b  ( material merges )
  * - typechange conflicts --> especially handle water to disappear when lava is near
- * - water to go sideways to the direction of less unit
- * - Speed to be handled in more itreations, instead of handling multiple cell movements / iteration
  * - "Move together" ?
  */
 
@@ -73,7 +71,7 @@ public class GameClass extends ApplicationAdapter {
 		font = new BitmapFont();
 
 		world = new World(conf);
-		world.pond_with_grill();
+//		world.pond_with_grill();
 	}
 
 	@Override
@@ -89,9 +87,9 @@ public class GameClass extends ApplicationAdapter {
 		if(Debug_state.TEXT == debug_state)
 		for(int x = (int)Math.max(0.0f,(mouseInWorld2D.x - 20)); x < Math.min((mouseInWorld2D.x + 20),conf.world_block_number[0]); ++x){
 			for(int y = (int)Math.max(0.0f,(mouseInWorld2D.y - 20)); y < Math.min((mouseInWorld2D.y + 20),conf.world_block_number[1]); ++y){
-//				drawblock(x,y, (world.get_eth_plane().aether_value_at(x,y)/Math.max(world.get_eth_plane().aether_value_at(x,y),world.get_eth_plane().nether_value_at(x,y))), img_aether);
-//				drawblock(x,y, (world.get_eth_plane().nether_value_at(x,y)/Math.max(world.get_eth_plane().aether_value_at(x,y),world.get_eth_plane().nether_value_at(x,y))), img_nether);
-		        draw_velo(x,y);
+				drawblock(x,y, (world.get_eth_plane().aether_value_at(x,y)/Math.max(world.get_eth_plane().aether_value_at(x,y),world.get_eth_plane().nether_value_at(x,y))), img_aether);
+				drawblock(x,y, (world.get_eth_plane().nether_value_at(x,y)/Math.max(world.get_eth_plane().aether_value_at(x,y),world.get_eth_plane().nether_value_at(x,y))), img_nether);
+//		        draw_velo(x,y);
 			}
 		}
 		batch.end();
@@ -214,44 +212,54 @@ public class GameClass extends ApplicationAdapter {
 	private final Vector2 mouseInWorld2D = new Vector2();
 	private final Vector3 mouseInCam3D = new Vector3();
 
-	public void my_game_loop(){
+	public void my_game_loop() {
 		mouseInCam3D.x = Gdx.input.getX();
 		mouseInCam3D.y = Gdx.input.getY();
 		mouseInCam3D.z = 0;
 		camera.unproject(mouseInCam3D);
 		mouseInWorld2D.x = (
-				(mouseInCam3D.x - (conf.block_radius) + (conf.world_block_size/4.0f))
+				(mouseInCam3D.x - (conf.block_radius) + (conf.world_block_size / 4.0f))
 						/ conf.world_block_size);
 		mouseInWorld2D.y = (
-				(mouseInCam3D.y - (conf.block_radius) + (conf.world_block_size/4.0f))
+				(mouseInCam3D.y - (conf.block_radius) + (conf.world_block_size / 4.0f))
 						/ conf.world_block_size);
 
-		if(Gdx.input.isKeyJustPressed(Input.Keys.F1)){
+		if (Gdx.input.isKeyJustPressed(Input.Keys.F1)) {
 			debug_state = debug_state.previous();
 		}
-		if(Gdx.input.isKeyJustPressed(Input.Keys.F2)){
+		if (Gdx.input.isKeyJustPressed(Input.Keys.F2)) {
 			debug_state = debug_state.next();
 		}
 
-		if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)){
+		if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
 			addition *= 1.1f;
-		}else if(Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)){
+		} else if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
 			addition *= 0.9f;
 		}
-		if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
-			float add_this = addition;
-			if(!Gdx.input.isKeyPressed(Input.Keys.SPACE))add_this *= -1.0f;
-			world.add_nether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, add_this);
-			if(Gdx.input.isKeyPressed(Input.Keys.C))
-				world.add_aether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, (add_this/ Materials.nether_ratios[Materials.Names.Fire.ordinal()]));
+
+		if(Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT)){
+			if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
+				float add_this = addition;
+				if(!Gdx.input.isKeyPressed(Input.Keys.SPACE))add_this *= -1.0f;
+				world.try_to_equalize((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, add_this);
+			}
+		}else{
+			if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
+				float add_this = addition;
+				if(!Gdx.input.isKeyPressed(Input.Keys.SPACE))add_this *= -1.0f;
+				world.add_nether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, add_this);
+				if(Gdx.input.isKeyPressed(Input.Keys.C))
+					world.add_aether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, (add_this/ Materials.nether_ratios[Materials.Names.Fire.ordinal()]));
+			}
+			if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT)){
+				float add_this = addition;
+				if(!Gdx.input.isKeyPressed(Input.Keys.SPACE))add_this *= -1.0f;
+				world.add_aether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, add_this);
+				if(Gdx.input.isKeyPressed(Input.Keys.C))
+					world.add_nether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, (add_this * Materials.nether_ratios[Materials.Names.Earth.ordinal()]));
+			}
 		}
-		if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT)){
-			float add_this = addition;
-			if(!Gdx.input.isKeyPressed(Input.Keys.SPACE))add_this *= -1.0f;
-			world.add_aether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, add_this);
-			if(Gdx.input.isKeyPressed(Input.Keys.C))
-				world.add_nether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, (add_this * Materials.nether_ratios[Materials.Names.Earth.ordinal()]));
-		}
+
 		if(Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)){
 			world.pond_with_grill();
 		}
@@ -304,7 +312,7 @@ public class GameClass extends ApplicationAdapter {
 		}
 	}
 
-	Util.MyCell first_point = new Util.MyCell(1,1,conf.world_block_number[0]);
+//	Util.MyCell first_point = new Util.MyCell(1,1,conf.world_block_number[0]);
 	Materials.Names debug_focus = Materials.Names.Nothing;
 
 	@Override

@@ -1,6 +1,5 @@
 package com.crystalline.aether.models;
 
-import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.services.World;
 
 public abstract class Reality_aspect {

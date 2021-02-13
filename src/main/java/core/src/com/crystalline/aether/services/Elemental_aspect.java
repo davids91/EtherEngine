@@ -274,7 +274,7 @@ public class Elemental_aspect extends Reality_aspect {
                         ||!Materials.is_same_mat(x, y,x-1,y-1, blocks, units)
                         )
                     ) { /* the cell is a liquid on top of another liquid, so it must move. */
-                        forces[x][y].set(forces[x][y].x,0.1f);
+                        forces[x][y].set(forces[x][y].x, 0.99f);
                         for (int nx = (x - 1); nx < (x + 2); ++nx) for (int ny = (y - 1); ny < (y + 2); ++ny) {
                             if ((x != nx) && (y != ny)&&(Materials.movable(blocks[nx][ny], units[nx][ny]))){
                                 float weight_difference = Math.max(-2.5f, Math.min(2.5f, (get_weight(x, y, units) - get_weight(nx, ny, units))));

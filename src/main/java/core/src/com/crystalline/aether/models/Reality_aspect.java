@@ -15,6 +15,4 @@ public abstract class Reality_aspect {
     public abstract void post_process(float[][] units, World parent);
     public abstract void switch_values(int fromX, int fromY, int toX, int toY);
     public abstract void take_over_unit_changes(int x, int y, float[][] units);
-    public abstract void merge_a_to_b(int ax, int ay, int bx, int by);
-    public abstract void split_a_to_b(int ax, int ay, int bx, int by);
 }

@@ -71,32 +71,6 @@ public class World {
         units[from.get_i_x()][from.get_i_y()] = tmp_val;
     }
 
-    public void merge_a_into_b(Util.MyCell a, Util.MyCell b){
-        ethereal_plane.merge_a_to_b(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
-        elemental_plane.merge_a_to_b(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
-
-        units[b.get_i_x()][b.get_i_y()] += units[a.get_i_x()][a.get_i_y()];
-        units[a.get_i_x()][a.get_i_y()] = 0.0f;
-
-        elemental_plane.take_over_unit_changes(a.get_i_x(),a.get_i_y(),units);
-        elemental_plane.take_over_unit_changes(b.get_i_x(),b.get_i_y(),units);
-        ethereal_plane.take_over_unit_changes(a.get_i_x(),a.get_i_y(),units);
-        ethereal_plane.take_over_unit_changes(b.get_i_x(),b.get_i_y(),units);
-    }
-
-    public void split_a_into_b(Util.MyCell a, Util.MyCell b){ /* TODO: Sometimes movement disturbs Ether */
-        ethereal_plane.split_a_to_b(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
-        elemental_plane.split_a_to_b(a.get_i_x(),a.get_i_y(),b.get_i_x(),b.get_i_y());
-
-        units[a.get_i_x()][a.get_i_y()] /= 2.0f;
-        units[b.get_i_x()][b.get_i_y()] += units[a.get_i_x()][a.get_i_y()];
-
-        elemental_plane.take_over_unit_changes(a.get_i_x(),a.get_i_y(),units);
-        elemental_plane.take_over_unit_changes(b.get_i_x(),b.get_i_y(),units);
-        ethereal_plane.take_over_unit_changes(a.get_i_x(),a.get_i_y(),units);
-        ethereal_plane.take_over_unit_changes(b.get_i_x(),b.get_i_y(),units);
-    }
-
     public void main_loop(float step){
         /** ============= PROCESS UNITS ============= **/
         ethereal_plane.process_units(units,this);
@@ -143,10 +117,6 @@ public class World {
     public float get_weight(int posX, int posY){
         return get_elm_plane().get_weight(posX,posY, units);
     }
-    public float get_weight(Util.MyCell pos){
-        return get_weight(pos.get_i_x(), pos.get_i_y());
-    }
-
     public float unit_at(int posX, int posY){
         return units[posX][posY];
     }

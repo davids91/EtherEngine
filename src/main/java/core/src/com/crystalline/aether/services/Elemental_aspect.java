@@ -20,7 +20,7 @@ public class Elemental_aspect extends Reality_aspect {
 
     private final Random rnd = new Random();
 
-    private final int velocity_max_ticks = 3;
+    private final int velocity_max_ticks = 9;
 
     /* Debug variables */
     private final float[][] touched_by_mechanics;
@@ -52,21 +52,6 @@ public class Elemental_aspect extends Reality_aspect {
                 blocks[x][y] = plane.element_at(x,y);
             }
         }
-    }
-
-    private float avg_of_not_block(int x, int y, float[][] table, Materials.Names type){
-        float average_val = 0.0f;
-        float division = 0.0f;
-        for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
-            for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
-                if(blocks[nx][ny] == type){
-                    average_val += table[nx][ny];
-                    division += 1.0f;
-                }
-            }
-        }
-        if(0 < division)average_val /= division;
-        return average_val;
     }
 
     private float avg_of_block(int x, int y, float[][] table, Materials.Names type){
@@ -221,24 +206,6 @@ public class Elemental_aspect extends Reality_aspect {
     }
 
     @Override
-    public void merge_a_to_b(int ax, int ay, int bx, int by) {
-        if((blocks[ax][ay] == blocks[bx][by]) || (Materials.Names.Nothing == blocks[bx][by])){
-            forces[bx][by].add(forces[ax][ay]); /* TODO: Is this really how it should be? maybe use inelastic collision?? */
-            blocks[bx][by] = blocks[ax][ay];
-            forces[bx][by].set(0,0);
-        }
-    }
-
-    @Override
-    public void split_a_to_b(int ax, int ay, int bx, int by) {
-        if((blocks[ax][ay] == blocks[bx][by]) || (Materials.Names.Nothing == blocks[bx][by])) {
-            blocks[bx][by] = blocks[ax][ay];
-            forces[ax][ay].add(forces[bx][by]); /* TODO: Inelastic collision here! */
-            forces[bx][by].set(0,0);
-        }
-    }
-
-    @Override
     public void process_mechanics(float[][] units, World parent) {
         HashMap<Util.MyCell, Util.MyCell> remaining_proposed_changes = new HashMap<>();
 
@@ -256,7 +223,7 @@ public class Elemental_aspect extends Reality_aspect {
             }
         }
 
-        for(int i = 0;i <3;++i){
+        for(int i = 0;i <velocity_max_ticks;++i){
             process_mechanics_backend(units,parent,remaining_proposed_changes);
         }
 
@@ -299,14 +266,20 @@ public class Elemental_aspect extends Reality_aspect {
 
                 if(Materials.Mecha_properties.Fluid == Materials.get_state(blocks[x][y], units[x][y])){
                     if(/* the cells next to the current one are of different material  */
+                        Materials.is_same_mat(x, y,x,y-1, blocks, units)
+                        &&(
                         !Materials.is_same_mat(x, y,x+1,y, blocks, units)
                         ||!Materials.is_same_mat(x, y,x-1,y, blocks, units)
+                        ||!Materials.is_same_mat(x, y,x+1,y-1, blocks, units)
+                        ||!Materials.is_same_mat(x, y,x-1,y-1, blocks, units)
+                        )
                     ) { /* the cell is a liquid on top of another liquid, so it must move. */
+                        forces[x][y].set(forces[x][y].x,0.1f);
                         for (int nx = (x - 1); nx < (x + 2); ++nx) for (int ny = (y - 1); ny < (y + 2); ++ny) {
                             if ((x != nx) && (y != ny)&&(Materials.movable(blocks[nx][ny], units[nx][ny]))){
-                                float weight_difference = Math.max(-1.5f, Math.min(1.5f, (get_weight(x, y, units) - get_weight(nx, ny, units))));
+                                float weight_difference = Math.max(-2.5f, Math.min(2.5f, (get_weight(x, y, units) - get_weight(nx, ny, units))));
                                 forces[x][y].add( /* TODO: Eliminate the possibility of columns of water */
-                                ((nx - x) + (ny - y) * (x % 3) * (y % 3)) * weight_difference, -forces[x][y].y
+                                ((nx - x) + (ny - y) * (x % 3) * (y % 3)) * weight_difference, 0
                                 );
                             }
                         }
@@ -367,16 +340,23 @@ public class Elemental_aspect extends Reality_aspect {
             int target_x = curr_change.getValue().get_i_x();
             int target_y = curr_change.getValue().get_i_y();
             if(
-                Materials.Names.Ether == blocks[source_x][source_y]
-                &&Materials.Names.Ether != blocks[target_x][target_y]
-                &&!Materials.discardable(blocks[target_x][target_y], units[target_x][target_y])
-//                &&(50.0 < forces[source_x][source_y].len())
+                    Materials.Names.Ether == blocks[source_x][source_y]
+                    &&Materials.Names.Ether != blocks[target_x][target_y]
+                    &&!Materials.discardable(blocks[target_x][target_y], units[target_x][target_y])
             ){ /* In case the material to move is Ether, and it has a relaitvely big force */ /* TODO: Make force transfer depending on the state of the matter, to make crystals stable */
                 forces[target_x][target_y].add(forces[source_x][source_y]);
                 blocks[source_x][source_y] = Materials.Names.Air;
                 forces[target_x][target_y].scl(units[source_x][source_y]);
 //                units[target_x][target_y] += units[source_x][source_y];
-                units[source_x][source_y] = 0.01f;
+//                units[source_x][source_y] = 0.01f;
+            }else
+            if(
+                Materials.Names.Ether == blocks[target_x][target_y]
+                &&Materials.Names.Ether != blocks[source_x][source_y]
+            ){
+                forces[source_x][source_y].add(forces[target_x][target_y]);
+                blocks[target_x][target_y] = Materials.Names.Air;
+                forces[source_x][source_y].scl(units[target_x][target_y]);
             }else
             if(
                 Materials.discardable(blocks[target_x][target_y],units[target_x][target_y])
@@ -440,20 +420,38 @@ public class Elemental_aspect extends Reality_aspect {
     ){
         Util.MyCell intended_source_cell = new Util.MyCell(sizeX);
         Util.MyCell intended_target_cell = new Util.MyCell(sizeX);
+        Vector2 target_final_position = new Vector2();
         if( !Materials.discardable(blocks[x][y], units[x][y]) && (1.0f <= forces[x][y].len()) ){
             intended_source_cell.set(x,y);
             intended_target_cell.set(x,y);
             if(1.0 <= Math.abs(forces[x][y].x))intended_target_cell.set(
-                    (x + Math.max(-1.0f, Math.min(forces[x][y].x,1.0f))), intended_target_cell.y
+            x + Math.max(-1.0f, Math.min(forces[x][y].x,1.0f)), intended_target_cell.y
             );
             if(1.0 <= Math.abs(forces[x][y].y))intended_target_cell.set(
-                    intended_target_cell.x, (y + Math.max(-1.0f,Math.min(forces[x][y].y,1.0f)))
+            intended_target_cell.x, y + Math.max(-1.0f,Math.min(forces[x][y].y,1.0f))
             );
-            if(!evaluate_for_mechanics(units, intended_source_cell,intended_target_cell,proposed_changes,already_changed)){
-                previously_left_out_proposals.put(new Util.MyCell(intended_source_cell),new Util.MyCell(intended_target_cell));
-                /* Since these cells are left out, add no gravity to them! */
-                gravity_correction_amount[intended_source_cell.get_i_x()][intended_source_cell.get_i_y()] = 0;
-                gravity_correction_amount[intended_target_cell.get_i_x()][intended_target_cell.get_i_y()] = 0;
+
+            /* calculate the final position of the intended target cell */
+            target_final_position.set(intended_target_cell.x,intended_target_cell.y);
+            if(1.0 <= Math.abs(forces[intended_target_cell.get_i_x()][intended_target_cell.get_i_y()].x))
+                target_final_position.set(
+                intended_target_cell.x + Math.max(-1.1f, Math.min(forces[intended_target_cell.get_i_x()][intended_target_cell.get_i_y()].x,1.1f)),
+                intended_target_cell.y
+                );
+            if(1.0 <= Math.abs(forces[intended_target_cell.get_i_x()][intended_target_cell.get_i_y()].y))
+                target_final_position.set(
+                intended_target_cell.x,
+                intended_target_cell.y + Math.max(-1.1f,Math.min(forces[intended_target_cell.get_i_x()][intended_target_cell.get_i_y()].y,1.1f))
+                );
+
+            /* see if the two cells still intersect with forces included */
+            if(1.5 > intended_source_cell.dst(target_final_position)){
+                if(!evaluate_for_mechanics(units, intended_source_cell,intended_target_cell,proposed_changes,already_changed)){
+                    previously_left_out_proposals.put(new Util.MyCell(intended_source_cell),new Util.MyCell(intended_target_cell));
+                    /* Since these cells are left out, add no gravity to them! */
+                    gravity_correction_amount[intended_source_cell.get_i_x()][intended_source_cell.get_i_y()] = 0;
+                    gravity_correction_amount[intended_target_cell.get_i_x()][intended_target_cell.get_i_y()] = 0;
+                }
             }
         }
     }
@@ -485,18 +483,11 @@ public class Elemental_aspect extends Reality_aspect {
             &&(!already_changed.contains(Util.coordinate_to_hash(intended_x,intended_y,sizeX)))
         ){
             if(velocity_max_ticks == velocity_ticks[x][y]){
-                /* see if the two cells still intersect with forces included */
-                if( /* TODO: more accurate intention, taking both forces into consideration */
-                    2.0f > source_cell.cpy().sub(target_cell.cpy().add(forces[intended_x][intended_y].cpy().nor())).len()
-                ){
-                    already_proposed_changes.put(
-                            new Util.MyCell(x,y,sizeX),new Util.MyCell(intended_x,intended_y,sizeX)
-                    ); /* propose to switch the 2 */
-                    already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
-                    already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
-                    velocity_ticks[x][y] = 0;
-                    return true;
-                }
+                already_proposed_changes.put(new Util.MyCell(x,y,sizeX),new Util.MyCell(intended_x,intended_y,sizeX));
+                already_changed.add(Util.coordinate_to_hash(x,y,sizeX));
+                already_changed.add(Util.coordinate_to_hash(intended_x,intended_y,sizeX));
+                velocity_ticks[x][y] = 0;
+                return true;
             }else ++velocity_ticks[x][y];
         } /* Able to process mechanics on the 2 blocks */
         return false;

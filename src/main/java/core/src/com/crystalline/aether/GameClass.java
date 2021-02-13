@@ -17,7 +17,7 @@ import com.crystalline.aether.models.Materials;
 import com.crystalline.aether.services.World;
 
 /** TODO:
- * - Display heat and cold
+ * - Display heat and light
  * - Heat and cold to be counted in para-effect plane( ? )
  * - Create Ether crystals: it's not a target ratio, only when the ratio is already at that.
  * - "running" indicator

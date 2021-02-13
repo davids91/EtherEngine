@@ -1,7 +1,7 @@
 package com.crystalline.aether.models;
 
 public interface DisplayService<Media> {
-    Media display();
+    Media get_display();
     void render();
     void dispose();
 }

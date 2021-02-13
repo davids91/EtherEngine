@@ -4,11 +4,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.Vector3;
-import com.crystalline.aether.models.CapsuleService;
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.models.InputService;
 import com.crystalline.aether.models.Materials;
 
-public class UserInputCapsule implements CapsuleService {
+public class UserInputCapsule implements InputService {
     private final Config conf;
     private final WorldCapsule worldCapsule;
     private final WorldDisplay displayCapsule;
@@ -21,7 +21,7 @@ public class UserInputCapsule implements CapsuleService {
     }
 
     @Override
-    public void calculate() {
+    public void handle_input() {
         mouseInCam3D.x = Gdx.input.getX();
         mouseInCam3D.y = Gdx.graphics.getHeight() - Gdx.input.getY();
         mouseInCam3D.z = 0;
@@ -67,21 +67,6 @@ public class UserInputCapsule implements CapsuleService {
         if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER)){
             worldCapsule.accept_input("play_pause");
         }
-    }
-
-    @Override
-    public void accept_input(String name, float... values) {
-
-    }
-
-    @Override
-    public float get_parameter(String name, int index) {
-        return 0;
-    }
-
-    @Override
-    public Object get_object(String name) {
-        return null;
     }
 
     @Override

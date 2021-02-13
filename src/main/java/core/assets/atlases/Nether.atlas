@@ -1,0 +1,55 @@
+
+Nether.png
+size: 1024,512
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+aether
+  rotate: false
+  xy: 2, 2
+  size: 256, 128
+  orig: 256, 128
+  offset: 0, 0
+  index: -1
+aether_base
+  rotate: false
+  xy: 2, 132
+  size: 256, 256
+  orig: 256, 256
+  offset: 0, 0
+  index: -1
+aether_colored
+  rotate: false
+  xy: 518, 130
+  size: 256, 128
+  orig: 256, 128
+  offset: 0, 0
+  index: -1
+nether
+  rotate: false
+  xy: 518, 260
+  size: 256, 128
+  orig: 256, 128
+  offset: 0, 0
+  index: -1
+nether_base
+  rotate: false
+  xy: 260, 132
+  size: 256, 256
+  orig: 256, 256
+  offset: 0, 0
+  index: -1
+nether_colored
+  rotate: false
+  xy: 260, 2
+  size: 256, 128
+  orig: 256, 128
+  offset: 0, 0
+  index: -1
+spellbar_panel
+  rotate: false
+  xy: 776, 258
+  size: 66, 130
+  orig: 66, 130
+  offset: 0, 0
+  index: -1

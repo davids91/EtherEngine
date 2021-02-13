@@ -37,12 +37,12 @@ public class WorldDisplay implements CapsuleService, DisplayService<Texture> {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-        batch.draw(new TextureRegion(get_display()),0,0,conf.world_size[0],conf.world_size[1]);
+        batch.draw(new TextureRegion(get_display()),0,0,worldCapsule.width(), worldCapsule.height());
         batch.end();
     }
 
     @Override
-    public void accept_input(String name, float... values) {
+    public void accept_input(String name, float... parameters) {
 
     }
 

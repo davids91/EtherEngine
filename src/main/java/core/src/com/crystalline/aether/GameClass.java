@@ -24,10 +24,15 @@ public class GameClass extends ApplicationAdapter {
 			0,
 			new ArrayList<Scene>() {{
 				add(new PlaygroundScene(builder, new Config()));
-				add(new EditorScene(builder, new Config().block_dimensions(10,10)));
+				add(new EditorScene(builder, new Config().block_dimensions(7,7)));
 			}}
 		);
-		sceneHandler.activateScene(0);
+	}
+
+	@Override
+	public void resize(int width, int height) {
+		super.resize(width, height);
+		sceneHandler.resize(width, height);
 	}
 
 	@Override

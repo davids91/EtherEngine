@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.models.CapsuleService;
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.models.DisplayService;
 
 /** TODO:
  * - Display heat and light
@@ -28,8 +27,8 @@ public class WorldCapsule implements CapsuleService {
     private final World world;
     private final Vector2 mouseInWorld2D = new Vector2();
 
-    private float addition = 5.0f;
     private boolean play = true;
+    private float spell_amount = 0.0f;
 
     public WorldCapsule(Config conf_){
         conf = conf_;
@@ -47,50 +46,47 @@ public class WorldCapsule implements CapsuleService {
     }
 
     @Override
-    public void accept_input(String name, float... values) {
+    public void accept_input(String name, float... parameters) {
         /* Modify parameters */
-        if(name.equals("mouseInWorld2D")&&(2 == values.length)){
-            mouseInWorld2D.x = values[0];
-            mouseInWorld2D.y = values[1];
-        }else if(name.equals("initialize")&&(0 == values.length)){
+        if(name.equals("mouseInWorld2D")&&(2 == parameters.length)){
+            mouseInWorld2D.x = parameters[0];
+            mouseInWorld2D.y = parameters[1];
+        }else if(name.equals("initialize")&&(0 == parameters.length)){
             world.pond_with_grill();
-        }else if(name.equals("play_pause")&&(0 == values.length)){
+        }else if(name.equals("play_pause")&&(0 == parameters.length)){
             play = !play;
         }
 
         /* interact */
-        else if(name.equals("modify_spell_range")&&(1 == values.length)){
-            addition *= values[0];
-        }else if(name.equals("add_aether")&&(1 == values.length)){
-            world.add_aether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, values[0]);
-        }else if(name.equals("add_nether")&&(1 == values.length)){
-            world.add_nether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, values[0]);
-        }else if(name.equals("equalize")&&(1 == values.length)){
-            world.try_to_equalize((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, values[0]);
+        if(name.equals("spell_amount")&&(1==parameters.length)){
+            spell_amount = parameters[0];
+        }else if(name.equals("add_aether")&&(1 == parameters.length)){
+            world.add_aether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, parameters[0]);
+        }else if(name.equals("add_nether")&&(1 == parameters.length)){
+            world.add_nether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, parameters[0]);
+        }else if(name.equals("equalize")&&(1 == parameters.length)){
+            world.try_to_equalize((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, parameters[0]);
         }
     }
 
     @Override
     public float get_parameter(String name, int index) {
-        if(name.equals("spell_range")&&(0 == index)){
-            return addition;
-        }
-        return 0;
+        throw new UnsupportedOperationException("No parameters available!");
     }
 
     @Override
     public Object get_object(String name) {
         if(name.equals("world_image")){
-            return new Texture(world.getWorldImage(mouseInWorld2D,(addition/10.0f),world.get_eth_plane()));
+            return new Texture(world.getWorldImage(mouseInWorld2D,(spell_amount /10.0f),world.get_eth_plane()));
         }
-        return null;
+        throw new UnsupportedOperationException("No Objects with given name!");
     }
 
     public float width(){
-        return conf.world_size[0];
+        return conf.world_block_number[0];
     }
     public float height(){
-        return conf.world_size[1];
+        return conf.world_block_number[1];
     }
 
     @Override

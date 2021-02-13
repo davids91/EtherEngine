@@ -1,6 +1,7 @@
 package com.crystalline.aether.services;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -18,9 +19,11 @@ public class PlaygroundScene extends Scene {
     private final Config conf;
     private final WorldCapsule worldCapsule;
     private final Stage stage;
+    private final InputMultiplexer inputMultiplexer;
 
     public PlaygroundScene(SceneHandler.Builder builder, Config conf_){
         super(builder);
+        inputMultiplexer = new InputMultiplexer();
         conf = conf_;
         worldCapsule = new WorldCapsule(conf);
         stage = new Stage(new ExtendViewport(Gdx.graphics.getWidth(),Gdx.graphics.getHeight()));
@@ -47,26 +50,35 @@ public class PlaygroundScene extends Scene {
         });
 
         table.add(spell_editor_btn).align(Align.topLeft).row();
-        table.setDebug(true);
         stage.addActor(table);
 
         WorldDisplay worldDisplayCapsule = new WorldDisplay(worldCapsule, conf);
-        UserInputCapsule userInputCapsule = new UserInputCapsule(worldCapsule, worldDisplayCapsule, conf);
+        UserInputCapsule userInputCapsule = new UserInputCapsule(
+        this,worldCapsule, worldDisplayCapsule,500, conf
+        );
         addViews(worldDisplayCapsule);
         setActiveUserView(0);
         addInputHandlers(userInputCapsule);
-        setActiveInputHandler(0);
+        addCapsules(worldCapsule);
+
+        inputMultiplexer.addProcessor(stage);
+        inputMultiplexer.addProcessor(userInputCapsule);
     }
 
     @Override
     public InputProcessor getInputProcessor(){
-        return stage;
+        return inputMultiplexer;
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        stage.getViewport().update(width,height,true);
     }
 
     @Override
     public void calculate() {
+        super.calculate();
         stage.act(Gdx.graphics.getDeltaTime());
-        worldCapsule.calculate();
     }
 
     @Override

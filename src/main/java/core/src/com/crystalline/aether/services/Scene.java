@@ -3,6 +3,7 @@ package com.crystalline.aether.services;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
+import com.crystalline.aether.models.CapsuleService;
 import com.crystalline.aether.models.DisplayService;
 import com.crystalline.aether.models.InputService;
 
@@ -10,14 +11,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public abstract class Scene{
-
-    public abstract void calculate();
     public abstract InputProcessor getInputProcessor();
+    public abstract void resize(int width, int height);
 
-    private SceneHandler parent;
+    protected SceneHandler parent;
     private int activeUserView;
-    private int activeInputHandler;
 
+    private final ArrayList<Boolean> active_capsules;
+    private final ArrayList<CapsuleService> capsules;
     private final ArrayList<DisplayService> userViews;
     private final ArrayList<InputService> inputHandlers;
     public static class Token{ private Token(){} }
@@ -28,11 +29,18 @@ public abstract class Scene{
 
     public Scene(SceneHandler.Builder parentBuilder){
         parent = parentBuilder.get(token);
+        capsules = new ArrayList<>();
         userViews = new ArrayList<>();
         inputHandlers = new ArrayList<>();
+        active_capsules = new ArrayList<>();
     }
 
-    protected void signal(String signal){
+    public void signal(String signal, float... parameters){
+        for(int i = 0;i <capsules.size(); ++i){
+            if(active_capsules.get(i)){
+                capsules.get(i).accept_input(signal, parameters);
+            }
+        }
         parent.accept_signal(signal);
     }
 
@@ -41,23 +49,31 @@ public abstract class Scene{
            activeUserView = i;
         }
     }
-    public void addViews(DisplayService... views){
-        userViews.addAll(Arrays.asList(views));
+
+    public void calculate(){
+        for(int i = 0;i <capsules.size(); ++i){
+            if(active_capsules.get(i)){
+                capsules.get(i).calculate();
+            }
+        }
     }
 
-    public void setActiveInputHandler(int i){
-        if((0 <= i)&&(i < inputHandlers.size())){
-            activeInputHandler = i;
-        }
+    public void addViews(DisplayService... views){
+        userViews.addAll(Arrays.asList(views));
     }
     public void addInputHandlers(InputService... inputHandlers_){
         inputHandlers.addAll(Arrays.asList(inputHandlers_));
     }
+    public void addCapsules(CapsuleService... capsuleServices){
+        for(CapsuleService capsl : capsuleServices){
+            capsules.add(capsl);
+            active_capsules.add(Boolean.TRUE);
+        }
+    }
 
     public void render(){
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        if(0 < inputHandlers.size())
-            inputHandlers.get(activeInputHandler).handle_input();
+        for(InputService is : inputHandlers) is.handle_input();
         if(0 < userViews.size())
             userViews.get(activeUserView).render();
     }

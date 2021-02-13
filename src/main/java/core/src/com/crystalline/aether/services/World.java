@@ -159,11 +159,11 @@ public class World {
 //                        (1.0f >= Math.abs(x - focus.x))
 //                        &&(1.0f >= Math.abs(y - focus.y))
                         (x == (int)focus.x) && (y == (int)focus.y)
-                ) interpol = 0.7f;
+                ) interpol = 0.3f;
                 else if(
                         (radius >= Math.abs(x - focus.x))
                                 &&(radius >= Math.abs(y - focus.y))
-                ) interpol = 0.8f;
+                ) interpol = 0.4f;
 //                Color finalColor = Color.BLACK.lerp(Color.GRAY, interpol);
                 Color finalColor = elemental_plane.getColor(x,y,units).lerp(Color.GRAY, interpol);
 //                Color finalColor = elemental_plane.getDebugColor(x,y,units).lerp(Color.GRAY, interpol);

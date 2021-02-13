@@ -93,6 +93,8 @@ public class Ethereal_aspect extends Reality_aspect {
 
         for (int x = 0; x < sizeX; ++x) {
             for (int y = 0; y < sizeY; ++y) {
+                if(get_ratio(x,y) == Materials.nether_ratios[Materials.Names.Ether.ordinal()])
+                    continue;
                 if (decide_target_ratios){
                     if(0 == ratio_change_tick[x][y]){
                         target_ratios[x][y] = get_target_ratio(x, y);
@@ -113,6 +115,8 @@ public class Ethereal_aspect extends Reality_aspect {
         /* Sharing ether */
         for (int x = 0; x < sizeX; ++x) { /* Let's see the ether requests in the contexts */
             for (int y = 0; y < sizeY; ++y) {
+                if(get_ratio(x,y) == Materials.nether_ratios[Materials.Names.Ether.ordinal()])
+                    continue;
                 requested_avg_ae[x][y] = avg_of(x, y, available_aether);
                 requested_avg_ne[x][y] = avg_of(x, y, available_nether);
             }
@@ -120,6 +124,8 @@ public class Ethereal_aspect extends Reality_aspect {
 
         for (int x = 0; x < sizeX; ++x) {
             for (int y = 0; y < sizeY; ++y) {
+                if(get_ratio(x,y) == Materials.nether_ratios[Materials.Names.Ether.ordinal()])
+                    continue;
                 available_avg_ae[x][y] = parent.avg_of_compatible(x, y, available_aether);
                 available_avg_ne[x][y] = parent.avg_of_compatible(x, y, available_nether);
             }
@@ -128,6 +134,8 @@ public class Ethereal_aspect extends Reality_aspect {
         /* finalize Ether */
         for (int x = 0; x < sizeX; ++x) {
             for (int y = 0; y < sizeY; ++y) {
+                if(get_ratio(x,y) == Materials.nether_ratios[Materials.Names.Ether.ordinal()])
+                    continue;
                 available_aether[x][y] = available_avg_ae[x][y];
                 available_nether[x][y] = available_avg_ne[x][y];
 
@@ -281,7 +289,7 @@ public class Ethereal_aspect extends Reality_aspect {
         if((nether_values[x][y] + nether_values[x][y]) < 0.1f){ /* In case there's almost no ether */
             return Materials.Names.Air;
         }else
-        if(get_ratio(x,y) == Materials.nether_ratios[Materials.Names.Ether.ordinal()]){
+        if(get_ratio(x,y) <= Materials.nether_ratios[Materials.Names.Ether.ordinal()]){
             return Materials.Names.Ether;
         }else if(get_ratio(x,y) <= ((Materials.nether_ratios[Materials.Names.Earth.ordinal()] + Materials.nether_ratios[Materials.Names.Water.ordinal()])/2.0f))
             return Materials.Names.Earth;
@@ -296,7 +304,7 @@ public class Ethereal_aspect extends Reality_aspect {
         if((nether_values[x][y] + nether_values[x][y]) < 0.1f){ /* In case there's almost no ether */
             return Materials.nether_ratios[Materials.Names.Air.ordinal()];
         }else
-        if(get_ratio(x,y) == Materials.nether_ratios[Materials.Names.Ether.ordinal()]){
+        if(get_ratio(x,y) <= Materials.nether_ratios[Materials.Names.Ether.ordinal()]){
             return Materials.nether_ratios[Materials.Names.Ether.ordinal()];
         }
         else if(get_ratio(x,y) <= ((Materials.nether_ratios[Materials.Names.Earth.ordinal()] + Materials.nether_ratios[Materials.Names.Water.ordinal()])/2.0f))

@@ -42,6 +42,7 @@ public class GameClass extends ApplicationAdapter {
 	Config conf = new Config();
 	World world;
 	float addition = 5.0f;
+	boolean play = true;
 
 	private enum Debug_state {
 		OFF,TEXT,NORMAL_ARROWS,ARROWS;
@@ -265,7 +266,8 @@ public class GameClass extends ApplicationAdapter {
 		}
 
 		/* Game logic */
-		if(!Gdx.input.isKeyPressed(Input.Keys.ENTER)){
+		if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER)){ play = !play; }
+		if(play){
 			world.main_loop(0.01f);
 		}else
 		if(Gdx.input.isKeyJustPressed(Input.Keys.TAB)){

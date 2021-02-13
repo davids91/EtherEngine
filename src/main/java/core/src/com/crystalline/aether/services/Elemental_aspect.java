@@ -283,16 +283,15 @@ public class Elemental_aspect extends Reality_aspect {
                         if ( /* in the bounds of the chunk */
                             (0 <= nx)&&(sizeX > nx)&&(0 <= ny)&&(sizeY > ny)
                             &&( 1 < (Math.abs(x - nx) + Math.abs(y - ny)) ) /* after the not immediate neighbourhood */
+                            &&(units[x][y] <= units[nx][ny])
+                            &&(Materials.Names.Ether == blocks[nx][ny])
                         ){ /* Calculate forces from surplus ethers */
                             float aether_diff = Math.max(-10.5f, Math.min(10.5f, (
                                 parent.get_eth_plane().aether_value_at(x,y) - parent.get_eth_plane().aether_value_at(nx,ny)
                             )));
-                            float nether_diff = Math.max(-10.5f, Math.min(10.5f, (
-                                parent.get_eth_plane().nether_value_at(x,y) - parent.get_eth_plane().nether_value_at(nx,ny)
-                            ))); /* TODO: Forces to consume surplus ether */
                             forces[x][y].add(
-                            (nx - x) * nether_diff + (nx - x) * aether_diff,
-                            (ny - y) * nether_diff + (ny - y) * aether_diff
+                            (nx - x) * aether_diff,
+                            (ny - y) * aether_diff
                             );
                         }
                     }
@@ -370,7 +369,8 @@ public class Elemental_aspect extends Reality_aspect {
             if(
                 Materials.Names.Ether == blocks[source_x][source_y]
                 &&Materials.Names.Ether != blocks[target_x][target_y]
-                &&(500.0 < forces[source_x][source_y].len())
+                &&!Materials.discardable(blocks[target_x][target_y], units[target_x][target_y])
+//                &&(50.0 < forces[source_x][source_y].len())
             ){ /* In case the material to move is Ether, and it has a relaitvely big force */ /* TODO: Make force transfer depending on the state of the matter, to make crystals stable */
                 forces[target_x][target_y].add(forces[source_x][source_y]);
                 blocks[source_x][source_y] = Materials.Names.Air;

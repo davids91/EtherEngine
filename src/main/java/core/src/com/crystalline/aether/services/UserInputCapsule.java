@@ -36,35 +36,10 @@ public class UserInputCapsule extends InputService {
     @Override
     public void handle_input() {
         mouseInCam3D.x = Gdx.input.getX();
-        mouseInCam3D.y = Gdx.graphics.getHeight() - Gdx.input.getY();
+        mouseInCam3D.y = Gdx.input.getY();
         mouseInCam3D.z = 0;
         ((OrthographicCamera)displayCapsule.get_object("camera")).unproject(mouseInCam3D);
         worldCapsule.accept_input("mouseInWorld2D", mouseInCam3D.x,mouseInCam3D.y);
-
-        if(
-            Gdx.input.isButtonPressed(Input.Buttons.LEFT)
-            || Gdx.input.isButtonPressed(Input.Buttons.RIGHT)
-        ){
-            float add_this = spell_amount;
-            if(userSpellTendency == Spells.SpellEtherTendency.Equalize) {
-                signal("equalize", add_this);
-            }else{
-                if(userSpellTendency == Spells.SpellEtherTendency.Take){
-                    add_this *= -1.0f;
-                }else if(userSpellTendency == Spells.SpellEtherTendency.Give) { }
-
-                if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
-                    signal("add_nether", add_this);
-                    if(Gdx.input.isKeyPressed(Input.Keys.C))
-                        signal("add_aether", (add_this / Materials.nether_ratios[Materials.Names.Fire.ordinal()]));
-                }
-                if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT)){
-                    signal("add_aether", add_this);
-                    if(Gdx.input.isKeyPressed(Input.Keys.C))
-                        signal("add_nether", (add_this * Materials.nether_ratios[Materials.Names.Fire.ordinal()]));
-                }
-            }
-        }
     }
 
     @Override
@@ -93,6 +68,30 @@ public class UserInputCapsule extends InputService {
         return false;
     }
 
+    private void handle_ether(){
+        if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) || Gdx.input.isButtonPressed(Input.Buttons.RIGHT)){
+            float add_this = spell_amount;
+            if(userSpellTendency == Spells.SpellEtherTendency.Equalize) {
+                signal("equalize", add_this);
+            }else{
+                if(userSpellTendency == Spells.SpellEtherTendency.Take){
+                    add_this *= -1.0f;
+                }else if(userSpellTendency == Spells.SpellEtherTendency.Give) { }
+
+                if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
+                    signal("add_nether", add_this);
+                    if(Gdx.input.isKeyPressed(Input.Keys.C))
+                        signal("add_aether", (add_this / Materials.nether_ratios[Materials.Names.Fire.ordinal()]));
+                }
+                if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT)){
+                    signal("add_aether", add_this);
+                    if(Gdx.input.isKeyPressed(Input.Keys.C))
+                        signal("add_nether", (add_this * Materials.nether_ratios[Materials.Names.Fire.ordinal()]));
+                }
+            }
+        }
+    }
+
     @Override
     public boolean touchDown(int x, int y, int pointer, int button) {
         if(Input.Buttons.BACK == button){
@@ -104,21 +103,25 @@ public class UserInputCapsule extends InputService {
                 userSpellTendency = userSpellTendency.next();
             signal(userSpellTendency.name());
         }
+        handle_ether();
         return false;
     }
 
     @Override
     public boolean touchUp(int x, int y, int pointer, int button) {
+        handle_ether();
         return false;
     }
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
+        handle_ether();
         return false;
     }
 
     @Override
     public boolean mouseMoved(int screenX, int screenY) {
+
         return false;
     }
 

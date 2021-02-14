@@ -2,6 +2,7 @@ package com.crystalline.aether.services;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.models.CapsuleService;
@@ -28,7 +29,6 @@ public class WorldCapsule implements CapsuleService {
     private final Vector2 mouseInWorld2D = new Vector2();
 
     private boolean play = true;
-    private float spell_amount = 0.0f;
 
     public WorldCapsule(Config conf_){
         conf = conf_;
@@ -53,14 +53,16 @@ public class WorldCapsule implements CapsuleService {
             mouseInWorld2D.y = parameters[1];
         }else if(name.equals("initialize")&&(0 == parameters.length)){
             world.pond_with_grill();
+        }else if(name.equals("stop")&&(0 == parameters.length)){
+            play = false;
         }else if(name.equals("play_pause")&&(0 == parameters.length)){
             play = !play;
+        }else if(name.equals("step")&&(0 == parameters.length)){
+            world.main_loop(0.01f); /* TODO: Make this part of the "calculate"  */
         }
 
         /* interact */
-        if(name.equals("spell_amount")&&(1==parameters.length)){
-            spell_amount = parameters[0];
-        }else if(name.equals("add_aether")&&(1 == parameters.length)){
+        if(name.equals("add_aether")&&(1 == parameters.length)){
             world.add_aether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, parameters[0]);
         }else if(name.equals("add_nether")&&(1 == parameters.length)){
             world.add_nether_to((int)mouseInWorld2D.x,(int)mouseInWorld2D.y, parameters[0]);
@@ -77,7 +79,10 @@ public class WorldCapsule implements CapsuleService {
     @Override
     public Object get_object(String name) {
         if(name.equals("world_image")){
-            return new Texture(world.getWorldImage(mouseInWorld2D,(spell_amount /10.0f),world.get_eth_plane()));
+            Pixmap pxm = world.getWorldImage(mouseInWorld2D,world.get_eth_plane());
+            Texture result = new Texture(pxm);
+            pxm.dispose();
+            return result;
         }
         throw new UnsupportedOperationException("No Objects with given name!");
     }

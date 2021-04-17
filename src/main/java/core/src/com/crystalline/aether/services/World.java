@@ -120,12 +120,40 @@ public class World {
     public float unit_at(int posX, int posY){
         return units[posX][posY];
     }
-    public Pixmap getWorldImage(Vector2 focus, Ethereal_aspect plane){
+    public Pixmap getWorldImage(Vector2 focus, float radius, Ethereal_aspect plane){
         Pixmap worldImage = new Pixmap(sizeX,sizeY, Pixmap.Format.RGB888);
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                Color finalColor = elemental_plane.getColor(x,(sizeY - 1 - y),units);
-                worldImage.drawPixel(x,y, Color.rgba8888(finalColor));
+                float interpol = 0.0f;
+                if(
+//                        (1.0f >= Math.abs(x - focus.x))
+//                        &&(1.0f >= Math.abs(y - focus.y))
+                        (x == (int)focus.x) && (y == (int)focus.y)
+                ) interpol = 0.3f;
+                else if(
+                        (radius >= Math.abs(x - focus.x))
+                                &&(radius >= Math.abs(y - focus.y))
+                ) interpol = 0.4f;
+//                Color finalColor = Color.BLACK.lerp(Color.GRAY, interpol);
+                Color finalColor = elemental_plane.getColor(x,y,units).lerp(Color.GRAY, interpol);
+//                Color finalColor = elemental_plane.getDebugColor(x,y,units).lerp(Color.GRAY, interpol);
+
+//                if(0.1f < get_eth_plane().surplus_aether_at(x,y)){
+//                    finalColor.lerp(Color.BLUE, (get_eth_plane().surplus_aether_at(x,y)/get_eth_plane().aether_value_at(x,y)));
+//                }
+//                if(0.1f < get_eth_plane().surplus_nether_at(x,y)){
+//                    finalColor.lerp(Color.RED, (get_eth_plane().surplus_nether_at(x,y)/get_eth_plane().nether_value_at(x,y)));
+//                }
+
+                float hsvv[] = new float[3];
+                finalColor.toHsv(hsvv);
+                float sat = plane.aether_value_at(x,y) / Math.max(plane.aether_value_at(x,y),plane.nether_value_at(x,y));
+                float val = plane.nether_value_at(x,y) / Math.max(plane.aether_value_at(x,y),plane.nether_value_at(x,y));
+                //finalColor.fromHsv(hsvv[0], (sat+hsvv[1])/2.0f, (val+hsvv[2])/2.0f);
+                finalColor.fromHsv(hsvv[0], hsvv[1], hsvv[2]);
+                worldImage.drawPixel(
+                        x,y, Color.rgba8888(finalColor)
+                );
             }
         }
         return worldImage;

@@ -22,7 +22,7 @@ public class WorldDisplay implements CapsuleService, DisplayService<Texture> {
 
         conf = conf_;
         camera = new OrthographicCamera();
-        camera.setToOrtho(false,worldCapsule.width(), worldCapsule.height());
+        camera.setToOrtho(true,worldCapsule.width(), worldCapsule.height());
         camera.update();
     }
 

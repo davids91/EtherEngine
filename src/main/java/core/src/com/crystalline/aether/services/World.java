@@ -96,6 +96,7 @@ public class World {
         return ethereal_plane;
     }
     public ElementalAspect get_elm_plane(){ return  elemental_plane; }
+
     public void addAetherTo(int x, int y, float value){
         ethereal_plane.add_aether_to(x,y,value);
         ethereal_plane.determine_units(units,this);
@@ -108,8 +109,8 @@ public class World {
         elemental_plane.define_by(ethereal_plane);
     }
 
-    public void try_to_equalize(int x, int y, float value) {
-        ethereal_plane.try_to_equalize(x,y,value);
+    public void tryToEqualize(int x, int y, float value, Materials.Names target) {
+        ethereal_plane.tryToEqualize(x,y,value, Materials.nether_ratios[target.ordinal()]);
         ethereal_plane.determine_units(units,this);
         elemental_plane.define_by(ethereal_plane);
     }

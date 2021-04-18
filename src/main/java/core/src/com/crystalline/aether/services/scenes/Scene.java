@@ -10,6 +10,8 @@ import com.crystalline.aether.services.SceneHandler;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class Scene{
     public abstract InputProcessor getInputProcessor();
@@ -18,10 +20,12 @@ public abstract class Scene{
     protected SceneHandler parent;
     private int activeUserView;
 
-    private final ArrayList<Boolean> active_capsules;
+    private final ArrayList<Boolean> activeCapsules;
     private final ArrayList<CapsuleService> capsules; /* TODO: use Hashmap for targeted signals */
     private final ArrayList<DisplayService> userViews;
     private final ArrayList<InputService> inputHandlers;
+    private final HashMap<String, Float[]> signalsToSend;
+    private final HashMap<String, Float[]> collectedSignals;
     public static class Token{ private Token(){} }
     private Token token = new Token();
     public int getToken(){
@@ -33,16 +37,13 @@ public abstract class Scene{
         capsules = new ArrayList<>();
         userViews = new ArrayList<>();
         inputHandlers = new ArrayList<>();
-        active_capsules = new ArrayList<>();
+        activeCapsules = new ArrayList<>();
+        signalsToSend = new HashMap<>();
+        collectedSignals = new HashMap<>();
     }
 
-    public void signal(String signal, float... parameters){ /* TODO: use a queue of signals instead */
-        for(int i = 0;i <capsules.size(); ++i){
-            if(active_capsules.get(i)){
-                capsules.get(i).accept_input(signal, parameters);
-            }
-        }
-        parent.accept_signal(signal);
+    public void signal(String signal, Float... parameters){ /* TODO: use a queue of signals instead */
+        collectedSignals.put(signal, parameters);
     }
 
     public void setActiveUserView(int i){
@@ -52,8 +53,20 @@ public abstract class Scene{
     }
 
     public void calculate(){
+        signalsToSend.putAll(collectedSignals);
+        collectedSignals.clear();
+        for(Map.Entry<String,Float[]> entry : signalsToSend.entrySet()){
+            for(int i = 0;i <capsules.size(); ++i){
+                if(activeCapsules.get(i)){
+                    capsules.get(i).accept_input(entry.getKey(),entry.getValue());
+                }
+            }
+            parent.accept_signal(entry.getKey());
+        }
+        signalsToSend.clear();
+
         for(int i = 0;i <capsules.size(); ++i){
-            if(active_capsules.get(i)){
+            if(activeCapsules.get(i)){
                 capsules.get(i).calculate();
             }
         }
@@ -68,7 +81,7 @@ public abstract class Scene{
     public void addCapsules(CapsuleService... capsuleServices){
         for(CapsuleService capsl : capsuleServices){
             capsules.add(capsl);
-            active_capsules.add(Boolean.TRUE);
+            activeCapsules.add(Boolean.TRUE);
         }
     }
 

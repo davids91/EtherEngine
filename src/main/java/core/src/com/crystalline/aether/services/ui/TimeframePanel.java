@@ -7,13 +7,12 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.crystalline.aether.services.architecture.CapsuleService;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.services.capsules.WorldCapsule;
 
 import java.util.ArrayList;
 
-public class TimeframePanel extends Table implements CapsuleService {
+public class TimeframePanel extends Table{
     private final Config conf;
     private final WorldCapsule worldCapsule;
     private int selected_frame;
@@ -82,20 +81,5 @@ public class TimeframePanel extends Table implements CapsuleService {
     }
     public Timeframe getSelected(){
         return frames.get(selected_frame);
-    }
-
-    @Override
-    public void calculate() {
-
-    }
-
-    @Override
-    public void accept_input(String name, float... parameters) {
-
-    }
-
-    @Override
-    public void dispose() {
-
     }
 }

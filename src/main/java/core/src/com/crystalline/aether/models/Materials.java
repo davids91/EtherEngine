@@ -7,7 +7,14 @@ import java.util.*;
 
 public class Materials {
     public enum Names {
-        Ether, Earth, Water, Air, Fire, Nothing
+        Ether, Earth, Water, Air, Fire, Nothing;
+        private static final Materials.Names[] vals = values();
+        public Names next(){ return vals[(this.ordinal() + 1) % vals.length]; }
+        public Names previous(){
+            if(0 == this.ordinal())
+                return vals[vals.length-1];
+            else return vals[this.ordinal() -1];
+        }
     }
 
     public enum Mecha_properties{

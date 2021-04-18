@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.HorizontalGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -30,7 +31,7 @@ public class PlaygroundScene extends Scene {
         super(builder);
         inputMultiplexer = new InputMultiplexer();
         conf = conf_;
-        worldCapsule = new WorldCapsule(conf);
+        worldCapsule = new WorldCapsule(this,conf);
         stage = new Stage(new ExtendViewport(Gdx.graphics.getWidth(),Gdx.graphics.getHeight()));
         TextureAtlas ui_atlas = new TextureAtlas(Gdx.files.internal("skins/default/neutralizer-ui.atlas"));
         TextureAtlas nether_atlas = new TextureAtlas(Gdx.files.internal("atlases/Nether.atlas"));
@@ -56,10 +57,10 @@ public class PlaygroundScene extends Scene {
             signal("open_editor");
             }
         });
-        etherBrushPanel = new EtherBrushPanel(skin,1000);
+        etherBrushPanel = new EtherBrushPanel(this, skin,100);
 
         table.add(spell_editor_btn).align(Align.topLeft).row();
-        table.add(etherBrushPanel).align(Align.topLeft);
+        table.add(etherBrushPanel.getContainer()).align(Align.topLeft);
         stage.addActor(table);
 
         UserInputCapsule userInputCapsule = new UserInputCapsule(this, conf);

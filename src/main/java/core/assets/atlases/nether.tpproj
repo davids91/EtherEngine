@@ -32,7 +32,7 @@ limitMemory=true
 useIndexes=true
 
 scaleFactors=[{suffix:"",factor:1,resampling:bicubic}]
-inputFiles=[{path:../aether.png,type:Input,regionName:null},{path:../aether_base.png,type:Input,regionName:null},{path:../nether.png,type:Input,regionName:null},{path:../nether_base.png,type:Input,regionName:null},{path:../aether_colored.png,type:Input,regionName:null},{path:../nether_colored.png,type:Input,regionName:null},{path:../spellbar_panel.png,type:Input,regionName:null}]
+inputFiles=[{path:../aether.png,type:Input,regionName:null},{path:../aether_base.png,type:Input,regionName:null},{path:../nether.png,type:Input,regionName:null},{path:../nether_base.png,type:Input,regionName:null},{path:../aether_colored.png,type:Input,regionName:null},{path:../nether_colored.png,type:Input,regionName:null},{path:../spellbar_panel.png,type:Input,regionName:null},{path:../air.png,type:Input,regionName:null},{path:../earth.png,type:Input,regionName:null},{path:../ether.png,type:Input,regionName:null},{path:../fire.png,type:Input,regionName:null},{path:../water.png,type:Input,regionName:null}]
 
 
 -PROJ-

@@ -2,14 +2,18 @@ package com.crystalline.aether.services.ui;
 
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Action;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.crystalline.aether.models.Materials;
 import com.crystalline.aether.models.Spells;
 import com.crystalline.aether.services.architecture.CapsuleService;
+import com.crystalline.aether.services.scenes.Scene;
 
 /**TODO:
  * - target different elements with the spell
  */
-public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
+public class EtherBrushPanel extends CapsuleService {
     private final Skin skin;
     Image aetherImg;
     Image netherImg;
@@ -17,20 +21,24 @@ public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
     private final float maxMana;
     private final int cntDownMax = 5;
     private final  TextButton plusBtn;
-    private final TextButton ohBtn;
+    private final ImageTextButton ohBtn;
     private final TextButton minusBtn;
     private final ProgressBar strengthBar;
+    private final HorizontalGroup horizontalGroup;
 
     private float manaToUse = 5.0f;
     private boolean addingAether = false;
     private boolean addingNether = false;
     private int cntDown = cntDownMax;
     private Spells.SpellEtherTendency usageTendency;
+    private Materials.Names targetMaterial;
 
-    public EtherBrushPanel(Skin skin_, float maxMana_) {
+    public EtherBrushPanel(Scene parent, Skin skin_, float maxMana_) {
+        super(parent);
         skin = skin_;
         maxMana = maxMana_;
         usageTendency = Spells.SpellEtherTendency.GIVE;
+        targetMaterial = Materials.Names.Nothing;
         BitmapFont font = skin.getFont("default-font");
 
         ProgressBar.ProgressBarStyle pbarstyle = new ProgressBar.ProgressBarStyle();
@@ -49,7 +57,8 @@ public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
         textButtonStyle.up = skin.getDrawable("button");
         textButtonStyle.down = skin.getDrawable("button-pressed");
         textButtonStyle.checked = skin.getDrawable("button-pressed");
-        plusBtn = new TextButton("+",textButtonStyle);
+
+        plusBtn = new TextButton("+",new TextButton.TextButtonStyle(textButtonStyle));
         plusBtn.addAction(new Action() {
             @Override
             public boolean act(float delta) {
@@ -57,7 +66,7 @@ public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
                 return false;
             }
         });
-        ohBtn = new TextButton("O",textButtonStyle);
+        ohBtn = new ImageTextButton("",new ImageTextButton.ImageTextButtonStyle(textButtonStyle));
         ohBtn.addAction(new Action() {
             @Override
             public boolean act(float delta) {
@@ -65,7 +74,7 @@ public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
                 return false;
             }
         });
-        minusBtn = new TextButton("-",textButtonStyle);
+        minusBtn = new TextButton("-",new TextButton.TextButtonStyle(textButtonStyle));
         minusBtn.addAction(new Action() {
             @Override
             public boolean act(float delta) {
@@ -75,7 +84,7 @@ public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
         });
         plusBtn.setChecked(true); /* Usage tendency is to give by default */
         amount_table.add(plusBtn).row();
-        amount_table.add(ohBtn).row();
+        amount_table.add(ohBtn).size(32,32).row();
         amount_table.add(minusBtn).row();
 
         Table ether_dispay_table = new Table();
@@ -85,9 +94,15 @@ public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
         ether_dispay_table.add(netherImg).size(64,64).row();
         ether_dispay_table.add(aetherImg).size(64,64);
 
-        addActor(strengthBar);
-        addActor(amount_table);
-        addActor(ether_dispay_table);
+        horizontalGroup = new HorizontalGroup();
+        horizontalGroup.addActor(strengthBar);
+        horizontalGroup.addActor(amount_table);
+        horizontalGroup.addActor(ether_dispay_table);
+    }
+
+
+    public Actor getContainer(){
+        return horizontalGroup;
     }
 
     @Override
@@ -105,7 +120,7 @@ public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
     }
 
     @Override
-    public void accept_input(String name, float... parameters) {
+    public void accept_input(String name, Float... parameters) {
         if(name.equals("netherActive")){
             setBrushAction(getAddingAether(),true);
         }else if(name.equals("netherInactive")){
@@ -119,8 +134,14 @@ public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
         }else if(name.equals("downTendency")){
             downTendecy();
         }else if(name.equals("manaModif")&&(1 == parameters.length)){
-            modifyManaToUse(parameters[0]);
+            signal("manaToUse", modifyManaToUse(parameters[0]));
         }
+    }
+
+    private void setNormalizeTendency(Drawable drw){
+        ohBtn.getStyle().imageChecked = drw;
+        ohBtn.getStyle().imageUp = drw;
+        ohBtn.getStyle().imageDown = drw;
     }
 
     private void refreshTendency(){
@@ -137,17 +158,39 @@ public class EtherBrushPanel extends HorizontalGroup implements CapsuleService {
             ohBtn.setChecked(false);
             plusBtn.setChecked(false);
         }
+        switch (targetMaterial){
+            case Earth:
+                setNormalizeTendency(skin.getDrawable("earth")); break;
+            case Water:
+                setNormalizeTendency(skin.getDrawable("water")); break;
+            case Air:
+                setNormalizeTendency(skin.getDrawable("air")); break;
+            case Fire:
+                setNormalizeTendency(skin.getDrawable("fire")); break;
+            case Ether:
+                setNormalizeTendency(skin.getDrawable("ether")); break;
+            case Nothing:
+                setNormalizeTendency(null); break;
+        }
+        signal("targetElement",(float)targetMaterial.ordinal());
+        signal("tendencyTo", (float)usageTendency.ordinal());
     }
 
-    public void upTendency(){
-        if(Spells.SpellEtherTendency.values().length-1 > usageTendency.ordinal())
+    public void upTendency() {
+        if (Spells.SpellEtherTendency.values().length - 1 > usageTendency.ordinal()){
             usageTendency = usageTendency.next();
+        }else{
+            targetMaterial = targetMaterial.next();
+        }
         refreshTendency();
     }
 
     public void downTendecy(){
-        if(0 < usageTendency.ordinal())
+        if(0 < usageTendency.ordinal()) {
             usageTendency = usageTendency.previous();
+        }else{
+            targetMaterial = targetMaterial.previous();
+        }
         refreshTendency();
     }
 

@@ -7,11 +7,11 @@ public abstract class InputService{
     public abstract void handleInput();
     public abstract void dispose();
 
-    Scene parent;
+    private final Scene parent;
     public InputService(Scene parent_){
         parent = parent_;
     }
-    protected void signal(String signal, float... parameters){
+    protected void signal(String signal, Float... parameters){
         parent.signal(signal,parameters);
     }
 }

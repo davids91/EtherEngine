@@ -44,7 +44,7 @@ public class EditorScene extends Scene {
     public EditorScene(SceneHandler.Builder builder, Config conf_){
         super(builder);
         conf = conf_;
-        worldCapsule = new WorldCapsule(conf);
+        worldCapsule = new WorldCapsule(this,conf);
         worldCapsule.accept_input("stop");
         inputMultiplexer = new InputMultiplexer();
 
@@ -74,7 +74,7 @@ public class EditorScene extends Scene {
         });
 
         Table spellPanel = new Table();
-        ebrushPanel = new EtherBrushPanel(skin, maxMana);
+        ebrushPanel = new EtherBrushPanel(this, skin, maxMana);
         spellPanel.setBackground(skin.getDrawable("spellbar_panel"));
 
         ProgressBar.ProgressBarStyle pbarstyle = new ProgressBar.ProgressBarStyle();
@@ -87,7 +87,7 @@ public class EditorScene extends Scene {
         manaBar.setProgrammaticChangeEvents(false);
 
         spellPanel.add(manaBar);
-        spellPanel.add(ebrushPanel).row();
+        spellPanel.add(ebrushPanel.getContainer()).row();
 
         final TimeframePanel tfp = new TimeframePanel(worldCapsule,10,skin,conf);
         tfp.addListener(new ClickListener(){

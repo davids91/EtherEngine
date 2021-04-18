@@ -10,8 +10,8 @@ public class EtherealAspect extends Reality_aspect {
     protected final int sizeY;
 
     private final int [][] ratio_change_tick;
-    private final float [][] aether_values; /* Stationary substance */
-    private final float [][] nether_values; /* Moving substance */
+    private final float [][] aetherValues; /* Stationary substance */
+    private final float [][] netherValues; /* Moving substance */
     private final float [][] target_ratios;
 
     private static final int ticks_to_change = 0;
@@ -21,19 +21,19 @@ public class EtherealAspect extends Reality_aspect {
         super(conf_);
         sizeX = conf.world_block_number[0];
         sizeY = conf.world_block_number[1];
-        aether_values = new float[sizeX][sizeY];
-        nether_values = new float[sizeX][sizeY];
+        aetherValues = new float[sizeX][sizeY];
+        netherValues = new float[sizeX][sizeY];
         target_ratios = new float[sizeX][sizeY];
         ratio_change_tick = new int[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                aether_values[x][y] = 1.0f;
+                aetherValues[x][y] = 1.0f;
                 if((0 == x)||(x == (sizeX-1))||(0 == y)||(y == (sizeY-1))){
                     target_ratios[x][y] = Materials.nether_ratios[Materials.Names.Ether.ordinal()];
-                    nether_values[x][y] = 1.0f;
+                    netherValues[x][y] = 1.0f;
                 }else{
                     target_ratios[x][y] = Materials.nether_ratios[Materials.Names.Air.ordinal()];
-                    nether_values[x][y] = Materials.nether_ratios[Materials.Names.Air.ordinal()];
+                    netherValues[x][y] = Materials.nether_ratios[Materials.Names.Air.ordinal()];
                 }
                 ratio_change_tick[x][y] = 0;
             }
@@ -44,11 +44,11 @@ public class EtherealAspect extends Reality_aspect {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 if(0 < units[x][y]) {
-                    nether_values[x][y] = units[x][y];
-                    aether_values[x][y] = nether_values[x][y] / Materials.nether_ratios[plane.element_at(x, y).ordinal()];
+                    netherValues[x][y] = units[x][y];
+                    aetherValues[x][y] = netherValues[x][y] / Materials.nether_ratios[plane.element_at(x, y).ordinal()];
                 }else{
-                    nether_values[x][y] = 0f;
-                    aether_values[x][y] = 0f;
+                    netherValues[x][y] = 0f;
+                    aetherValues[x][y] = 0f;
                 }
                 target_ratios[x][y] = get_target_ratio(x,y);
             }
@@ -72,13 +72,13 @@ public class EtherealAspect extends Reality_aspect {
 
     @Override
     public void switch_values(int fromX, int fromY, int toX, int toY) {
-        float tmp_val = aether_values[toX][toY];
-        aether_values[toX][toY] = aether_values[fromX][fromY];
-        aether_values[fromX][fromY] = tmp_val;
+        float tmp_val = aetherValues[toX][toY];
+        aetherValues[toX][toY] = aetherValues[fromX][fromY];
+        aetherValues[fromX][fromY] = tmp_val;
 
-        tmp_val = nether_values[toX][toY];
-        nether_values[toX][toY] = nether_values[fromX][fromY];
-        nether_values[fromX][fromY] = tmp_val;
+        tmp_val = netherValues[toX][toY];
+        netherValues[toX][toY] = netherValues[fromX][fromY];
+        netherValues[fromX][fromY] = tmp_val;
 
         tmp_val = target_ratios[toX][toY];
         target_ratios[toX][toY] = target_ratios[fromX][fromY];
@@ -107,11 +107,11 @@ public class EtherealAspect extends Reality_aspect {
                 }
 
                 /* calculate the values ether is converging to */
-                requested_aether[x][y] = get_target_aether(x, y) - aether_values[x][y];
-                requested_nether[x][y] = get_target_nether(x, y) - nether_values[x][y];
-                aether_values[x][y] += requested_aether[x][y];
+                requested_aether[x][y] = get_target_aether(x, y) - aetherValues[x][y];
+                requested_nether[x][y] = get_target_nether(x, y) - netherValues[x][y];
+                aetherValues[x][y] += requested_aether[x][y];
                 available_aether[x][y] -= requested_aether[x][y];
-                nether_values[x][y] += requested_nether[x][y];
+                netherValues[x][y] += requested_nether[x][y];
                 available_nether[x][y] -= requested_nether[x][y];
             }
         }
@@ -143,47 +143,47 @@ public class EtherealAspect extends Reality_aspect {
                 available_aether[x][y] = available_avg_ae[x][y];
                 available_nether[x][y] = available_avg_ne[x][y];
 
-                aether_values[x][y] -= requested_aether[x][y];
+                aetherValues[x][y] -= requested_aether[x][y];
                 available_aether[x][y] += requested_aether[x][y];
-                nether_values[x][y] -= requested_nether[x][y];
+                netherValues[x][y] -= requested_nether[x][y];
                 available_nether[x][y] += requested_nether[x][y];
 
                 /* step in the direction of the target ratio */
                 float tmp_ether = get_ether_step(requested_aether[x][y], available_aether[x][y]);
-                aether_values[x][y] += tmp_ether;
+                aetherValues[x][y] += tmp_ether;
                 available_aether[x][y] -= tmp_ether;
                 tmp_ether = get_ether_step(requested_nether[x][y], available_nether[x][y]);
-                nether_values[x][y] += tmp_ether;
+                netherValues[x][y] += tmp_ether;
                 available_nether[x][y] -= tmp_ether;
 
                 /* Equalize available polarity values to 0 */
-                aether_values[x][y] += available_aether[x][y];
-                nether_values[x][y] += available_nether[x][y];
+                aetherValues[x][y] += available_aether[x][y];
+                netherValues[x][y] += available_nether[x][y];
 
                 /* Surplus Nether to goes into other effects */
-                if(nether_values[x][y] > aether_values[x][y] * target_ratios[x][y]) {
+                if(netherValues[x][y] > aetherValues[x][y] * target_ratios[x][y]) {
                     parent.get_elm_plane().get_force(x,y).scl( /* Surplus Nether enhances movement */
-                        (nether_values[x][y] / (aether_values[x][y] * target_ratios[x][y]))
+                        (netherValues[x][y] / (aetherValues[x][y] * target_ratios[x][y]))
                     );
-                    nether_values[x][y] -= 0.1f * (nether_values[x][y] - (aether_values[x][y] * target_ratios[x][y]));
+                    netherValues[x][y] -= 0.1f * (netherValues[x][y] - (aetherValues[x][y] * target_ratios[x][y]));
                 }
 
-                if(aether_values[x][y] > nether_values[x][y] / target_ratios[x][y]) {
+                if(aetherValues[x][y] > netherValues[x][y] / target_ratios[x][y]) {
                     parent.get_elm_plane().get_force(x,y).scl( /* Surplus Aether depresses movement */
-                        ((nether_values[x][y] / target_ratios[x][y]) / aether_values[x][y])
+                        ((netherValues[x][y] / target_ratios[x][y]) / aetherValues[x][y])
                     );
-                    aether_values[x][y] -= 0.1f * (aether_values[x][y] - (nether_values[x][y] / target_ratios[x][y]));
+                    aetherValues[x][y] -= 0.1f * (aetherValues[x][y] - (netherValues[x][y] / target_ratios[x][y]));
                 }
 
                 /* TODO: Implement heat */
                 /* TODO: Surplus Aether to go into para-effects also */
                 /* TODO: Make Earth not share Aether so easily ( decide if this is even needed )  */
                 /* Safety to never let values below zero */
-                if (0 > aether_values[x][y]) {
-                    aether_values[x][y] -= aether_values[x][y] * 1.1f;
+                if (0 > aetherValues[x][y]) {
+                    aetherValues[x][y] -= aetherValues[x][y] * 1.1f;
                 }
-                if (0 > nether_values[x][y]) {
-                    nether_values[x][y] -= nether_values[x][y] * 1.1f;
+                if (0 > netherValues[x][y]) {
+                    netherValues[x][y] -= netherValues[x][y] * 1.1f;
                 }
             }
         }
@@ -210,9 +210,9 @@ public class EtherealAspect extends Reality_aspect {
 
     @Override
     public void take_over_unit_changes(int x, int y, float[][] units) {
-        float old_unit = (nether_values[x][y] + aether_values[x][y])/2.0f;
-        nether_values[x][y] *= units[x][y] / old_unit;
-        aether_values[x][y] *= units[x][y] / old_unit;
+        float old_unit = (netherValues[x][y] + aetherValues[x][y])/2.0f;
+        netherValues[x][y] *= units[x][y] / old_unit;
+        aetherValues[x][y] *= units[x][y] / old_unit;
     }
 
     @Override
@@ -236,29 +236,29 @@ public class EtherealAspect extends Reality_aspect {
     }
 
     public float aether_value_at(int x, int y){
-        return aether_values[x][y];
+        return aetherValues[x][y];
     }
     public float surplus_aether_at(int x, int y){
-        return get_target_aether(x,y) - aether_values[x][y];
+        return get_target_aether(x,y) - aetherValues[x][y];
     }
     public float nether_value_at(int x, int y){
-        return nether_values[x][y];
+        return netherValues[x][y];
     }
     public float surplus_nether_at(int x, int y){
-        return get_target_nether(x,y) - nether_values[x][y];
+        return get_target_nether(x,y) - netherValues[x][y];
     }
     private float get_ratio_delta(int x, int y){
         return get_ratio(x,y) - target_ratios[x][y];
     }
 
     public float get_ratio(int x, int y){
-        if(0 != aether_values[x][y])
-            return (nether_values[x][y]/aether_values[x][y]);
+        if(0 != aetherValues[x][y])
+            return (netherValues[x][y]/ aetherValues[x][y]);
         else return 0;
     }
 
     public Materials.Names element_at(int x, int y){
-        if((nether_values[x][y] + nether_values[x][y]) < 0.1f){ /* In case there's almost no ether */
+        if((netherValues[x][y] + netherValues[x][y]) < 0.1f){ /* In case there's almost no ether */
             return Materials.Names.Air;
         }else
         if(get_ratio(x,y) == Materials.nether_ratios[Materials.Names.Ether.ordinal()]){
@@ -273,7 +273,7 @@ public class EtherealAspect extends Reality_aspect {
     }
 
     private float get_target_ratio(int x, int y){
-        if((nether_values[x][y] + nether_values[x][y]) < 0.1f){ /* In case there's almost no ether */
+        if((netherValues[x][y] + netherValues[x][y]) < 0.1f){ /* In case there's almost no ether */
             return Materials.nether_ratios[Materials.Names.Air.ordinal()];
         }else
         if(get_ratio(x,y) == Materials.nether_ratios[Materials.Names.Ether.ordinal()]){
@@ -289,32 +289,34 @@ public class EtherealAspect extends Reality_aspect {
     }
 
     private float get_target_aether(int x, int y){
-        return (nether_values[x][y] / (target_ratios[x][y] + ((1.0f - nether_dynamic)*get_ratio_delta(x,y))));
+        return (netherValues[x][y] / (target_ratios[x][y] + ((1.0f - nether_dynamic)*get_ratio_delta(x,y))));
     }
 
     private float get_target_nether(int x, int y){
-        return aether_values[x][y] * (target_ratios[x][y] + nether_dynamic*(get_ratio_delta(x,y)));
+        return aetherValues[x][y] * (target_ratios[x][y] + nether_dynamic*(get_ratio_delta(x,y)));
     }
 
     public void add_aether_to(int x, int y, float value){
-        aether_values[x][y] = Math.max(0.001f,aether_values[x][y]+value);
+        aetherValues[x][y] = Math.max(0.001f, aetherValues[x][y]+value);
     }
     public void add_nether_to(int x, int y, float value){
-        nether_values[x][y] = Math.max(0.001f,nether_values[x][y]+value);
+        netherValues[x][y] = Math.max(0.001f, netherValues[x][y]+value);
     }
-    public void try_to_equalize(int x, int y, float value){
-        float tmp;
-        if(aether_values[x][y] < nether_values[x][y]){
-            tmp = Math.min(value, (nether_values[x][y] - aether_values[x][y]));
-            aether_values[x][y] += tmp;
+    public void tryToEqualize(int x, int y, float value, float ratio){
+        float manaLeft = value;
+        float manaToUse;
+        if(aetherValues[x][y] < (netherValues[x][y]*ratio)){
+            manaToUse = Math.min(value, ((netherValues[x][y]/ratio) - aetherValues[x][y]));
+            aetherValues[x][y] += manaToUse;
         }else{ /* Aether will most likely be less, the Nether.. */
-            tmp = Math.min(value, (aether_values[x][y] - nether_values[x][y]));
-            nether_values[x][y] += tmp;
+            manaToUse = Math.min(value, (aetherValues[x][y] - (netherValues[x][y]/ratio)));
+            netherValues[x][y] += manaToUse;
         }
-
-        /* Handle remainder to keep ratio. */
-        aether_values[x][y] += (value - tmp) / 2.0f;
-        nether_values[x][y] += (value - tmp) / 2.0f;
+        manaLeft -= manaToUse;
+        float x1 = ratio*manaLeft / (1.0f + ratio);
+        float x2 = manaLeft - x1;
+        netherValues[x][y] += x1;
+        aetherValues[x][y] += x2;
     }
 
 }

@@ -46,7 +46,7 @@ public class UserInputCapsule extends InputService implements InputProcessor {
         }else if(Input.Buttons.BACK == button){
             signal("downTendency");
         }
-        signal("mouseOnScreen2D", screenX,screenY);
+        signal("mouseOnScreen2D", (float)screenX,(float)screenY);
         return false;
     }
 
@@ -57,19 +57,19 @@ public class UserInputCapsule extends InputService implements InputProcessor {
             signal("netherInactive");
         if(!Gdx.input.isButtonPressed(Input.Buttons.RIGHT))
             signal("aetherInactive");
-        signal("mouseOnScreen2D", screenX,screenY);
+        signal("mouseOnScreen2D", (float)screenX,(float)screenY);
         return false;
     }
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        signal("mouseOnScreen2D", screenX,screenY);
+        signal("mouseOnScreen2D", (float)screenX,(float)screenY);
         return false;
     }
 
     @Override
     public boolean mouseMoved(int screenX, int screenY) {
-        signal("mouseOnScreen2D", screenX,screenY);
+        signal("mouseOnScreen2D", (float)screenX,(float)screenY);
         return false;
     }
 

@@ -1,55 +1,90 @@
 
 Nether.png
-size: 1024,512
+size: 2048,2048
 format: RGBA8888
 filter: Nearest,Nearest
 repeat: none
 aether
   rotate: false
-  xy: 2, 2
+  xy: 516, 774
   size: 256, 128
   orig: 256, 128
   offset: 0, 0
   index: -1
 aether_base
   rotate: false
-  xy: 2, 132
+  xy: 1030, 1674
   size: 256, 256
   orig: 256, 256
   offset: 0, 0
   index: -1
 aether_colored
   rotate: false
-  xy: 518, 130
+  xy: 2, 2
   size: 256, 128
   orig: 256, 128
   offset: 0, 0
   index: -1
+air
+  rotate: false
+  xy: 516, 1418
+  size: 512, 512
+  orig: 512, 512
+  offset: 0, 0
+  index: -1
+earth
+  rotate: false
+  xy: 2, 390
+  size: 512, 512
+  orig: 512, 512
+  offset: 0, 0
+  index: -1
+ether
+  rotate: false
+  xy: 2, 904
+  size: 512, 512
+  orig: 512, 512
+  offset: 0, 0
+  index: -1
+fire
+  rotate: false
+  xy: 2, 1418
+  size: 512, 512
+  orig: 512, 512
+  offset: 0, 0
+  index: -1
 nether
   rotate: false
-  xy: 518, 260
+  xy: 1030, 1544
   size: 256, 128
   orig: 256, 128
   offset: 0, 0
   index: -1
 nether_base
   rotate: false
-  xy: 260, 132
+  xy: 2, 132
   size: 256, 256
   orig: 256, 256
   offset: 0, 0
   index: -1
 nether_colored
   rotate: false
-  xy: 260, 2
+  xy: 1288, 1802
   size: 256, 128
   orig: 256, 128
   offset: 0, 0
   index: -1
 spellbar_panel
   rotate: false
-  xy: 776, 258
+  xy: 260, 258
   size: 66, 130
   orig: 66, 130
+  offset: 0, 0
+  index: -1
+water
+  rotate: false
+  xy: 516, 904
+  size: 512, 512
+  orig: 512, 512
   offset: 0, 0
   index: -1

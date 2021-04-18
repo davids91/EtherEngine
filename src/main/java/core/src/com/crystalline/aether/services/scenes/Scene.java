@@ -1,11 +1,12 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.scenes;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
-import com.crystalline.aether.models.CapsuleService;
-import com.crystalline.aether.models.DisplayService;
-import com.crystalline.aether.models.InputService;
+import com.crystalline.aether.services.architecture.CapsuleService;
+import com.crystalline.aether.services.architecture.DisplayService;
+import com.crystalline.aether.services.architecture.InputService;
+import com.crystalline.aether.services.SceneHandler;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +19,7 @@ public abstract class Scene{
     private int activeUserView;
 
     private final ArrayList<Boolean> active_capsules;
-    private final ArrayList<CapsuleService> capsules;
+    private final ArrayList<CapsuleService> capsules; /* TODO: use Hashmap for targeted signals */
     private final ArrayList<DisplayService> userViews;
     private final ArrayList<InputService> inputHandlers;
     public static class Token{ private Token(){} }
@@ -35,7 +36,7 @@ public abstract class Scene{
         active_capsules = new ArrayList<>();
     }
 
-    public void signal(String signal, float... parameters){
+    public void signal(String signal, float... parameters){ /* TODO: use a queue of signals instead */
         for(int i = 0;i <capsules.size(); ++i){
             if(active_capsules.get(i)){
                 capsules.get(i).accept_input(signal, parameters);
@@ -73,7 +74,7 @@ public abstract class Scene{
 
     public void render(){
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        for(InputService is : inputHandlers) is.handle_input();
+        for(InputService is : inputHandlers) is.handleInput();
         if(0 < userViews.size())
             userViews.get(activeUserView).render();
     }

@@ -1,4 +1,4 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.scenes;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
@@ -6,7 +6,6 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -20,16 +19,27 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.models.Spells;
+import com.crystalline.aether.services.*;
+import com.crystalline.aether.services.capsules.WorldCapsule;
+import com.crystalline.aether.services.ui.EtherBrushPanel;
+import com.crystalline.aether.services.ui.TimeframePanel;
 
-public class EditorScene extends Scene{
+/**
+ * A spell editor scene, starting with an initial expected mana value. The purpose of the scene is
+ * to fabricate a way to spend the given amount of mana and fuse it into the environment.
+ */
+public class EditorScene extends Scene {
     private final Stage stage;
     private final Config conf;
-    private final WorldCapsule worldCapsule;
-    private final EtherBrushPanel ebrushPanel;
+    private final WorldCapsule worldCapsule; /* a sandbox world to display the direct consequences of actions */
+    private final EtherBrushPanel ebrushPanel; /* a spell panel indicator to see which actions are in focus */
     private final ShapeRenderer shapeRenderer;
     private final InputMultiplexer inputMultiplexer;
 
-    private final float max_spell_amount = 100.0f;
+    private final float maxMana = 100.0f;
+    private Spells.Action action_table[][][]; /* Stores Actions for every frame and possible coordinate */
+    private Spells.Action spell[][]; /* Stores Actions for every frame in different coordinates */
 
     public EditorScene(SceneHandler.Builder builder, Config conf_){
         super(builder);
@@ -37,8 +47,6 @@ public class EditorScene extends Scene{
         worldCapsule = new WorldCapsule(conf);
         worldCapsule.accept_input("stop");
         inputMultiplexer = new InputMultiplexer();
-        WorldDisplay world_display = new WorldDisplay(worldCapsule, conf);
-        UserInputCapsule inputCapsule = new UserInputCapsule(this,worldCapsule, world_display,max_spell_amount, conf);
 
         shapeRenderer = new ShapeRenderer();
         stage = new Stage(new ExtendViewport(Gdx.graphics.getWidth(),Gdx.graphics.getHeight()));
@@ -66,9 +74,19 @@ public class EditorScene extends Scene{
         });
 
         Table spellPanel = new Table();
-        ebrushPanel = new EtherBrushPanel(skin,max_spell_amount);
-        spellPanel.setDebug(true);
+        ebrushPanel = new EtherBrushPanel(skin, maxMana);
         spellPanel.setBackground(skin.getDrawable("spellbar_panel"));
+
+        ProgressBar.ProgressBarStyle pbarstyle = new ProgressBar.ProgressBarStyle();
+        pbarstyle.background = skin.getDrawable("progress-bar-vertical");
+        pbarstyle.knob = skin.getDrawable("progress-bar-knob-vertical");
+        pbarstyle.knobBefore = skin.getDrawable("progress-bar-knob-vertical");
+        ProgressBar manaBar = new ProgressBar(0, maxMana,0.1f, true, pbarstyle);
+        manaBar.setAnimateDuration(0.25f);
+        manaBar.setValue(5);
+        manaBar.setProgrammaticChangeEvents(false);
+
+        spellPanel.add(manaBar);
         spellPanel.add(ebrushPanel).row();
 
         final TimeframePanel tfp = new TimeframePanel(worldCapsule,10,skin,conf);
@@ -93,18 +111,16 @@ public class EditorScene extends Scene{
         for(int i = 0; i < 10; ++i){
             addViews(tfp.getFrame(i));
         }
-        addViews(world_display);
+        addViews(worldCapsule);
         setActiveUserView(0);
         addCapsules(worldCapsule, ebrushPanel);
-        addInputHandlers(inputCapsule);
-
         inputMultiplexer.addProcessor(stage);
-        inputMultiplexer.addProcessor(inputCapsule);
     }
 
     @Override
     public void calculate() {
         super.calculate();
+        ebrushPanel.calculate();
         stage.act();
     }
 

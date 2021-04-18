@@ -17,8 +17,8 @@ public class World {
     protected final int sizeX;
     protected final int sizeY;
 
-    Ethereal_aspect ethereal_plane;
-    Elemental_aspect elemental_plane;
+    EtherealAspect ethereal_plane;
+    ElementalAspect elemental_plane;
     private final float [][] units;
 
     public World(Config conf_){
@@ -31,8 +31,8 @@ public class World {
                 units[x][y] = 0;
             }
         }
-        ethereal_plane = new Ethereal_aspect(conf);
-        elemental_plane = new Elemental_aspect(conf);
+        ethereal_plane = new EtherealAspect(conf);
+        elemental_plane = new ElementalAspect(conf);
         ethereal_plane.determine_units(units,this);
     }
 
@@ -92,17 +92,17 @@ public class World {
         elemental_plane.post_process(units, this);
     }
 
-    public Ethereal_aspect get_eth_plane(){
+    public EtherealAspect get_eth_plane(){
         return ethereal_plane;
     }
-    public Elemental_aspect get_elm_plane(){ return  elemental_plane; }
-    public void add_aether_to(int x, int y, float value){
+    public ElementalAspect get_elm_plane(){ return  elemental_plane; }
+    public void addAetherTo(int x, int y, float value){
         ethereal_plane.add_aether_to(x,y,value);
         ethereal_plane.determine_units(units,this);
         elemental_plane.define_by(ethereal_plane);
     }
 
-    public void add_nether_to(int x, int y, float value){
+    public void addNetherTo(int x, int y, float value){
         ethereal_plane.add_nether_to(x,y,value);
         ethereal_plane.determine_units(units,this);
         elemental_plane.define_by(ethereal_plane);
@@ -120,7 +120,7 @@ public class World {
     public float unit_at(int posX, int posY){
         return units[posX][posY];
     }
-    public Pixmap getWorldImage(Vector2 focus, Ethereal_aspect plane){
+    public Pixmap getWorldImage(Vector2 focus, EtherealAspect plane){
         Pixmap worldImage = new Pixmap(sizeX,sizeY, Pixmap.Format.RGB888);
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){

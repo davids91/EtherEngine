@@ -9,7 +9,7 @@ import com.crystalline.aether.Util;
 
 import java.util.*;
 
-public class Elemental_aspect extends Reality_aspect {
+public class ElementalAspect extends Reality_aspect {
     Util myUtil;
     protected final int sizeX;
     protected final int sizeY;
@@ -25,7 +25,7 @@ public class Elemental_aspect extends Reality_aspect {
     /* Debug variables */
     private final float[][] touched_by_mechanics;
 
-    public Elemental_aspect(Config conf_){
+    public ElementalAspect(Config conf_){
         super(conf_);
         sizeX = conf.world_block_number[0];
         sizeY = conf.world_block_number[1];
@@ -46,7 +46,7 @@ public class Elemental_aspect extends Reality_aspect {
         }
     }
 
-    public void define_by(Ethereal_aspect plane){
+    public void define_by(EtherealAspect plane){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 blocks[x][y] = plane.element_at(x,y);

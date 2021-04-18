@@ -1,19 +1,16 @@
-package com.crystalline.aether.models;
+package com.crystalline.aether.services.architecture;
 
-import com.badlogic.gdx.InputProcessor;
-import com.crystalline.aether.services.Scene;
+import com.crystalline.aether.services.scenes.Scene;
 
-public abstract class InputService implements InputProcessor {
+public abstract class InputService{
 
-    public abstract void handle_input();
+    public abstract void handleInput();
     public abstract void dispose();
-
 
     Scene parent;
     public InputService(Scene parent_){
         parent = parent_;
     }
-
     protected void signal(String signal, float... parameters){
         parent.signal(signal,parameters);
     }

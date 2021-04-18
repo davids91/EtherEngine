@@ -1,4 +1,4 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.ui;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -7,15 +7,15 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.crystalline.aether.models.CapsuleService;
+import com.crystalline.aether.services.architecture.CapsuleService;
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.services.capsules.WorldCapsule;
 
 import java.util.ArrayList;
 
 public class TimeframePanel extends Table implements CapsuleService {
     private final Config conf;
     private final WorldCapsule worldCapsule;
-    private final WorldDisplay worldDisplay;
     private int selected_frame;
     private final SpriteBatch batch;
     ArrayList<Timeframe> frames;
@@ -23,7 +23,6 @@ public class TimeframePanel extends Table implements CapsuleService {
     public TimeframePanel(WorldCapsule worldCapsule_, final int number_of_frames, Skin skin, Config conf_){
         conf = conf_;
         worldCapsule = worldCapsule_;
-        worldDisplay = new WorldDisplay(worldCapsule, conf);
         batch = new SpriteBatch();
 
         BitmapFont font = skin.getFont("default-font");
@@ -36,7 +35,7 @@ public class TimeframePanel extends Table implements CapsuleService {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
             for(int i = 0; i < number_of_frames; ++i){
-                frames.get(i).setFrame(worldDisplay.get_display());
+                frames.get(i).setFrame(worldCapsule.get_display());
                 worldCapsule.accept_input("step");
             }
             event.handle();
@@ -48,7 +47,7 @@ public class TimeframePanel extends Table implements CapsuleService {
 
         frames = new ArrayList<>();
         for(int i = 0; i < number_of_frames;++i){
-            frames.add(new Timeframe(this, i,new TextureRegion(worldDisplay.get_display()), batch));
+            frames.add(new Timeframe(this, i,new TextureRegion(worldCapsule.get_display()), batch));
             frames.get(i).layout();
             add(frames.get(i)).size(32,32).pad(3);
         }
@@ -93,16 +92,6 @@ public class TimeframePanel extends Table implements CapsuleService {
     @Override
     public void accept_input(String name, float... parameters) {
 
-    }
-
-    @Override
-    public float get_parameter(String name, int index) {
-        return 0;
-    }
-
-    @Override
-    public Object get_object(String name) {
-        return null;
     }
 
     @Override

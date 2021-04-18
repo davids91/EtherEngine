@@ -1,4 +1,4 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.*;
@@ -11,7 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.SpriteDrawable;
-import com.crystalline.aether.models.DisplayService;
+import com.crystalline.aether.services.architecture.DisplayService;
 
 public class Timeframe extends Stack implements DisplayService<Image> {
     private final int border_width = 2;

@@ -1,4 +1,4 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.scenes;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
@@ -14,11 +14,16 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.services.SceneHandler;
+import com.crystalline.aether.services.capsules.UserInputCapsule;
+import com.crystalline.aether.services.capsules.WorldCapsule;
+import com.crystalline.aether.services.ui.EtherBrushPanel;
 
 public class PlaygroundScene extends Scene {
     private final Config conf;
     private final WorldCapsule worldCapsule;
     private final Stage stage;
+    private final EtherBrushPanel etherBrushPanel;
     private final InputMultiplexer inputMultiplexer;
 
     public PlaygroundScene(SceneHandler.Builder builder, Config conf_){
@@ -28,8 +33,11 @@ public class PlaygroundScene extends Scene {
         worldCapsule = new WorldCapsule(conf);
         stage = new Stage(new ExtendViewport(Gdx.graphics.getWidth(),Gdx.graphics.getHeight()));
         TextureAtlas ui_atlas = new TextureAtlas(Gdx.files.internal("skins/default/neutralizer-ui.atlas"));
+        TextureAtlas nether_atlas = new TextureAtlas(Gdx.files.internal("atlases/Nether.atlas"));
         BitmapFont font = new BitmapFont(Gdx.files.internal("skins/default/font-export.fnt"), ui_atlas.findRegion("font-export"));
         Skin skin = new Skin();
+        skin.add("default-font",font,BitmapFont.class);
+        skin.addRegions(nether_atlas);
         skin.addRegions(ui_atlas);
 
         Table table = new Table();
@@ -48,19 +56,17 @@ public class PlaygroundScene extends Scene {
             signal("open_editor");
             }
         });
+        etherBrushPanel = new EtherBrushPanel(skin,1000);
 
         table.add(spell_editor_btn).align(Align.topLeft).row();
+        table.add(etherBrushPanel).align(Align.topLeft);
         stage.addActor(table);
 
-        WorldDisplay worldDisplayCapsule = new WorldDisplay(worldCapsule, conf);
-        UserInputCapsule userInputCapsule = new UserInputCapsule(
-        this,worldCapsule, worldDisplayCapsule,500, conf
-        );
-        addViews(worldDisplayCapsule);
+        UserInputCapsule userInputCapsule = new UserInputCapsule(this, conf);
+        addViews(worldCapsule);
         setActiveUserView(0);
         addInputHandlers(userInputCapsule);
-        addCapsules(worldCapsule);
-
+        addCapsules(worldCapsule, etherBrushPanel);
         inputMultiplexer.addProcessor(stage);
         inputMultiplexer.addProcessor(userInputCapsule);
     }
@@ -78,6 +84,7 @@ public class PlaygroundScene extends Scene {
     @Override
     public void calculate() {
         super.calculate();
+        etherBrushPanel.calculate();
         stage.act(Gdx.graphics.getDeltaTime());
     }
 

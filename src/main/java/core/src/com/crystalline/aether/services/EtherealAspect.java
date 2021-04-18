@@ -5,7 +5,7 @@ import com.crystalline.aether.models.Materials;
 import com.crystalline.aether.models.Reality_aspect;
 
 /* TODO: Surplus Ether to modify the force of the Ether vapor in an increased amount */
-public class Ethereal_aspect extends Reality_aspect {
+public class EtherealAspect extends Reality_aspect {
     protected final int sizeX;
     protected final int sizeY;
 
@@ -17,7 +17,7 @@ public class Ethereal_aspect extends Reality_aspect {
     private static final int ticks_to_change = 0;
     private static final float nether_dynamic = 0.9f;
 
-    public Ethereal_aspect(Config conf_){
+    public EtherealAspect(Config conf_){
         super(conf_);
         sizeX = conf.world_block_number[0];
         sizeY = conf.world_block_number[1];
@@ -40,7 +40,7 @@ public class Ethereal_aspect extends Reality_aspect {
         }
     }
 
-    public void define_by(Elemental_aspect plane, float [][] units){
+    public void define_by(ElementalAspect plane, float [][] units){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 if(0 < units[x][y]) {

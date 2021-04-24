@@ -7,10 +7,10 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
-import com.crystalline.aether.models.Materials;
-import com.crystalline.aether.models.Spells;
+import com.crystalline.aether.models.Material;
+import com.crystalline.aether.models.Spell;
+import com.crystalline.aether.services.EtherealAspect;
 import com.crystalline.aether.services.architecture.CapsuleService;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.services.architecture.DisplayService;
@@ -37,43 +37,89 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     private final Config conf;
     private final SpriteBatch batch = new SpriteBatch();
     private final OrthographicCamera camera = new OrthographicCamera();
-    private Vector3 mouseInWorld;
     private final World world;
 
+    private final Spell.Action spellAction;
     private boolean play = true;
     private boolean aetherActive = false;
     private boolean netherActive = false;
-    private float manaToUse = 0;
-    private Materials.Names targetElement = Materials.Names.Nothing;
-    private Spells.SpellEtherTendency tendency = Spells.SpellEtherTendency.GIVE;
+    private float manaToUse = 0.1f;
+    private Spell.SpellEtherTendency tendency = Spell.SpellEtherTendency.GIVE;
+    private boolean doActions = true;
 
-    public WorldCapsule(Scene parent, Config conf_){
+    public WorldCapsule(Scene parent, Config conf_, World world_) throws Exception {
         super(parent);
         conf = conf_;
-        world = new World(conf);
-        mouseInWorld = new Vector3();
+        spellAction = new Spell.Action();
+        world = world_;
+        if( /* The size of the world should match the configuration! */
+            (world.getSizeX() != conf.world_block_number[0])
+            ||(world.getSizeY() != conf.world_block_number[1])
+        ) throw new Exception("World size mismatch");
         camera.setToOrtho(false, width(), height());
         camera.update();
     }
 
+    public WorldCapsule(Scene parent, Config conf_){
+        super(parent);
+        conf = conf_;
+        spellAction = new Spell.Action();
+        world = new World(conf);
+        camera.setToOrtho(false, width(), height());
+        camera.update();
+    }
+
+    public void doActions(Spell.Action... actions){
+        for(Spell.Action action : actions){
+            world.doAction(action);
+        }
+    }
+
+    public void reset() {
+        world.reset();
+    }
+
     @Override
     public void calculate() {
-        if(play){
-            /* TODO: EQUALIZE, GIVE OR TAKE */
-            if(Spells.SpellEtherTendency.EQUALIZE == tendency){
-                if(
-                    (netherActive||aetherActive)
-                    &&(Materials.Names.Nothing != targetElement)
-                ){
-                    world.tryToEqualize((int)mouseInWorld.x,(int)mouseInWorld.y, manaToUse, targetElement);
-                }
-            }else if(Spells.SpellEtherTendency.GIVE == tendency){
-                if(aetherActive)world.addAetherTo((int)mouseInWorld.x,(int)mouseInWorld.y, manaToUse);
-                if(netherActive)world.addNetherTo((int)mouseInWorld.x,(int)mouseInWorld.y, manaToUse);
-            }else if(Spells.SpellEtherTendency.TAKE == tendency){
-                if(aetherActive)world.addAetherTo((int)mouseInWorld.x,(int)mouseInWorld.y, -manaToUse);
-                if(netherActive)world.addNetherTo((int)mouseInWorld.x,(int)mouseInWorld.y, -manaToUse);
+        if(netherActive||aetherActive){
+            /* Compile the action to do */
+            if(Spell.SpellEtherTendency.GIVE == tendency){
+                if(aetherActive)spellAction.usedAether = manaToUse;
+                else spellAction.usedAether = 0.0f;
+                if(netherActive)spellAction.usedNether = manaToUse;
+                else spellAction.usedNether = 0.0f;
+            }else if(Spell.SpellEtherTendency.TAKE == tendency){
+                if(aetherActive)spellAction.usedAether = -manaToUse;
+                else spellAction.usedAether = 0.0f;
+                if(netherActive)spellAction.usedNether = -manaToUse;
+                else spellAction.usedNether = 0.0f;
+            }else if(Spell.SpellEtherTendency.EQUALIZE == tendency){
+                spellAction.usedAether = EtherealAspect.getAetherDeltaToTargetRatio(
+                    manaToUse,
+                    world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
+                    world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y),
+                    Material.netherRatios[spellAction.targetElement.ordinal()]
+                );
+                spellAction.usedNether = EtherealAspect.getNetherDeltaToTargetRatio(
+                    manaToUse,
+                    world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
+                    world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y),
+                    Material.netherRatios[spellAction.targetElement.ordinal()]
+                );
+
+                System.out.println("ratio: " +
+                (
+                (world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) + spellAction.usedNether)
+                / (world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedAether)
+                )
+                +"/" + Material.netherRatios[spellAction.targetElement.ordinal()]
+                );
             }
+            /* apply the action */
+            if(doActions)world.doAction(spellAction);
+            signal("lastAction", spellAction);
+        }
+        if(play){
             world.main_loop(0.01f);
         }
     }
@@ -89,7 +135,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     }
 
     @Override
-    public void accept_input(String name, Float... parameters) {
+    public void accept_input(String name, Object... parameters) {
         if(name.equals("initialize")&&(0 == parameters.length)){
             world.pond_with_grill();
         }else if(name.equals("stop")&&(0 == parameters.length)){
@@ -99,7 +145,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
         }else if(name.equals("step")&&(0 == parameters.length)){
             world.main_loop(0.01f); /* TODO: Make this part of the "calculate"  */
         }else if(name.equals("mouseOnScreen2D")&&(2 == parameters.length)){
-            mouseInWorld = camera.unproject(new Vector3(parameters[0], parameters[1], 0.0f));
+            spellAction.pos = camera.unproject(new Vector3((float)parameters[0], (float)parameters[1], 0.0f));
         }else if(name.equals("netherActive")){
             netherActive = true;
         }else if(name.equals("netherInactive")){
@@ -109,27 +155,31 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
         }else if(name.equals("aetherInactive")){
             aetherActive = false;
         }else if(name.equals("manaToUse")&&(1 == parameters.length)){
-            manaToUse = parameters[0];
+            manaToUse = (float)parameters[0];
         }else if(name.equals("targetElement")&&(1 == parameters.length)){
-            if(parameters[0] == Materials.Names.Earth.ordinal()){
-                targetElement = Materials.Names.Earth;
-            }else if(parameters[0] == Materials.Names.Water.ordinal()){
-                targetElement = Materials.Names.Water;
-            }else if(parameters[0] == Materials.Names.Air.ordinal()){
-                targetElement = Materials.Names.Air;
-            }else if(parameters[0] == Materials.Names.Fire.ordinal()){
-                targetElement = Materials.Names.Fire;
-            }else if(parameters[0] == Materials.Names.Ether.ordinal()){
-                targetElement = Materials.Names.Ether;
+            if(parameters[0] == Material.Elements.Earth){
+                spellAction.targetElement = Material.Elements.Earth;
+            }else if(parameters[0] == Material.Elements.Water){
+                spellAction.targetElement = Material.Elements.Water;
+            }else if(parameters[0] == Material.Elements.Air){
+                spellAction.targetElement = Material.Elements.Air;
+            }else if(parameters[0] == Material.Elements.Fire){
+                spellAction.targetElement = Material.Elements.Fire;
+            }else if(parameters[0] == Material.Elements.Ether){
+                spellAction.targetElement = Material.Elements.Ether;
             }
         }else if(name.equals("tendencyTo")&&(1 == parameters.length)){
-            if(parameters[0] == Spells.SpellEtherTendency.GIVE.ordinal()){
-                tendency = Spells.SpellEtherTendency.GIVE;
-            }else if(parameters[0] == Spells.SpellEtherTendency.EQUALIZE.ordinal()){
-                tendency = Spells.SpellEtherTendency.EQUALIZE;
-            }else if(parameters[0] == Spells.SpellEtherTendency.TAKE.ordinal()){
-                tendency = Spells.SpellEtherTendency.TAKE;
+            if(parameters[0] == Spell.SpellEtherTendency.GIVE){
+                tendency = Spell.SpellEtherTendency.GIVE;
+            }else if(parameters[0] == Spell.SpellEtherTendency.EQUALIZE){
+                tendency = Spell.SpellEtherTendency.EQUALIZE;
+            }else if(parameters[0] == Spell.SpellEtherTendency.TAKE){
+                tendency = Spell.SpellEtherTendency.TAKE;
             }
+        }else if(name.equals("doActionsOn")){
+            doActions = true;
+        }else if(name.equals("doActionsOff")){
+            doActions = false;
         }
     }
 
@@ -145,12 +195,17 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
         batch.dispose();
     }
 
+
+    @Override
+    public void resize(int width, int height) {
+        /* Nothing needed here yet */
+    }
+
     @Override
     public Texture get_display() {
-        Pixmap pxm = world.getWorldImage(new Vector2(mouseInWorld.x,mouseInWorld.y),world.get_eth_plane());
+        Pixmap pxm = world.getWorldImage();
         Texture result = new Texture(pxm);
         pxm.dispose();
         return result;
     }
-
 }

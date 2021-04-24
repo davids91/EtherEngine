@@ -1,16 +1,16 @@
 package com.crystalline.aether.models;
 
 import com.badlogic.gdx.graphics.Color;
-import com.crystalline.aether.Util;
+import com.crystalline.aether.services.utils.Util;
 
 import java.util.*;
 
-public class Materials {
-    public enum Names {
+public class Material {
+    public enum Elements {
         Ether, Earth, Water, Air, Fire, Nothing;
-        private static final Materials.Names[] vals = values();
-        public Names next(){ return vals[(this.ordinal() + 1) % vals.length]; }
-        public Names previous(){
+        private static final Elements[] vals = values();
+        public Elements next(){ return vals[(this.ordinal() + 1) % vals.length]; }
+        public Elements previous(){
             if(0 == this.ordinal())
                 return vals[vals.length-1];
             else return vals[this.ordinal() -1];
@@ -21,18 +21,18 @@ public class Materials {
         Negligible, Gas, Fluid, Plasma, Granular, Solid, Crystal, Hard, Superhard, Ultrahard, Morning_wood
     }
 
-    public static final HashMap<Names,HashSet<Names>> compatibility = new HashMap<Names,HashSet<Names>>(){{
-        put(Names.Ether,new HashSet<>(Arrays.asList(Names.Earth, Names.Water, Names.Air, Names.Fire)));
-        put(Names.Earth,new HashSet<>(Arrays.asList(Names.Earth, Names.Water, Names.Air, Names.Fire)));
-        put(Names.Water,new HashSet<>(Arrays.asList(Names.Earth, Names.Water, Names.Air, Names.Fire)));
-        put(Names.Air,new HashSet<>(Arrays.asList(Names.Earth, Names.Water, Names.Air, Names.Fire)));
-        put(Names.Fire,new HashSet<>(Arrays.asList(Names.Earth, Names.Water, Names.Air, Names.Fire)));
+    public static final HashMap<Elements,HashSet<Elements>> compatibility = new HashMap<Elements,HashSet<Elements>>(){{
+        put(Elements.Ether,new HashSet<>(Arrays.asList(Elements.Earth, Elements.Water, Elements.Air, Elements.Fire)));
+        put(Elements.Earth,new HashSet<>(Arrays.asList(Elements.Earth, Elements.Water, Elements.Air, Elements.Fire)));
+        put(Elements.Water,new HashSet<>(Arrays.asList(Elements.Earth, Elements.Water, Elements.Air, Elements.Fire)));
+        put(Elements.Air,new HashSet<>(Arrays.asList(Elements.Earth, Elements.Water, Elements.Air, Elements.Fire)));
+        put(Elements.Fire,new HashSet<>(Arrays.asList(Elements.Earth, Elements.Water, Elements.Air, Elements.Fire)));
     }};
 
     /**!Note: The ratio of the two values define the material states. Reality tries to "stick" to given ratios,
      * The difference in s radiating away.  */
     public static final float PHI = 1.61803398875f;
-    public static final float [] nether_ratios = {
+    public static final float [] netherRatios = {
         /* Ratio of sides of the golden rectangle */
         1.0f, /* Ether */
         (PHI), /* Earth */
@@ -78,27 +78,27 @@ public class Materials {
         {0,0} /* Nothing */
     };
 
-    public static boolean is_same_mat(int ax, int ay, int bx, int by, Names[][] types, float[][] units){
+    public static boolean is_same_mat(int ax, int ay, int bx, int by, Elements[][] types, float[][] units){
         return is_same_mat(types[ax][ay],units[ax][ay],types[bx][by],units[bx][by]);
     }
 
-    public static boolean is_same_mat(Names typeA, float unitA,Names typeB, float unitB){
+    public static boolean is_same_mat(Elements typeA, float unitA, Elements typeB, float unitB){
         return((typeA == typeB)&&(is_same_mat(typeA, unitA,unitB)));
     }
 
-    public static boolean is_same_mat(Names type, float unitA, float unitB){
+    public static boolean is_same_mat(Elements type, float unitA, float unitB){
         return Util.index_in(type_unit_selector[type.ordinal()],unitA) == Util.index_in(type_unit_selector[type.ordinal()],unitB);
     }
 
-    public static Mecha_properties get_state(Names type, float unit){
+    public static Mecha_properties get_state(Elements type, float unit){
         return type_specific_state[type.ordinal()][Util.index_in(type_unit_selector[type.ordinal()], unit)];
     }
 
-    public static boolean discardable(Names type, float unit){
+    public static boolean discardable(Elements type, float unit){
         return Mecha_properties.Negligible == get_state(type,unit);
     }
 
-    public static boolean movable(Names type, float unit){
+    public static boolean movable(Elements type, float unit){
         Mecha_properties state = get_state(type,unit);
         return (
             (Mecha_properties.Negligible.ordinal() < state.ordinal())
@@ -106,7 +106,7 @@ public class Materials {
         );
     }
 
-    public static Color get_color(Names type, float unit){
+    public static Color get_color(Elements type, float unit){
         return type_colors[type.ordinal()][Math.min((
             type_colors[type.ordinal()].length - 1),
             Util.index_in(type_unit_selector[type.ordinal()],unit)

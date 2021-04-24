@@ -8,10 +8,10 @@ public abstract class CapsuleService {
     public CapsuleService(Scene parent_){
         parent = parent_;
     }
-    protected void signal(String signal, Float... parameters){
+    protected void signal(String signal, Object... parameters){
         parent.signal(signal,parameters);
     }
     public abstract void calculate();
-    public abstract void accept_input(String name, Float... parameters);
+    public abstract void accept_input(String name, Object... parameters);
     public abstract void dispose();
 }

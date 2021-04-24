@@ -11,7 +11,7 @@ public abstract class InputService{
     public InputService(Scene parent_){
         parent = parent_;
     }
-    protected void signal(String signal, Float... parameters){
+    protected void signal(String signal, Object... parameters){
         parent.signal(signal,parameters);
     }
 }

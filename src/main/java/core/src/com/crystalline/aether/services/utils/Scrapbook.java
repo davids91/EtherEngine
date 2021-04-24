@@ -1,4 +1,4 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.utils;
 
 public class Scrapbook {
 

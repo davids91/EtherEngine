@@ -24,8 +24,8 @@ public abstract class Scene{
     private final ArrayList<CapsuleService> capsules; /* TODO: use Hashmap for targeted signals */
     private final ArrayList<DisplayService> userViews;
     private final ArrayList<InputService> inputHandlers;
-    private final HashMap<String, Float[]> signalsToSend;
-    private final HashMap<String, Float[]> collectedSignals;
+    private final HashMap<String, Object[]> signalsToSend;
+    private final HashMap<String, Object[]> collectedSignals;
     public static class Token{ private Token(){} }
     private Token token = new Token();
     public int getToken(){
@@ -42,12 +42,12 @@ public abstract class Scene{
         collectedSignals = new HashMap<>();
     }
 
-    public void signal(String signal, Float... parameters){ /* TODO: use a queue of signals instead */
+    public void signal(String signal, Object... parameters){ /* TODO: use a queue of signals instead */
         collectedSignals.put(signal, parameters);
     }
 
     public void setActiveUserView(int i){
-        if((0 < i)&&(i < userViews.size())){
+        if((0 <= i)&&(i < userViews.size())){
            activeUserView = i;
         }
     }
@@ -55,7 +55,7 @@ public abstract class Scene{
     public void calculate(){
         signalsToSend.putAll(collectedSignals);
         collectedSignals.clear();
-        for(Map.Entry<String,Float[]> entry : signalsToSend.entrySet()){
+        for(Map.Entry<String,Object[]> entry : signalsToSend.entrySet()){
             for(int i = 0;i <capsules.size(); ++i){
                 if(activeCapsules.get(i)){
                     capsules.get(i).accept_input(entry.getKey(),entry.getValue());

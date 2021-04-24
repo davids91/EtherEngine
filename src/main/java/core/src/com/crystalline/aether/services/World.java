@@ -2,10 +2,10 @@ package com.crystalline.aether.services;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.math.Vector2;
-import com.crystalline.aether.Util;
+import com.crystalline.aether.services.utils.Util;
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.models.Materials;
+import com.crystalline.aether.models.Material;
+import com.crystalline.aether.models.Spell;
 
 
 /**TODO:
@@ -14,6 +14,15 @@ import com.crystalline.aether.models.Materials;
  */
 public class World {
     Config conf;
+
+    public int getSizeX() {
+        return sizeX;
+    }
+
+    public int getSizeY() {
+        return sizeY;
+    }
+
     protected final int sizeX;
     protected final int sizeY;
 
@@ -36,6 +45,17 @@ public class World {
         ethereal_plane.determine_units(units,this);
     }
 
+    public void reset(){
+        ethereal_plane.reset();
+        elemental_plane.reset();
+        for(int x = 0;x < sizeX; ++x){
+            for(int y = 0; y < sizeY; ++y){
+                units[x][y] = 0;
+            }
+        }
+
+    }
+
     public void pond_with_grill(){
         elemental_plane.pond_with_grill(units,(int)(sizeY/2.0f));
         elemental_plane.determine_units(units, this);
@@ -51,7 +71,7 @@ public class World {
             for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
                 if(
                     //(50.0f > Math.abs(units[x][y] - units[nx][ny])) /* Only reach out only for the same solidity */
-                    (Materials.compatibility.get(elemental_plane.element_at(x,y)).contains(elemental_plane.element_at(nx,ny)))
+                    (Material.compatibility.get(elemental_plane.element_at(x,y)).contains(elemental_plane.element_at(nx,ny)))
                 ){
                     average_val += table[nx][ny];
                     division += 1.0f;
@@ -72,60 +92,73 @@ public class World {
     }
 
     public void main_loop(float step){
-        /** ============= PROCESS UNITS ============= **/
+        /* ============= PROCESS UNITS ============= */
         ethereal_plane.process_units(units,this);
         elemental_plane.process_units(units, this);
 
-        /** ============= PROCESS MECHANICS ============= **/
+        /* ============= PROCESS MECHANICS ============= */
         /* Elemental calculates pressures and forces */
         elemental_plane.process_mechanics(units, this);
         ethereal_plane.process_mechanics(units, this);
 
-        /** ============= PROCESS TYPES ============= **/
+        /* ============= PROCESS TYPES ============= */
         elemental_plane.process_types(units, this);
         ethereal_plane.process_types(units,this); /* Ethereal tries to take over type changes from Elemental */
 
-        /** ============= POST PROCESS ============= **/
+        /* ============= POST PROCESS ============= */
         ethereal_plane.post_process(units, this);
 
         /* Elemental takes over finalised type changes from Ethereal */
         elemental_plane.post_process(units, this);
     }
 
-    public EtherealAspect get_eth_plane(){
+    public EtherealAspect getEtherealPlane(){
         return ethereal_plane;
     }
-    public ElementalAspect get_elm_plane(){ return  elemental_plane; }
+    public ElementalAspect getElementalPlane(){ return  elemental_plane; }
 
-    public void addAetherTo(int x, int y, float value){
+    public void doAction(Spell.Action action){
+        if(action.active()){
+            if(action.aetherActive())addAetherTo((int)action.pos.x,(int)action.pos.y, action.usedAether);
+            if(action.netherActive())addNetherTo((int)action.pos.x,(int)action.pos.y, action.usedNether);
+            if(Material.Elements.Nothing != action.targetElement){
+                getEtherealPlane().setTargetRatio(
+                    (int)action.pos.x, (int)action.pos.y,
+                    Material.netherRatios[action.targetElement.ordinal()]
+                );
+            }
+        }
+    }
+    private void addAetherTo(int x, int y, float value){
         ethereal_plane.add_aether_to(x,y,value);
         ethereal_plane.determine_units(units,this);
         elemental_plane.define_by(ethereal_plane);
     }
 
-    public void addNetherTo(int x, int y, float value){
+    private void addNetherTo(int x, int y, float value){
         ethereal_plane.add_nether_to(x,y,value);
         ethereal_plane.determine_units(units,this);
         elemental_plane.define_by(ethereal_plane);
     }
 
-    public void tryToEqualize(int x, int y, float value, Materials.Names target) {
-        ethereal_plane.tryToEqualize(x,y,value, Materials.nether_ratios[target.ordinal()]);
+    private void tryToEqualize(int x, int y, float aetherToUse, float netherToUse, Material.Elements target) {
+        ethereal_plane.tryToEqualize(x,y,aetherToUse,netherToUse, Material.netherRatios[target.ordinal()]);
         ethereal_plane.determine_units(units,this);
         elemental_plane.define_by(ethereal_plane);
     }
 
     public float get_weight(int posX, int posY){
-        return get_elm_plane().get_weight(posX,posY, units);
+        return getElementalPlane().get_weight(posX,posY, units);
     }
     public float unit_at(int posX, int posY){
         return units[posX][posY];
     }
-    public Pixmap getWorldImage(Vector2 focus, EtherealAspect plane){
+    public Pixmap getWorldImage(){
         Pixmap worldImage = new Pixmap(sizeX,sizeY, Pixmap.Format.RGB888);
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                Color finalColor = elemental_plane.getColor(x,(sizeY - 1 - y),units);
+                Color finalColor;
+                finalColor = elemental_plane.getColor(x,(sizeY - 1 - y),units);
                 worldImage.drawPixel(x,y, Color.rgba8888(finalColor));
             }
         }

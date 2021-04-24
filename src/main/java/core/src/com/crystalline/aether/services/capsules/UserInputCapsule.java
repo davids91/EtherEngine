@@ -3,22 +3,20 @@ package com.crystalline.aether.services.capsules;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
-import com.crystalline.aether.models.Config;
 import com.crystalline.aether.services.architecture.InputService;
 import com.crystalline.aether.services.scenes.Scene;
 
 public class UserInputCapsule extends InputService implements InputProcessor {
-    private boolean touchIsDown = false;
-    public UserInputCapsule(Scene parent, Config conf_){
+    public UserInputCapsule(Scene parent){
         super(parent);
     }
 
     @Override
-    public boolean keyDown(int i) {
-        if(Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)){
+    public boolean keyDown(int keycode) {
+        if(Input.Keys.BACKSPACE == keycode){
             signal("initialize");
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER)){
+        if(Input.Keys.ENTER == keycode){
             signal("playPause");
         }
         return false;
@@ -36,23 +34,21 @@ public class UserInputCapsule extends InputService implements InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        touchIsDown = true;
-        if(Gdx.input.isButtonPressed(Input.Buttons.LEFT))
+        if(Input.Buttons.LEFT == button)
             signal("netherActive");
-        if(Gdx.input.isButtonPressed(Input.Buttons.RIGHT))
+        if(Input.Buttons.RIGHT == button)
             signal("aetherActive");
         if(Input.Buttons.FORWARD == button){
             signal("upTendency");
         }else if(Input.Buttons.BACK == button){
             signal("downTendency");
         }
-        signal("mouseOnScreen2D", (float)screenX,(float)screenY);
+        signal("mouseOnScreen2D", (float)screenX, (float)screenY);
         return false;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        touchIsDown = false;
         if(!Gdx.input.isButtonPressed(Input.Buttons.LEFT))
             signal("netherInactive");
         if(!Gdx.input.isButtonPressed(Input.Buttons.RIGHT))

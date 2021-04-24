@@ -3,11 +3,8 @@ package com.crystalline.aether.services.scenes;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.HorizontalGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -19,6 +16,7 @@ import com.crystalline.aether.services.SceneHandler;
 import com.crystalline.aether.services.capsules.UserInputCapsule;
 import com.crystalline.aether.services.capsules.WorldCapsule;
 import com.crystalline.aether.services.ui.EtherBrushPanel;
+import com.crystalline.aether.services.utils.SkinFactory;
 
 public class PlaygroundScene extends Scene {
     private final Config conf;
@@ -33,20 +31,14 @@ public class PlaygroundScene extends Scene {
         conf = conf_;
         worldCapsule = new WorldCapsule(this,conf);
         stage = new Stage(new ExtendViewport(Gdx.graphics.getWidth(),Gdx.graphics.getHeight()));
-        TextureAtlas ui_atlas = new TextureAtlas(Gdx.files.internal("skins/default/neutralizer-ui.atlas"));
-        TextureAtlas nether_atlas = new TextureAtlas(Gdx.files.internal("atlases/Nether.atlas"));
-        BitmapFont font = new BitmapFont(Gdx.files.internal("skins/default/font-export.fnt"), ui_atlas.findRegion("font-export"));
-        Skin skin = new Skin();
-        skin.add("default-font",font,BitmapFont.class);
-        skin.addRegions(nether_atlas);
-        skin.addRegions(ui_atlas);
+        Skin skin = SkinFactory.getDefaultSkin();
 
         Table table = new Table();
         table.setFillParent(true);
         table.align(Align.topLeft);
 
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.font = font;
+        textButtonStyle.font = skin.getFont("default-font");
         textButtonStyle.up = skin.getDrawable("button");
         textButtonStyle.down = skin.getDrawable("button-pressed");
 
@@ -63,7 +55,7 @@ public class PlaygroundScene extends Scene {
         table.add(etherBrushPanel.getContainer()).align(Align.topLeft);
         stage.addActor(table);
 
-        UserInputCapsule userInputCapsule = new UserInputCapsule(this, conf);
+        UserInputCapsule userInputCapsule = new UserInputCapsule(this);
         addViews(worldCapsule);
         setActiveUserView(0);
         addInputHandlers(userInputCapsule);

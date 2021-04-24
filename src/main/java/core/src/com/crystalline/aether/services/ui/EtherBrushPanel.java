@@ -5,8 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
-import com.crystalline.aether.models.Materials;
-import com.crystalline.aether.models.Spells;
+import com.crystalline.aether.models.Material;
+import com.crystalline.aether.models.Spell;
 import com.crystalline.aether.services.architecture.CapsuleService;
 import com.crystalline.aether.services.scenes.Scene;
 
@@ -19,7 +19,6 @@ public class EtherBrushPanel extends CapsuleService {
     Image netherImg;
 
     private final float maxMana;
-    private final int cntDownMax = 5;
     private final  TextButton plusBtn;
     private final ImageTextButton ohBtn;
     private final TextButton minusBtn;
@@ -29,16 +28,15 @@ public class EtherBrushPanel extends CapsuleService {
     private float manaToUse = 5.0f;
     private boolean addingAether = false;
     private boolean addingNether = false;
-    private int cntDown = cntDownMax;
-    private Spells.SpellEtherTendency usageTendency;
-    private Materials.Names targetMaterial;
+    private Spell.SpellEtherTendency usageTendency;
+    private Material.Elements targetMaterial;
 
     public EtherBrushPanel(Scene parent, Skin skin_, float maxMana_) {
         super(parent);
         skin = skin_;
         maxMana = maxMana_;
-        usageTendency = Spells.SpellEtherTendency.GIVE;
-        targetMaterial = Materials.Names.Nothing;
+        usageTendency = Spell.SpellEtherTendency.GIVE;
+        targetMaterial = Material.Elements.Nothing;
         BitmapFont font = skin.getFont("default-font");
 
         ProgressBar.ProgressBarStyle pbarstyle = new ProgressBar.ProgressBarStyle();
@@ -46,7 +44,7 @@ public class EtherBrushPanel extends CapsuleService {
         pbarstyle.knob = skin.getDrawable("progress-bar-knob-vertical");
         pbarstyle.knobBefore = skin.getDrawable("progress-bar-knob-vertical");
 
-        strengthBar = new ProgressBar(0, maxMana,0.1f, true, pbarstyle);
+        strengthBar = new ProgressBar(0.1f, maxMana,0.1f, true, pbarstyle);
         strengthBar.setAnimateDuration(0.25f);
         strengthBar.setValue(5);
         strengthBar.setProgrammaticChangeEvents(false);
@@ -100,7 +98,6 @@ public class EtherBrushPanel extends CapsuleService {
         horizontalGroup.addActor(ether_dispay_table);
     }
 
-
     public Actor getContainer(){
         return horizontalGroup;
     }
@@ -120,7 +117,7 @@ public class EtherBrushPanel extends CapsuleService {
     }
 
     @Override
-    public void accept_input(String name, Float... parameters) {
+    public void accept_input(String name, Object... parameters) {
         if(name.equals("netherActive")){
             setBrushAction(getAddingAether(),true);
         }else if(name.equals("netherInactive")){
@@ -132,9 +129,9 @@ public class EtherBrushPanel extends CapsuleService {
         }else if(name.equals("upTendency")){
             upTendency();
         }else if(name.equals("downTendency")){
-            downTendecy();
+            downTendency();
         }else if(name.equals("manaModif")&&(1 == parameters.length)){
-            signal("manaToUse", modifyManaToUse(parameters[0]));
+            signal("manaToUse", modifyManaToUse((float)parameters[0]));
         }
     }
 
@@ -145,15 +142,15 @@ public class EtherBrushPanel extends CapsuleService {
     }
 
     private void refreshTendency(){
-        if(Spells.SpellEtherTendency.GIVE == usageTendency){
+        if(Spell.SpellEtherTendency.GIVE == usageTendency){
             minusBtn.setChecked(false);
             ohBtn.setChecked(false);
             plusBtn.setChecked(true);
-        }else if(Spells.SpellEtherTendency.EQUALIZE == usageTendency){
+        }else if(Spell.SpellEtherTendency.EQUALIZE == usageTendency){
             minusBtn.setChecked(false);
             ohBtn.setChecked(true);
             plusBtn.setChecked(false);
-        }else if(Spells.SpellEtherTendency.TAKE == usageTendency){
+        }else if(Spell.SpellEtherTendency.TAKE == usageTendency){
             minusBtn.setChecked(true);
             ohBtn.setChecked(false);
             plusBtn.setChecked(false);
@@ -172,12 +169,12 @@ public class EtherBrushPanel extends CapsuleService {
             case Nothing:
                 setNormalizeTendency(null); break;
         }
-        signal("targetElement",(float)targetMaterial.ordinal());
-        signal("tendencyTo", (float)usageTendency.ordinal());
+        signal("targetElement",targetMaterial);
+        signal("tendencyTo", usageTendency);
     }
 
     public void upTendency() {
-        if (Spells.SpellEtherTendency.values().length - 1 > usageTendency.ordinal()){
+        if (Spell.SpellEtherTendency.values().length - 1 > usageTendency.ordinal()){
             usageTendency = usageTendency.next();
         }else{
             targetMaterial = targetMaterial.next();
@@ -185,7 +182,7 @@ public class EtherBrushPanel extends CapsuleService {
         refreshTendency();
     }
 
-    public void downTendecy(){
+    public void downTendency(){
         if(0 < usageTendency.ordinal()) {
             usageTendency = usageTendency.previous();
         }else{

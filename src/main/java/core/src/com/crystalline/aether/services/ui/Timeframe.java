@@ -23,10 +23,10 @@ public class Timeframe extends Stack implements DisplayService<Image> {
     private final SpriteBatch batch;
     private TextureRegion content;
     private final int index;
-    private final TimeframePanel parent;
+    private final TimeframeTable parent;
     private boolean selected;
 
-    public Timeframe(TimeframePanel parent_, int index_, TextureRegion txr, SpriteBatch batch_){
+    public Timeframe(TimeframeTable parent_, int index_, TextureRegion txr, SpriteBatch batch_){
         super();
         selected = false;
         parent = parent_;
@@ -157,6 +157,11 @@ public class Timeframe extends Stack implements DisplayService<Image> {
     @Override
     public Image get_display() {
         return null;
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        /* Nothing needed here yet.. */
     }
 
     @Override

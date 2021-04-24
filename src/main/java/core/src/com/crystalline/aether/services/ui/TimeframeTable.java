@@ -12,37 +12,17 @@ import com.crystalline.aether.services.capsules.WorldCapsule;
 
 import java.util.ArrayList;
 
-public class TimeframePanel extends Table{
+public class TimeframeTable extends Table{
     private final Config conf;
     private final WorldCapsule worldCapsule;
     private int selected_frame;
     private final SpriteBatch batch;
     ArrayList<Timeframe> frames;
 
-    public TimeframePanel(WorldCapsule worldCapsule_, final int number_of_frames, Skin skin, Config conf_){
+    public TimeframeTable(WorldCapsule worldCapsule_, final int number_of_frames, Skin skin, Config conf_){
         conf = conf_;
         worldCapsule = worldCapsule_;
         batch = new SpriteBatch();
-
-        BitmapFont font = skin.getFont("default-font");
-        ImageButton.ImageButtonStyle imageButtonStyle = new ImageButton.ImageButtonStyle();
-        imageButtonStyle.up = skin.getDrawable("button");
-        imageButtonStyle.down = skin.getDrawable("button-pressed");
-        ImageButton apply_btn = new ImageButton(imageButtonStyle);
-
-        apply_btn.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-            for(int i = 0; i < number_of_frames; ++i){
-                frames.get(i).setFrame(worldCapsule.get_display());
-                worldCapsule.accept_input("step");
-            }
-            event.handle();
-            }
-        });
-
-        apply_btn.add( new Image(skin.getDrawable("check")));
-        add(apply_btn).row();
 
         frames = new ArrayList<>();
         for(int i = 0; i < number_of_frames;++i){

@@ -1,17 +1,8 @@
-package com.crystalline.aether;
+package com.crystalline.aether.services.utils;
 
 import com.badlogic.gdx.math.Vector2;
-import com.crystalline.aether.models.Config;
 
 public class Util {
-    private final Config conf;
-    public Util(Config conf_){
-        conf = conf_;
-    }
-    private Util(){
-        conf = new Config();
-    }
-
     private static final Vector2 gravity = new Vector2(0f,-3.81f);
     private static final Vector2 tmp_gravity = new Vector2(gravity);
     public final Vector2 getGravity(int posX, int posY){
@@ -20,9 +11,6 @@ public class Util {
         return tmp_gravity;
     }
 
-    public static int coordinate_to_hash(int x, int y, int max_x){
-        return  (y * max_x) + x;
-    }
     public static int index_in(float[] table, float value){
         int index = table.length-1;
         while((index > 0)&&(table[index] >= value))--index;
@@ -47,11 +35,6 @@ public class Util {
             sizeX = sizeX_;
         }
 
-        public MyCell(Vector2 v, int sizeX_) {
-            super(v);
-            sizeX = sizeX_;
-        }
-
         public int get_i_x(){
             return (int)x;
         }
@@ -62,7 +45,7 @@ public class Util {
 
         @Override
         public int hashCode() {
-            return Util.coordinate_to_hash((int)x,(int)y,sizeX);
+            return MathUtils.coordinateToHash((int)x,(int)y,sizeX);
         }
     }
 }

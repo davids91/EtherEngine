@@ -15,42 +15,7 @@ public class Spell {
         }
     }
 
-    public static class Action{
-        public float usedAether = 0.0f, usedNether = 0.0f;
-        public Material.Elements targetElement = Material.Elements.Nothing;
-        public Vector3 pos = new Vector3();
-
-        public Action(){ }
-        public Action(Action o){
-            usedAether = o.usedAether;
-            usedNether = o.usedNether;
-            targetElement = o.targetElement;
-            pos = new Vector3(o.pos);
-        }
-
-        public void clear(){
-            usedAether = 0;
-            usedNether = 0;
-            targetElement = Material.Elements.Nothing;
-        }
-
-        public boolean active(){
-            return ((0 < usedNether)||(0<usedAether));
-        }
-        public boolean aetherActive(){
-            return (0 < usedAether);
-        }
-
-        public boolean netherActive(){
-            return (0 < usedNether);
-        }
-
-        public void acceptInput(String name, Float... parameters){
-
-        }
-    }
-
-    public static Color getColorOf(Action action, float maxMana){
+    public static Color getColorOf(SpellAction action, float maxMana){
         float r,g,b;
         r = (Math.abs(action.usedNether))/(maxMana); /* Re component ==> Nether */
         if(0 >= action.usedAether){

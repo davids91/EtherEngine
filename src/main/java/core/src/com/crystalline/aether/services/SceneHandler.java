@@ -1,7 +1,7 @@
 package com.crystalline.aether.services;
 
 import com.badlogic.gdx.Gdx;
-import com.crystalline.aether.services.scenes.Scene;
+import com.crystalline.aether.services.architecture.Scene;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;

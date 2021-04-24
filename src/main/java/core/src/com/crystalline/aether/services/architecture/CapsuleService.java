@@ -1,7 +1,5 @@
 package com.crystalline.aether.services.architecture;
 
-import com.crystalline.aether.services.scenes.Scene;
-
 public abstract class CapsuleService {
 
     private final Scene parent;

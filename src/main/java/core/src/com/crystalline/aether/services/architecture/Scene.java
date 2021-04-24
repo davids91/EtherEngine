@@ -1,4 +1,4 @@
-package com.crystalline.aether.services.scenes;
+package com.crystalline.aether.services.architecture;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
@@ -42,8 +42,8 @@ public abstract class Scene{
         collectedSignals = new HashMap<>();
     }
 
-    public void signal(String signal, Object... parameters){ /* TODO: use a queue of signals instead */
-        collectedSignals.put(signal, parameters);
+    public void signal(String name, Object... parameters){ /* TODO: use a queue of signals instead */
+        collectedSignals.put(name, parameters);
     }
 
     public void setActiveUserView(int i){

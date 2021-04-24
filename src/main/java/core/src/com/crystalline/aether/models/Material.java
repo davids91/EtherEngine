@@ -30,7 +30,7 @@ public class Material {
     }};
 
     /**!Note: The ratio of the two values define the material states. Reality tries to "stick" to given ratios,
-     * The difference in s radiating away.  */
+     * The difference is radiating away.  */
     public static final float PHI = 1.61803398875f;
     public static final float [] netherRatios = {
         /* Ratio of sides of the golden rectangle */
@@ -41,6 +41,10 @@ public class Material {
         (PHI * PHI * PHI * PHI), /* Fire */
         0.0f, /* Nothing */
     };
+
+    public static float ratioOf(Elements element){
+        return netherRatios[element.ordinal()];
+    }
 
     public static final float[][] type_unit_selector = {
         {0.0f, 50.0f},

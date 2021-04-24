@@ -31,9 +31,9 @@ public class EtherealAspect extends Reality_aspect {
     public void reset(){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                aetherValues[x][y] = 1.0f;
-                targetRatios[x][y] = Material.netherRatios[Material.Elements.Air.ordinal()];
-                netherValues[x][y] = Material.netherRatios[Material.Elements.Air.ordinal()];
+                aetherValues[x][y] = 1.1f;
+                targetRatios[x][y] = Material.ratioOf(Material.Elements.Air);
+                netherValues[x][y] = Material.ratioOf(Material.Elements.Air);
                 ratio_change_tick[x][y] = 0;
             }
         }
@@ -44,7 +44,7 @@ public class EtherealAspect extends Reality_aspect {
             for(int y = 0; y < sizeY; ++y){
                 if(0 < units[x][y]) {
                     netherValues[x][y] = units[x][y];
-                    aetherValues[x][y] = netherValues[x][y] / Material.netherRatios[plane.element_at(x, y).ordinal()];
+                    aetherValues[x][y] = netherValues[x][y] / Material.netherRatios[plane.elementAt(x, y).ordinal()];
                 }else{
                     netherValues[x][y] = 0f;
                     aetherValues[x][y] = 0f;
@@ -100,8 +100,7 @@ public class EtherealAspect extends Reality_aspect {
 
         for (int x = 0; x < sizeX; ++x) {
             for (int y = 0; y < sizeY; ++y) {
-                if(get_ratio(x,y) == Material.netherRatios[Material.Elements.Ether.ordinal()])
-                    continue;
+
                 if (decide_target_ratios){
                     if(0 == ratio_change_tick[x][y]){
                         targetRatios[x][y] = get_target_ratio(x, y);
@@ -122,8 +121,7 @@ public class EtherealAspect extends Reality_aspect {
         /* Sharing ether */
         for (int x = 0; x < sizeX; ++x) { /* Let's see the ether requests in the contexts */
             for (int y = 0; y < sizeY; ++y) {
-                if(get_ratio(x,y) == Material.netherRatios[Material.Elements.Ether.ordinal()])
-                    continue;
+
                 requested_avg_ae[x][y] = avgOf(x, y, available_aether);
                 requested_avg_ne[x][y] = avgOf(x, y, available_nether);
             }
@@ -131,8 +129,7 @@ public class EtherealAspect extends Reality_aspect {
 
         for (int x = 0; x < sizeX; ++x) {
             for (int y = 0; y < sizeY; ++y) {
-                if(get_ratio(x,y) == Material.netherRatios[Material.Elements.Ether.ordinal()])
-                    continue;
+
                 available_avg_ae[x][y] = parent.avg_of_compatible(x, y, available_aether);
                 available_avg_ne[x][y] = parent.avg_of_compatible(x, y, available_nether);
             }
@@ -141,8 +138,7 @@ public class EtherealAspect extends Reality_aspect {
         /* finalize Ether */
         for (int x = 0; x < sizeX; ++x) {
             for (int y = 0; y < sizeY; ++y) {
-                if(get_ratio(x,y) == Material.netherRatios[Material.Elements.Ether.ordinal()])
-                    continue;
+
                 available_aether[x][y] = available_avg_ae[x][y];
                 available_nether[x][y] = available_avg_ne[x][y];
 
@@ -193,18 +189,18 @@ public class EtherealAspect extends Reality_aspect {
     }
 
     @Override
-    public void process_units(float[][] units, World parent){
+    public void processUnits(float[][] units, World parent){
         process_ether(units,parent,true);
         determine_units(units,parent);
     }
 
     @Override
-    public void process_types(float[][] units, World parent){
+    public void processTypes(float[][] units, World parent){
         /* Take over unit changes from Elemental plane */
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                if(Material.Elements.Ether != parent.elemental_plane.element_at(x,y)){
-                    targetRatios[x][y] = Material.netherRatios[parent.elemental_plane.element_at(x,y).ordinal()];
+                if(Material.Elements.Ether != parent.elementalPlane.elementAt(x,y)){
+                    targetRatios[x][y] = Material.ratioOf(parent.elementalPlane.elementAt(x,y));
                 }
                 take_over_unit_changes(x,y, units);
             }
@@ -219,12 +215,12 @@ public class EtherealAspect extends Reality_aspect {
     }
 
     @Override
-    public void process_mechanics(float[][] units, World parent) {
-        process_types(units, parent);
+    public void processMechanics(float[][] units, World parent) {
+        processTypes(units, parent);
     }
 
     @Override
-    public void post_process(float[][] units, World parent) {
+    public void postProcess(float[][] units, World parent) {
         process_ether(units,parent,false);
         /* TODO: Decide para-modifiers ( e.g. heat ) */
     }
@@ -251,44 +247,39 @@ public class EtherealAspect extends Reality_aspect {
         return get_target_nether(x,y) - netherValues[x][y];
     }
     private float get_ratio_delta(int x, int y){
-        return get_ratio(x,y) - targetRatios[x][y];
+        return getRatio(x,y) - targetRatios[x][y];
     }
 
-    public float get_ratio(int x, int y){
+    public float getRatio(int x, int y){
         if(0 != aetherValues[x][y])
             return (netherValues[x][y]/ aetherValues[x][y]);
         else return 0;
     }
 
-    public Material.Elements element_at(int x, int y){
-        if((netherValues[x][y] + netherValues[x][y]) < 0.1f){ /* In case there's almost no ether */
-            return Material.Elements.Air;
-        }else
-        if(get_ratio(x,y) == Material.netherRatios[Material.Elements.Ether.ordinal()]){
+    public Material.Elements elementAt(int x, int y){
+        if((netherValues[x][y] + netherValues[x][y]) < 0.1f) return Material.Elements.Air;
+        else if(0.01f > Math.abs(getRatio(x,y) - Material.ratioOf(Material.Elements.Ether)))
             return Material.Elements.Ether;
-        }else if(get_ratio(x,y) <= ((Material.netherRatios[Material.Elements.Earth.ordinal()] + Material.netherRatios[Material.Elements.Water.ordinal()])/2.0f))
+        else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))
             return Material.Elements.Earth;
-        else if(get_ratio(x,y) <= ((Material.netherRatios[Material.Elements.Water.ordinal()] + Material.netherRatios[Material.Elements.Air.ordinal()])/2.0f))
+        else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Water) + Material.ratioOf(Material.Elements.Air))/2.0f))
             return Material.Elements.Water;
-        else if(get_ratio(x,y) <= ((Material.netherRatios[Material.Elements.Air.ordinal()] + Material.netherRatios[Material.Elements.Fire.ordinal()])/2.0f))
+        else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Air) + Material.ratioOf(Material.Elements.Fire))/2.0f))
             return Material.Elements.Air;
         else return Material.Elements.Fire;
     }
 
     private float get_target_ratio(int x, int y){
-        if((netherValues[x][y] + netherValues[x][y]) < 0.1f){ /* In case there's almost no ether */
-            return Material.netherRatios[Material.Elements.Air.ordinal()];
-        }else
-        if(get_ratio(x,y) == Material.netherRatios[Material.Elements.Ether.ordinal()]){
-            return Material.netherRatios[Material.Elements.Ether.ordinal()];
-        }
-        else if(get_ratio(x,y) <= ((Material.netherRatios[Material.Elements.Earth.ordinal()] + Material.netherRatios[Material.Elements.Water.ordinal()])/2.0f))
-            return Material.netherRatios[Material.Elements.Earth.ordinal()];
-        else if(get_ratio(x,y) <= ((Material.netherRatios[Material.Elements.Water.ordinal()] + Material.netherRatios[Material.Elements.Air.ordinal()])/2.0f))
-            return Material.netherRatios[Material.Elements.Water.ordinal()];
-        else if(get_ratio(x,y) <= ((Material.netherRatios[Material.Elements.Air.ordinal()] + Material.netherRatios[Material.Elements.Fire.ordinal()])/2.0f))
-            return Material.netherRatios[Material.Elements.Air.ordinal()];
-        else return Material.netherRatios[Material.Elements.Fire.ordinal()];
+        if((netherValues[x][y] + netherValues[x][y]) < 0.1f) return Material.ratioOf(Material.Elements.Air);
+        else if(0.01f > Math.abs(getRatio(x,y) - Material.ratioOf(Material.Elements.Ether)))
+            return Material.ratioOf(Material.Elements.Ether);
+        else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))
+            return Material.ratioOf(Material.Elements.Earth);
+        else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Water) + Material.ratioOf(Material.Elements.Air))/2.0f))
+            return Material.ratioOf(Material.Elements.Water);
+        else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Air) + Material.ratioOf(Material.Elements.Fire))/2.0f))
+            return Material.ratioOf(Material.Elements.Air);
+        else return Material.ratioOf(Material.Elements.Fire);
     }
 
     private float get_target_aether(int x, int y){
@@ -313,11 +304,11 @@ public class EtherealAspect extends Reality_aspect {
     }
 
     public static float getAetherDeltaToTargetRatio(float manaToUse, float aetherValue, float netherValue, float targetRatio){
-        return (manaToUse + netherValue - (aetherValue * targetRatio)) / (1.0f + targetRatio);
+        return ((netherValue + manaToUse - (targetRatio * aetherValue))/(1.0f + targetRatio));
     }
 
     public static float getNetherDeltaToTargetRatio(float manaToUse, float aetherValue, float netherValue, float targetRatio){
-        return manaToUse - getAetherDeltaToTargetRatio(manaToUse,aetherValue,netherValue,targetRatio);
+        return((targetRatio*(aetherValue + manaToUse)) - netherValue)/(1.0f + targetRatio);
     }
 
     public static float getEqualizeAttemptAetherValue(

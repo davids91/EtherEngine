@@ -1,12 +1,9 @@
 package com.crystalline.aether.services.ui;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.services.capsules.WorldCapsule;
 
@@ -19,14 +16,14 @@ public class TimeframeTable extends Table{
     private final SpriteBatch batch;
     ArrayList<Timeframe> frames;
 
-    public TimeframeTable(WorldCapsule worldCapsule_, final int number_of_frames, Skin skin, Config conf_){
+    public TimeframeTable(WorldCapsule worldCapsule_, final int numberOfFrames, Skin skin, Config conf_){
         conf = conf_;
         worldCapsule = worldCapsule_;
         batch = new SpriteBatch();
 
         frames = new ArrayList<>();
-        for(int i = 0; i < number_of_frames;++i){
-            frames.add(new Timeframe(this, i,new TextureRegion(worldCapsule.get_display()), batch));
+        for(int i = 0; i < numberOfFrames;++i){
+            frames.add(new Timeframe(this, i,new TextureRegion(worldCapsule.getDisplay()), batch));
             frames.get(i).layout();
             add(frames.get(i)).size(32,32).pad(3);
         }

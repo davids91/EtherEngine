@@ -1,7 +1,7 @@
 package com.crystalline.aether.services.architecture;
 
 public interface DisplayService<Media> {
-    Media get_display();
+    Media getDisplay();
     void resize(int width, int height);
     void render();
     void dispose();

@@ -10,12 +10,13 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector3;
 import com.crystalline.aether.models.Material;
 import com.crystalline.aether.models.Spell;
+import com.crystalline.aether.models.SpellAction;
 import com.crystalline.aether.services.EtherealAspect;
 import com.crystalline.aether.services.architecture.CapsuleService;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.services.architecture.DisplayService;
 import com.crystalline.aether.services.World;
-import com.crystalline.aether.services.scenes.Scene;
+import com.crystalline.aether.services.architecture.Scene;
 
 /** TODO:
  * - Create Different Views for the world as different DisplayServices
@@ -39,7 +40,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     private final OrthographicCamera camera = new OrthographicCamera();
     private final World world;
 
-    private final Spell.Action spellAction;
+    private final SpellAction spellAction;
     private boolean play = true;
     private boolean aetherActive = false;
     private boolean netherActive = false;
@@ -50,7 +51,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     public WorldCapsule(Scene parent, Config conf_, World world_) throws Exception {
         super(parent);
         conf = conf_;
-        spellAction = new Spell.Action();
+        spellAction = new SpellAction();
         world = world_;
         if( /* The size of the world should match the configuration! */
             (world.getSizeX() != conf.world_block_number[0])
@@ -63,14 +64,14 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     public WorldCapsule(Scene parent, Config conf_){
         super(parent);
         conf = conf_;
-        spellAction = new Spell.Action();
+        spellAction = new SpellAction();
         world = new World(conf);
         camera.setToOrtho(false, width(), height());
         camera.update();
     }
 
-    public void doActions(Spell.Action... actions){
-        for(Spell.Action action : actions){
+    public void doActions(SpellAction... actions){
+        for(SpellAction action : actions){
             world.doAction(action);
         }
     }
@@ -97,23 +98,43 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
                 spellAction.usedAether = EtherealAspect.getAetherDeltaToTargetRatio(
                     manaToUse,
                     world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
-                    world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y),
+                    world.getEtherealPlane().netherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
                     Material.netherRatios[spellAction.targetElement.ordinal()]
                 );
                 spellAction.usedNether = EtherealAspect.getNetherDeltaToTargetRatio(
                     manaToUse,
                     world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
-                    world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y),
+                    world.getEtherealPlane().netherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
                     Material.netherRatios[spellAction.targetElement.ordinal()]
                 );
-
-                System.out.println("ratio: " +
-                (
-                (world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) + spellAction.usedNether)
-                / (world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedAether)
-                )
-                +"/" + Material.netherRatios[spellAction.targetElement.ordinal()]
+                if(
+                    (
+                        (world.getEtherealPlane().netherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedNether)
+                        / (world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedAether)
+                    )  != Material.netherRatios[spellAction.targetElement.ordinal()]
+                ) System.out.printf(
+                        "mana: %.7f, AE: %.10f + %.10f;NE: %.10f + + %.10f; ratio: %.10f / %.10f \n ",
+                        manaToUse,
+                        world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
+                        spellAction.usedAether,
+                        world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) ,
+                        spellAction.usedNether,
+                        (world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) + spellAction.usedNether)
+                                / (world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedAether),
+                        Material.netherRatios[spellAction.targetElement.ordinal()]
                 );
+//                    System.out.println(
+//                            "mana: " + manaToUse
+//                                    + " values: "
+//                                    + "NE: " + world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) +"+"+ spellAction.usedNether + " ;"
+//                                    + "AE: " + world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) +"+"+ spellAction.usedAether
+//                                    +"; ratio: " +
+//                                    (
+//                                            (world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) + spellAction.usedNether)
+//                                                    / (world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedAether)
+//                                    )
+//                                    +"/" + Material.netherRatios[spellAction.targetElement.ordinal()]
+//                    );
             }
             /* apply the action */
             if(doActions)world.doAction(spellAction);
@@ -130,7 +151,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-        batch.draw(new TextureRegion(get_display()),0,0, width(), height());
+        batch.draw(new TextureRegion(getDisplay()),0,0, width(), height());
         batch.end();
     }
 
@@ -202,7 +223,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     }
 
     @Override
-    public Texture get_display() {
+    public Texture getDisplay() {
         Pixmap pxm = world.getWorldImage();
         Texture result = new Texture(pxm);
         pxm.dispose();

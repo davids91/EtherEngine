@@ -9,7 +9,7 @@ import com.crystalline.aether.services.architecture.DisplayService;
 
 public class EmptyBlackScreen implements DisplayService<Texture> {
     @Override
-    public Texture get_display() {
+    public Texture getDisplay() {
         Pixmap emptyScreen = new Pixmap(Gdx.graphics.getWidth(),Gdx.graphics.getWidth(), Pixmap.Format.RGB888);
         emptyScreen.setColor(Color.BLACK);
         emptyScreen.fill();

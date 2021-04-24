@@ -155,7 +155,7 @@ public class Timeframe extends Stack implements DisplayService<Image> {
     }
 
     @Override
-    public Image get_display() {
+    public Image getDisplay() {
         return null;
     }
 

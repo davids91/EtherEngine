@@ -8,7 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.crystalline.aether.models.Material;
 import com.crystalline.aether.models.Spell;
 import com.crystalline.aether.services.architecture.CapsuleService;
-import com.crystalline.aether.services.scenes.Scene;
+import com.crystalline.aether.services.architecture.Scene;
 
 /**TODO:
  * - target different elements with the spell

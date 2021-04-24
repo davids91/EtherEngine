@@ -54,7 +54,7 @@ public class ElementalAspect extends Reality_aspect {
     public void define_by(EtherealAspect plane){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                blocks[x][y] = plane.element_at(x,y);
+                blocks[x][y] = plane.elementAt(x,y);
             }
         }
     }
@@ -106,7 +106,7 @@ public class ElementalAspect extends Reality_aspect {
     }
 
     @Override
-    public void process_units(float[][] units, World parent){
+    public void processUnits(float[][] units, World parent){
         float[][] avgs = new float[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
@@ -126,10 +126,10 @@ public class ElementalAspect extends Reality_aspect {
     }
 
     @Override
-    public void process_types(float[][] units, World parent) {
+    public void processTypes(float[][] units, World parent) {
         for(int x = sizeX - 1;x > 0; --x){
             for(int y = sizeY - 1 ; y > 0; --y) {
-                blocks[x][y] = parent.ethereal_plane.element_at(x,y);
+                blocks[x][y] = parent.etherealPlane.elementAt(x,y);
                 /* TODO: Move averages to before the process step for consistent behavior for context dependent stuff */
                 if(Material.Elements.Water == blocks[x][y]){ /* TODO: This will be ill-defined in a multi-threaded environment */
                     if(y > sizeY * 0.9){ /* TODO: Make rain based on steam */
@@ -174,7 +174,7 @@ public class ElementalAspect extends Reality_aspect {
                 if(Material.Elements.Earth == blocks[x][y]){
                     /* TODO: Make Earth keep track of heat instead of units */
                     if((avg_of_block(x,y,units, Material.Elements.Earth) < avg_of_block(x,y,units, Material.Elements.Fire))){
-                        if( /* TODO: Make sand melt "into" lava */
+                        if( /* TODO: Make sand melt "into" glass */
                             Material.Mecha_properties.Solid.ordinal() > Material.get_state(Material.Elements.Earth, units[x][y]).ordinal()
                             || Material.Mecha_properties.Plasma.ordinal() < Material.get_state(Material.Elements.Fire, units[x][y]).ordinal()
                         ){
@@ -211,7 +211,7 @@ public class ElementalAspect extends Reality_aspect {
     }
 
     @Override
-    public void process_mechanics(float[][] units, World parent) {
+    public void processMechanics(float[][] units, World parent) {
         HashMap<Util.MyCell, Util.MyCell> remaining_proposed_changes = new HashMap<>();
 
         /* Pre-process: Add gravity, and nullify forces on discardable objects; */
@@ -499,10 +499,10 @@ public class ElementalAspect extends Reality_aspect {
     }
 
     @Override
-    public void post_process(float[][] units, World parent) {
+    public void postProcess(float[][] units, World parent) {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                blocks[x][y] = parent.ethereal_plane.element_at(x,y);
+                blocks[x][y] = parent.etherealPlane.elementAt(x,y);
             }
         }
     }
@@ -554,8 +554,12 @@ public class ElementalAspect extends Reality_aspect {
         blocks[posX][posY+1] = Material.Elements.Fire;
     }
 
-    public Material.Elements element_at(int x, int y){
+    public Material.Elements elementAt(int x, int y){
         return blocks[x][y];
+    }
+
+    public void setElement(int x, int y, Material.Elements target){
+        blocks[x][y] = target;
     }
 
     public Color getColor(int x, int y, float[][] units){

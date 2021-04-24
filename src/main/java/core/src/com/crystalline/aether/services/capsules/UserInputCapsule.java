@@ -4,7 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.crystalline.aether.services.architecture.InputService;
-import com.crystalline.aether.services.scenes.Scene;
+import com.crystalline.aether.services.architecture.Scene;
 
 public class UserInputCapsule extends InputService implements InputProcessor {
     public UserInputCapsule(Scene parent){

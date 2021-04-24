@@ -16,10 +16,12 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.models.SpellAction;
 import com.crystalline.aether.services.*;
+import com.crystalline.aether.services.architecture.Scene;
 import com.crystalline.aether.services.capsules.UserInputCapsule;
 import com.crystalline.aether.services.capsules.WorldCapsule;
-import com.crystalline.aether.services.SpellFrame;
+import com.crystalline.aether.services.spells.SpellFrame;
 import com.crystalline.aether.services.ui.EmptyBlackScreen;
 import com.crystalline.aether.services.ui.EtherBrushPanel;
 import com.crystalline.aether.services.ui.TimeframeTable;
@@ -42,6 +44,7 @@ public class EditorScene extends Scene {
 
     private boolean showActions = true;
     private final ArrayList<SpellFrame> spellFrames;
+    private final TimeframeTable timeframeTable;
     private int activeTimeFrame = 0;
     private int numberOfFrames = 10;
 
@@ -113,38 +116,20 @@ public class EditorScene extends Scene {
         spellPanel.add(manaBar);
         spellPanel.add(ebrushPanel.getContainer()).row();
 
-        final TimeframeTable timeframeTable = new TimeframeTable(worldCapsule,10,skin,conf);
+        timeframeTable = new TimeframeTable(worldCapsule,numberOfFrames,skin,conf);
         timeframeTable.addListener(new ClickListener(){
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                super.clicked(event, x, y);
-                activeTimeFrame = timeframeTable.getSelectedIndex();
-                signal("setTimeFrame", activeTimeFrame);
-                setActiveUserView(2 + activeTimeFrame);
+            super.clicked(event, x, y);
+            activeTimeFrame = timeframeTable.getSelectedIndex();
+            signal("setTimeFrame", activeTimeFrame);
+            setActiveUserView(2 + activeTimeFrame);
             }
         });
 
         ImageButton.ImageButtonStyle imageButtonStyle = new ImageButton.ImageButtonStyle();
         imageButtonStyle.up = skin.getDrawable("button");
         imageButtonStyle.down = skin.getDrawable("button-pressed");
-        ImageButton applyBtn = new ImageButton(imageButtonStyle);
-        applyBtn.add( new Image(skin.getDrawable("check")));
-        applyBtn.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                worldCapsule.reset();
-                for(int i = 0; i < numberOfFrames; ++i){
-                    /* apply the corresponding actions *//* TODO: real time apply so the world is in sync with the equalize attempt */
-                    worldCapsule.doActions(spellFrames.get(i).getActions());
-                    /* and then step */
-                    worldCapsule.accept_input("step");
-                    timeframeTable.getFrame(i).setFrame(worldCapsule.get_display());
-                }
-                event.handle();
-            }
-        });
-
-
         ImageButton cancelBtn = new ImageButton(imageButtonStyle);
         cancelBtn.add(new Image(skin.getDrawable("icon-trash")));
         cancelBtn.addListener(new ChangeListener() {
@@ -152,7 +137,7 @@ public class EditorScene extends Scene {
             public void changed(ChangeEvent event, Actor actor) {
                 worldCapsule.reset();
                 for(int i = 0; i < numberOfFrames; ++i){
-                    timeframeTable.getFrame(i).setFrame(worldCapsule.get_display());
+                    timeframeTable.getFrame(i).setFrame(worldCapsule.getDisplay());
                     spellFrames.get(i).clearActions();
                 }
                 event.handle();
@@ -166,7 +151,7 @@ public class EditorScene extends Scene {
         outerTable.add(backBtn).align(Align.topLeft);
         outerTable.add(toggleViewBtn).align(Align.topLeft).expand().row();
         outerTable.add(spellPanel).left().row();
-        outerTable.add(cancelBtn, applyBtn,timeframeTable).align(Align.bottom | Align.center).row();
+        outerTable.add(cancelBtn, timeframeTable).align(Align.bottom | Align.center).row();
 
         stage.addActor(outerTable);
 
@@ -183,6 +168,28 @@ public class EditorScene extends Scene {
         addCapsules(spellFrames.toArray(new SpellFrame[]{}));
         inputMultiplexer = new InputMultiplexer(stage, userInputCapsule);
         signal("doActionsOff");
+    }
+
+    @Override
+    public void signal(String name, Object... parameters) {
+        super.signal(name, parameters);
+        if(name.equals("lastAction")&&(1 == parameters.length)){
+            applySpell();
+        }
+    }
+
+    private void applySpell(){
+        worldCapsule.reset();
+        for(int i = 0; i < numberOfFrames; ++i){
+            /* apply the corresponding actions */
+            if(0 < spellFrames.get(i).getActions().length){
+                SpellAction act = spellFrames.get(i).getActions()[0];
+            }
+            worldCapsule.doActions(spellFrames.get(i).getActions());
+            /* and then step */
+            worldCapsule.accept_input("step");
+            timeframeTable.getFrame(i).setFrame(worldCapsule.getDisplay());
+        }
     }
 
     @Override
@@ -223,7 +230,7 @@ public class EditorScene extends Scene {
             sb.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_DST_ALPHA);
             sb.setProjectionMatrix(stage.getCamera().combined);
             sb.begin();
-            sb.draw(spellFrames.get(activeTimeFrame).get_display(), 0,0,stage.getWidth(), stage.getHeight());
+            sb.draw(spellFrames.get(activeTimeFrame).getDisplay(), 0,0,stage.getWidth(), stage.getHeight());
             sb.end();
         }
         stage.draw();

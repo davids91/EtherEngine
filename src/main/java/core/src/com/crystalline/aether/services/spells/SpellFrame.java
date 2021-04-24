@@ -1,13 +1,15 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.spells;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.models.Material;
 import com.crystalline.aether.models.Spell;
+import com.crystalline.aether.models.SpellAction;
 import com.crystalline.aether.services.architecture.CapsuleService;
 import com.crystalline.aether.services.architecture.DisplayService;
-import com.crystalline.aether.services.scenes.Scene;
+import com.crystalline.aether.services.architecture.Scene;
 import com.crystalline.aether.services.utils.MathUtils;
 
 import java.util.LinkedHashMap;
@@ -22,7 +24,7 @@ public class SpellFrame extends CapsuleService implements DisplayService<Texture
     /**
      * A hashmap for different actions, by coordinates
      */
-    LinkedHashMap<Integer,Spell.Action> actions = new LinkedHashMap<>();
+    LinkedHashMap<Integer,SpellAction> actions = new LinkedHashMap<>();
 
     public SpellFrame(Scene parent, Config conf_, int timeFrameIndex){
         super(parent);
@@ -30,8 +32,8 @@ public class SpellFrame extends CapsuleService implements DisplayService<Texture
         this.timeFrameIndex = timeFrameIndex;
     }
 
-    public Spell.Action[] getActions(){
-        return actions.values().toArray(new Spell.Action[]{});
+    public SpellAction[] getActions(){
+        return actions.values().toArray(new SpellAction[]{});
     }
 
     public void clearActions(){
@@ -39,13 +41,13 @@ public class SpellFrame extends CapsuleService implements DisplayService<Texture
     }
 
     @Override
-    public Texture get_display() {
+    public Texture getDisplay() {
         Pixmap actionImage = new Pixmap(conf.world_block_number[0],conf.world_block_number[1], Pixmap.Format.RGB888);
         actionImage.setBlending(Pixmap.Blending.SourceOver);
         actionImage.setColor(0,0,0,0);
         actionImage.fill();
         float newMaxUsedMana = 0;
-        for(Map.Entry<Integer, Spell.Action> entry : actions.entrySet()){
+        for(Map.Entry<Integer, SpellAction> entry : actions.entrySet()){
             int x = (int)entry.getValue().pos.x;
             int y = (conf.world_block_number[1] - 1 - (int)entry.getValue().pos.y);
             Color actionColor = Spell.getColorOf(entry.getValue(), maxUsedMana);
@@ -69,20 +71,26 @@ public class SpellFrame extends CapsuleService implements DisplayService<Texture
             name.equals("lastAction")&&(1 == parameters.length)
             &&(activeTimeframe == timeFrameIndex) /* Only collect actions in our own timeframe */
         ){
-            Spell.Action action = ((Spell.Action)parameters[0]);
+            SpellAction action = ((SpellAction)parameters[0]);
             int coordinateHash = MathUtils.coordinateToHash((int)action.pos.x, (int)action.pos.y, conf.world_block_number[0]);
-            Spell.Action storedAction = actions.get(coordinateHash);
+            SpellAction storedAction = actions.get(coordinateHash);
             if(null != storedAction) { /* overwrite actions, pile ether values */
                 storedAction.targetElement = action.targetElement;
-                storedAction.usedNether += action.usedNether;
-                storedAction.usedAether += action.usedAether;
+                if(Material.Elements.Nothing == storedAction.targetElement){
+                    storedAction.usedNether += action.usedNether;
+                    storedAction.usedAether += action.usedAether;
+                }else{ /* If an element is targeted, then overwrite new values */
+                    storedAction.usedNether = action.usedNether;
+                    storedAction.usedAether = action.usedAether;
+                }
                 storedAction.pos.set(action.pos);
                 if(maxUsedMana < Math.abs(storedAction.usedAether))
                     maxUsedMana = Math.abs(storedAction.usedAether);
                 if(maxUsedMana < Math.abs(storedAction.usedNether))
                     maxUsedMana = Math.abs(storedAction.usedNether);
+
             }else{
-                actions.put(coordinateHash, new Spell.Action(action));
+                actions.put(coordinateHash, new SpellAction(action));
                 if(maxUsedMana < Math.abs(action.usedAether))
                     maxUsedMana = Math.abs(action.usedAether);
                 if(maxUsedMana < Math.abs(action.usedNether))

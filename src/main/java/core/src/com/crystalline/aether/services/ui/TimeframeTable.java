@@ -25,7 +25,7 @@ public class TimeframeTable extends Table{
         for(int i = 0; i < numberOfFrames;++i){
             frames.add(new Timeframe(this, i,new TextureRegion(worldCapsule.getDisplay()), batch));
             frames.get(i).layout();
-            add(frames.get(i)).size(32,32).pad(3);
+            add(frames.get(i)).size(64,64).pad(3);
         }
         selected_frame = 0;
         setSelected(0);

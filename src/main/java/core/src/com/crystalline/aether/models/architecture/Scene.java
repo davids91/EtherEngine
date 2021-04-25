@@ -1,11 +1,8 @@
-package com.crystalline.aether.services.architecture;
+package com.crystalline.aether.models.architecture;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
-import com.crystalline.aether.services.architecture.CapsuleService;
-import com.crystalline.aether.services.architecture.DisplayService;
-import com.crystalline.aether.services.architecture.InputService;
 import com.crystalline.aether.services.SceneHandler;
 
 import java.util.ArrayList;

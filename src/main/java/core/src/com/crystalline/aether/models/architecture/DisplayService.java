@@ -1,4 +1,4 @@
-package com.crystalline.aether.services.architecture;
+package com.crystalline.aether.models.architecture;
 
 public interface DisplayService<Media> {
     Media getDisplay();

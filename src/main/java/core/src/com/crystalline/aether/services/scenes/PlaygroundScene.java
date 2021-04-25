@@ -13,7 +13,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.services.SceneHandler;
-import com.crystalline.aether.services.architecture.Scene;
+import com.crystalline.aether.models.architecture.Scene;
 import com.crystalline.aether.services.capsules.UserInputCapsule;
 import com.crystalline.aether.services.capsules.WorldCapsule;
 import com.crystalline.aether.services.ui.EtherBrushPanel;

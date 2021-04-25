@@ -4,7 +4,7 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.services.scenes.EditorScene;
 import com.crystalline.aether.services.scenes.PlaygroundScene;
-import com.crystalline.aether.services.architecture.Scene;
+import com.crystalline.aether.models.architecture.Scene;
 import com.crystalline.aether.services.SceneHandler;
 
 import java.util.AbstractMap.SimpleImmutableEntry;

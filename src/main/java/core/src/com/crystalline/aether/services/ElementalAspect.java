@@ -4,27 +4,24 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.Material;
-import com.crystalline.aether.models.Reality_aspect;
+import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.services.utils.MathUtils;
 import com.crystalline.aether.services.utils.Util;
 
 import java.util.*;
 
-public class ElementalAspect extends Reality_aspect {
+public class ElementalAspect extends RealityAspect {
     Util myUtil;
     protected final int sizeX;
     protected final int sizeY;
-    Material.Elements[][] blocks;
-    Vector2 [][] forces;
-    private final float[][] gravity_correction_amount;
-    private final float[][] velocity_ticks;
-
+    private final int velocity_max_ticks = 9;
     private final Random rnd = new Random();
 
-    private final int velocity_max_ticks = 9;
-
-    /* Debug variables */
-    private final float[][] touched_by_mechanics;
+    private Material.Elements[][] blocks;
+    private Vector2 [][] forces;
+    private float[][] gravity_correction_amount;
+    private float[][] velocity_ticks;
+    private float[][] touched_by_mechanics; /* Debug purposes */
 
     public ElementalAspect(Config conf_){
         super(conf_);
@@ -37,6 +34,26 @@ public class ElementalAspect extends Reality_aspect {
         velocity_ticks = new float[sizeX][sizeY];
         touched_by_mechanics = new float[sizeX][sizeY];
         reset();
+    }
+
+    @Override
+    protected Object[] getState() {
+        return new Object[]{
+            Arrays.copyOf(blocks, blocks.length),
+            Arrays.copyOf(forces, forces.length),
+            Arrays.copyOf(gravity_correction_amount,gravity_correction_amount.length),
+            Arrays.copyOf(velocity_ticks,velocity_ticks.length),
+            Arrays.copyOf(touched_by_mechanics,touched_by_mechanics.length)
+        };
+    }
+
+    @Override
+    protected void setState(Object[] state) {
+        blocks = (Material.Elements[][]) state[0];
+        forces = (Vector2[][]) state[1];
+        gravity_correction_amount = (float[][]) state[2];
+        velocity_ticks = (float[][]) state[3];
+        touched_by_mechanics = (float[][]) state[4];
     }
 
     public void reset(){

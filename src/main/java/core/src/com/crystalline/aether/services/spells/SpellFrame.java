@@ -5,11 +5,11 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.Material;
-import com.crystalline.aether.models.Spell;
-import com.crystalline.aether.models.SpellAction;
-import com.crystalline.aether.services.architecture.CapsuleService;
-import com.crystalline.aether.services.architecture.DisplayService;
-import com.crystalline.aether.services.architecture.Scene;
+import com.crystalline.aether.models.spells.Spell;
+import com.crystalline.aether.models.spells.SpellAction;
+import com.crystalline.aether.models.architecture.CapsuleService;
+import com.crystalline.aether.models.architecture.DisplayService;
+import com.crystalline.aether.models.architecture.Scene;
 import com.crystalline.aether.services.utils.MathUtils;
 
 import java.util.LinkedHashMap;

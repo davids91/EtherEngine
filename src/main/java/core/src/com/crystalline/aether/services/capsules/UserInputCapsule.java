@@ -1,12 +1,14 @@
 package com.crystalline.aether.services.capsules;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
-import com.crystalline.aether.services.architecture.InputService;
-import com.crystalline.aether.services.architecture.Scene;
+import com.crystalline.aether.models.architecture.InputService;
+import com.crystalline.aether.models.architecture.Scene;
 
 public class UserInputCapsule extends InputService implements InputProcessor {
+    boolean leftMouseBtnIsUp = true;
+    boolean rightMouseBtnIsUp = true;
+
     public UserInputCapsule(Scene parent){
         super(parent);
     }
@@ -34,10 +36,14 @@ public class UserInputCapsule extends InputService implements InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if(Input.Buttons.LEFT == button)
+        if(Input.Buttons.LEFT == button){
+            leftMouseBtnIsUp = false;
             signal("netherActive");
-        if(Input.Buttons.RIGHT == button)
+        }
+        if(Input.Buttons.RIGHT == button){
+            rightMouseBtnIsUp = false;
             signal("aetherActive");
+        }
         if(Input.Buttons.FORWARD == button){
             signal("upTendency");
         }else if(Input.Buttons.BACK == button){
@@ -49,11 +55,18 @@ public class UserInputCapsule extends InputService implements InputProcessor {
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        if(!Gdx.input.isButtonPressed(Input.Buttons.LEFT))
+        if(Input.Buttons.LEFT == button) {
+            leftMouseBtnIsUp = true;
             signal("netherInactive");
-        if(!Gdx.input.isButtonPressed(Input.Buttons.RIGHT))
+        }
+        if(Input.Buttons.RIGHT == button) {
+            rightMouseBtnIsUp = true;
             signal("aetherInactive");
+        }
         signal("mouseOnScreen2D", (float)screenX,(float)screenY);
+        if(leftMouseBtnIsUp && rightMouseBtnIsUp){
+            signal("interactionOver");
+        }
         return false;
     }
 

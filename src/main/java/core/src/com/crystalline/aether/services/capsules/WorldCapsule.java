@@ -9,14 +9,14 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector3;
 import com.crystalline.aether.models.Material;
-import com.crystalline.aether.models.Spell;
-import com.crystalline.aether.models.SpellAction;
+import com.crystalline.aether.models.spells.Spell;
+import com.crystalline.aether.models.spells.SpellAction;
 import com.crystalline.aether.services.EtherealAspect;
-import com.crystalline.aether.services.architecture.CapsuleService;
+import com.crystalline.aether.models.architecture.CapsuleService;
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.services.architecture.DisplayService;
+import com.crystalline.aether.models.architecture.DisplayService;
 import com.crystalline.aether.services.World;
-import com.crystalline.aether.services.architecture.Scene;
+import com.crystalline.aether.models.architecture.Scene;
 
 /** TODO:
  * - Create Different Views for the world as different DisplayServices
@@ -41,12 +41,31 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     private final World world;
 
     private final SpellAction spellAction;
+
     private boolean play = true;
     private boolean aetherActive = false;
     private boolean netherActive = false;
     private float manaToUse = 0.1f;
     private Spell.SpellEtherTendency tendency = Spell.SpellEtherTendency.GIVE;
     private boolean doActions = true;
+
+    public void setDoActions(boolean doActions) {
+        this.doActions = doActions;
+    }
+
+    public void setPlay(boolean play) {
+        this.play = play;
+    }
+
+    public boolean isBroadcastActions() {
+        return broadcastActions;
+    }
+
+    public void setBroadcastActions(boolean broadcastActions) {
+        this.broadcastActions = broadcastActions;
+    }
+
+    private boolean broadcastActions = true;
 
     public WorldCapsule(Scene parent, Config conf_, World world_) throws Exception {
         super(parent);
@@ -76,7 +95,11 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
         }
     }
 
-    public void reset() {
+    public void step(){
+        world.main_loop(0.01f);
+    }
+
+    public void reset(){
         world.reset();
     }
 
@@ -85,14 +108,14 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
         if(netherActive||aetherActive){
             /* Compile the action to do */
             if(Spell.SpellEtherTendency.GIVE == tendency){
-                if(aetherActive)spellAction.usedAether = manaToUse;
+                if(aetherActive)spellAction.usedAether += manaToUse;
                 else spellAction.usedAether = 0.0f;
-                if(netherActive)spellAction.usedNether = manaToUse;
+                if(netherActive)spellAction.usedNether += manaToUse;
                 else spellAction.usedNether = 0.0f;
             }else if(Spell.SpellEtherTendency.TAKE == tendency){
-                if(aetherActive)spellAction.usedAether = -manaToUse;
+                if(aetherActive)spellAction.usedAether -= manaToUse;
                 else spellAction.usedAether = 0.0f;
-                if(netherActive)spellAction.usedNether = -manaToUse;
+                if(netherActive)spellAction.usedNether -= manaToUse;
                 else spellAction.usedNether = 0.0f;
             }else if(Spell.SpellEtherTendency.EQUALIZE == tendency){
                 spellAction.usedAether = EtherealAspect.getAetherDeltaToTargetRatio(
@@ -106,39 +129,13 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
                     world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
                     world.getEtherealPlane().netherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
                     Material.netherRatios[spellAction.targetElement.ordinal()]
-                );
-                if(
-                    (
-                        (world.getEtherealPlane().netherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedNether)
-                        / (world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedAether)
-                    )  != Material.netherRatios[spellAction.targetElement.ordinal()]
-                ) System.out.printf(
-                        "mana: %.7f, AE: %.10f + %.10f;NE: %.10f + + %.10f; ratio: %.10f / %.10f \n ",
-                        manaToUse,
-                        world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
-                        spellAction.usedAether,
-                        world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) ,
-                        spellAction.usedNether,
-                        (world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) + spellAction.usedNether)
-                                / (world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedAether),
-                        Material.netherRatios[spellAction.targetElement.ordinal()]
-                );
-//                    System.out.println(
-//                            "mana: " + manaToUse
-//                                    + " values: "
-//                                    + "NE: " + world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) +"+"+ spellAction.usedNether + " ;"
-//                                    + "AE: " + world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) +"+"+ spellAction.usedAether
-//                                    +"; ratio: " +
-//                                    (
-//                                            (world.getEtherealPlane().netherValueAt((int)spellAction.pos.x,(int)spellAction.pos.y) + spellAction.usedNether)
-//                                                    / (world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y) + spellAction.usedAether)
-//                                    )
-//                                    +"/" + Material.netherRatios[spellAction.targetElement.ordinal()]
-//                    );
+                ); /* TODO: Make editor punctual enough for ether crytals */
             }
             /* apply the action */
-            if(doActions)world.doAction(spellAction);
-            signal("lastAction", spellAction);
+            if(doActions){
+                world.doAction(spellAction);
+            }
+            if(broadcastActions)signal("lastAction", spellAction);
         }
         if(play){
             world.main_loop(0.01f);
@@ -159,12 +156,8 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     public void accept_input(String name, Object... parameters) {
         if(name.equals("initialize")&&(0 == parameters.length)){
             world.pond_with_grill();
-        }else if(name.equals("stop")&&(0 == parameters.length)){
-            play = false;
         }else if(name.equals("playPause")&&(0 == parameters.length)){
             play = !play;
-        }else if(name.equals("step")&&(0 == parameters.length)){
-            world.main_loop(0.01f); /* TODO: Make this part of the "calculate"  */
         }else if(name.equals("mouseOnScreen2D")&&(2 == parameters.length)){
             spellAction.pos = camera.unproject(new Vector3((float)parameters[0], (float)parameters[1], 0.0f));
         }else if(name.equals("netherActive")){
@@ -189,18 +182,14 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
             }else if(parameters[0] == Material.Elements.Ether){
                 spellAction.targetElement = Material.Elements.Ether;
             }
-        }else if(name.equals("tendencyTo")&&(1 == parameters.length)){
-            if(parameters[0] == Spell.SpellEtherTendency.GIVE){
+        }else if(name.equals("tendencyTo")&&(1 == parameters.length)) {
+            if (parameters[0] == Spell.SpellEtherTendency.GIVE) {
                 tendency = Spell.SpellEtherTendency.GIVE;
-            }else if(parameters[0] == Spell.SpellEtherTendency.EQUALIZE){
+            } else if (parameters[0] == Spell.SpellEtherTendency.EQUALIZE) {
                 tendency = Spell.SpellEtherTendency.EQUALIZE;
-            }else if(parameters[0] == Spell.SpellEtherTendency.TAKE){
+            } else if (parameters[0] == Spell.SpellEtherTendency.TAKE) {
                 tendency = Spell.SpellEtherTendency.TAKE;
             }
-        }else if(name.equals("doActionsOn")){
-            doActions = true;
-        }else if(name.equals("doActionsOff")){
-            doActions = false;
         }
     }
 

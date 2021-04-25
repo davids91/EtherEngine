@@ -13,12 +13,12 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.models.SpellAction;
 import com.crystalline.aether.services.*;
-import com.crystalline.aether.services.architecture.Scene;
+import com.crystalline.aether.models.architecture.Scene;
 import com.crystalline.aether.services.capsules.UserInputCapsule;
 import com.crystalline.aether.services.capsules.WorldCapsule;
 import com.crystalline.aether.services.spells.SpellFrame;
@@ -37,6 +37,7 @@ public class EditorScene extends Scene {
     private final Stage stage;
     private final SpriteBatch sb;
     private final Config conf;
+    private final World world;
     private WorldCapsule worldCapsule; /* a sandbox world to display the direct consequences of actions */
     private final EtherBrushPanel ebrushPanel; /* a spell panel indicator to see which actions are in focus */
     private final ShapeRenderer shapeRenderer;
@@ -51,12 +52,13 @@ public class EditorScene extends Scene {
     public EditorScene(SceneHandler.Builder builder, Config conf_){
         super(builder);
         sb = new SpriteBatch();
-        World world = new World(conf_);
+        world = new World(conf_);
         Skin skin = SkinFactory.getDefaultSkin();
         conf = conf_;
         try {
             worldCapsule = new WorldCapsule(this,conf, world);
-            worldCapsule.accept_input("stop");
+            worldCapsule.setPlay(false);
+            worldCapsule.setDoActions(false);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -167,29 +169,27 @@ public class EditorScene extends Scene {
         addCapsules(worldCapsule, ebrushPanel);
         addCapsules(spellFrames.toArray(new SpellFrame[]{}));
         inputMultiplexer = new InputMultiplexer(stage, userInputCapsule);
-        signal("doActionsOff");
     }
 
     @Override
     public void signal(String name, Object... parameters) {
         super.signal(name, parameters);
-        if(name.equals("lastAction")&&(1 == parameters.length)){
+        if(name.equals("interactionOver")&&(0 == parameters.length)){
             applySpell();
         }
     }
 
     private void applySpell(){
         worldCapsule.reset();
+        worldCapsule.setBroadcastActions(false);
         for(int i = 0; i < numberOfFrames; ++i){
-            /* apply the corresponding actions */
-            if(0 < spellFrames.get(i).getActions().length){
-                SpellAction act = spellFrames.get(i).getActions()[0];
-            }
+            if(activeTimeFrame == i)world.pushState();
             worldCapsule.doActions(spellFrames.get(i).getActions());
-            /* and then step */
-            worldCapsule.accept_input("step");
+            worldCapsule.step();
             timeframeTable.getFrame(i).setFrame(worldCapsule.getDisplay());
         }
+        world.popState();
+        worldCapsule.setBroadcastActions(true);
     }
 
     @Override

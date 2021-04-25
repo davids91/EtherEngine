@@ -31,10 +31,10 @@ public class Material {
 
     /**!Note: The ratio of the two values define the material states. Reality tries to "stick" to given ratios,
      * The difference is radiating away.  */
-    public static final float PHI = 1.61803398875f;
+    public static final float PHI = 1.6f;/*!Note: original value 1.61803398875f needed to be dumbed down to reduce calculation errors */
     public static final float [] netherRatios = {
         /* Ratio of sides of the golden rectangle */
-        1.0f, /* Ether */
+        1.0f, /* Ether *//*!Note: PHI^0 == 0.1*/
         (PHI), /* Earth */
         (PHI * PHI), /* Water */
         (PHI * PHI * PHI), /* Air */

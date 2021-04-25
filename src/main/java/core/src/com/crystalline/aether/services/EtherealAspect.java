@@ -2,17 +2,19 @@ package com.crystalline.aether.services;
 
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.Material;
-import com.crystalline.aether.models.Reality_aspect;
+import com.crystalline.aether.models.architecture.RealityAspect;
+
+import java.util.Arrays;
 
 /* TODO: Surplus Ether to modify the force of the Ether vapor in an increased amount */
-public class EtherealAspect extends Reality_aspect {
+public class EtherealAspect extends RealityAspect {
     protected final int sizeX;
     protected final int sizeY;
 
-    private final int [][] ratio_change_tick;
-    private final float [][] aetherValues; /* Stationary substance */
-    private final float [][] netherValues; /* Moving substance */
-    private final float [][] targetRatios;
+    private int [][] ratio_change_tick;
+    private float [][] aetherValues; /* Stationary substance */
+    private float [][] netherValues; /* Moving substance */
+    private float [][] targetRatios;
 
     private static final int ticks_to_change = 0;
     private static final float nether_dynamic = 0.9f;
@@ -28,10 +30,28 @@ public class EtherealAspect extends Reality_aspect {
         reset();
     }
 
+    @Override
+    protected Object[] getState() {
+        return new Object[]{
+            Arrays.copyOf(aetherValues,aetherValues.length),
+            Arrays.copyOf(netherValues,netherValues.length),
+            Arrays.copyOf(targetRatios,targetRatios.length),
+            Arrays.copyOf(ratio_change_tick,ratio_change_tick.length)
+        };
+    }
+
+    @Override
+    protected void setState(Object[] state) {
+        aetherValues = (float[][])state[0];
+        netherValues = (float[][])state[1];
+        targetRatios = (float[][])state[2];
+        ratio_change_tick = (int[][])state[3];
+    }
+
     public void reset(){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                aetherValues[x][y] = 1.1f;
+                aetherValues[x][y] = 1.0f;
                 targetRatios[x][y] = Material.ratioOf(Material.Elements.Air);
                 netherValues[x][y] = Material.ratioOf(Material.Elements.Air);
                 ratio_change_tick[x][y] = 0;
@@ -290,10 +310,10 @@ public class EtherealAspect extends Reality_aspect {
         return aetherValues[x][y] * (targetRatios[x][y] + nether_dynamic*(get_ratio_delta(x,y)));
     }
 
-    public void add_aether_to(int x, int y, float value){
+    public void addAetherTo(int x, int y, float value){
         aetherValues[x][y] = Math.max(0.001f, aetherValues[x][y]+value);
     }
-    public void add_nether_to(int x, int y, float value){
+    public void addNetherTo(int x, int y, float value){
         netherValues[x][y] = Math.max(0.001f, netherValues[x][y]+value);
     }
 
@@ -308,7 +328,11 @@ public class EtherealAspect extends Reality_aspect {
     }
 
     public static float getNetherDeltaToTargetRatio(float manaToUse, float aetherValue, float netherValue, float targetRatio){
-        return((targetRatio*(aetherValue + manaToUse)) - netherValue)/(1.0f + targetRatio);
+        /*!Note: Calculation should be the following, but extra corrections are needed to increase the punctuality
+         * float netherDelta = ((targetRatio*(aetherValue + manaToUse)) - netherValue)/(1.0f + targetRatio); */
+        float aetherDelta = getAetherDeltaToTargetRatio(manaToUse, aetherValue, netherValue, targetRatio);
+        float newNetherValue = (aetherValue + aetherDelta) * targetRatio;
+        return Math.min(manaToUse, newNetherValue - netherValue);
     }
 
     public static float getEqualizeAttemptAetherValue(

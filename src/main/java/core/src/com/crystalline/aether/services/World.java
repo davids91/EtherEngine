@@ -2,11 +2,10 @@ package com.crystalline.aether.services;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
-import com.crystalline.aether.models.SpellAction;
+import com.crystalline.aether.models.spells.SpellAction;
 import com.crystalline.aether.services.utils.Util;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.Material;
-import com.crystalline.aether.models.Spell;
 
 
 /**TODO:
@@ -36,14 +35,10 @@ public class World {
         sizeX = conf.world_block_number[0];
         sizeY = conf.world_block_number[1];
         units = new float[sizeX][sizeY];
-        for(int x = 0;x < sizeX; ++x){
-            for(int y = 0; y < sizeY; ++y){
-                units[x][y] = 0;
-            }
-        }
         etherealPlane = new EtherealAspect(conf);
         elementalPlane = new ElementalAspect(conf);
         etherealPlane.determine_units(units,this);
+        reset();
     }
 
     public void reset(){
@@ -113,6 +108,16 @@ public class World {
         elementalPlane.postProcess(units, this);
     }
 
+    public void pushState(){
+        etherealPlane.pushState();
+        elementalPlane.pushState();
+    }
+
+    public void popState(){
+        etherealPlane.popState();
+        elementalPlane.popState();
+    }
+
     public EtherealAspect getEtherealPlane(){
         return etherealPlane;
     }
@@ -120,9 +125,11 @@ public class World {
 
     public void doAction(SpellAction action){
         if(action.active()){
-            if(action.aetherActive())addAetherTo((int)action.pos.x,(int)action.pos.y, action.usedAether);
-            if(action.netherActive())addNetherTo((int)action.pos.x,(int)action.pos.y, action.usedNether);
-            if(Material.Elements.Nothing != action.targetElement){
+            if(action.aetherActive())
+                addAetherTo((int)action.pos.x,(int)action.pos.y, action.usedAether);
+            if(action.netherActive())
+                addNetherTo((int)action.pos.x,(int)action.pos.y, action.usedNether);
+            if(Material.Elements.Nothing != action.targetElement){ /* Most likely equalize action is attempted */
                 getEtherealPlane().setTargetRatio(
                     (int)action.pos.x,(int)action.pos.y, Material.ratioOf(action.targetElement)
                 );
@@ -133,13 +140,13 @@ public class World {
         }
     }
     private void addAetherTo(int x, int y, float value){
-        etherealPlane.add_aether_to(x,y,value);
+        etherealPlane.addAetherTo(x,y,value);
         etherealPlane.determine_units(units,this);
         elementalPlane.define_by(etherealPlane);
     }
 
     private void addNetherTo(int x, int y, float value){
-        etherealPlane.add_nether_to(x,y,value);
+        etherealPlane.addNetherTo(x,y,value);
         etherealPlane.determine_units(units,this);
         elementalPlane.define_by(etherealPlane);
     }

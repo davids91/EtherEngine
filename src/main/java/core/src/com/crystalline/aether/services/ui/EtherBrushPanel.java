@@ -6,9 +6,9 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.crystalline.aether.models.Material;
-import com.crystalline.aether.models.Spell;
-import com.crystalline.aether.services.architecture.CapsuleService;
-import com.crystalline.aether.services.architecture.Scene;
+import com.crystalline.aether.models.spells.Spell;
+import com.crystalline.aether.models.architecture.CapsuleService;
+import com.crystalline.aether.models.architecture.Scene;
 
 /**TODO:
  * - target different elements with the spell

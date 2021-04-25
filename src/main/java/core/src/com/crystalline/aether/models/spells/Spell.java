@@ -1,7 +1,6 @@
-package com.crystalline.aether.models;
+package com.crystalline.aether.models.spells;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.math.Vector3;
 
 public class Spell {
     public enum SpellEtherTendency{

@@ -1,7 +1,7 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.world;
 
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.models.Material;
+import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
 
 import java.util.Arrays;
@@ -21,8 +21,8 @@ public class EtherealAspect extends RealityAspect {
 
     public EtherealAspect(Config conf_){
         super(conf_);
-        sizeX = conf.world_block_number[0];
-        sizeY = conf.world_block_number[1];
+        sizeX = conf.WORLD_BLOCK_NUMBER[0];
+        sizeY = conf.WORLD_BLOCK_NUMBER[1];
         aetherValues = new float[sizeX][sizeY];
         netherValues = new float[sizeX][sizeY];
         targetRatios = new float[sizeX][sizeY];

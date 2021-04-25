@@ -1,9 +1,9 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.world;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.models.Material;
+import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.services.utils.MathUtils;
 import com.crystalline.aether.services.utils.Util;
@@ -25,8 +25,8 @@ public class ElementalAspect extends RealityAspect {
 
     public ElementalAspect(Config conf_){
         super(conf_);
-        sizeX = conf.world_block_number[0];
-        sizeY = conf.world_block_number[1];
+        sizeX = conf.WORLD_BLOCK_NUMBER[0];
+        sizeY = conf.WORLD_BLOCK_NUMBER[1];
         myUtil = new Util();
         blocks = new Material.Elements[sizeX][sizeY];
         forces = new Vector2[sizeX][sizeY];
@@ -96,7 +96,7 @@ public class ElementalAspect extends RealityAspect {
         float division = 0.0f;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
             for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
-                if(Material.is_same_mat(x,y,nx,ny,types,units)){
+                if(Material.isSameMat(x,y,nx,ny,types,units)){
                     average_val += table[nx][ny];
                     division += 1.0f;
                 }
@@ -173,7 +173,7 @@ public class ElementalAspect extends RealityAspect {
                 /* TODO: Make fire springing out from Earth */
                 if(Material.Elements.Fire == blocks[x][y]){
                     if(
-                        (Material.Mecha_properties.Plasma == Material.get_state(blocks[x][y], units[x][y]))
+                        (Material.MechaProperties.Plasma == Material.getState(blocks[x][y], units[x][y]))
                         && (units[x][y] <= avg_of_block(x,y,units, Material.Elements.Fire))
                     ){
                         units[x][y] *= 0.8f;
@@ -192,8 +192,8 @@ public class ElementalAspect extends RealityAspect {
                     /* TODO: Make Earth keep track of heat instead of units */
                     if((avg_of_block(x,y,units, Material.Elements.Earth) < avg_of_block(x,y,units, Material.Elements.Fire))){
                         if( /* TODO: Make sand melt "into" glass */
-                            Material.Mecha_properties.Solid.ordinal() > Material.get_state(Material.Elements.Earth, units[x][y]).ordinal()
-                            || Material.Mecha_properties.Plasma.ordinal() < Material.get_state(Material.Elements.Fire, units[x][y]).ordinal()
+                            Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, units[x][y]).ordinal()
+                            || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, units[x][y]).ordinal()
                         ){
                             units[x][y] *= 0.8f;
                             if(0.2f < units[x][y])blocks[x][y] = Material.Elements.Fire;
@@ -286,14 +286,14 @@ public class ElementalAspect extends RealityAspect {
                     }
                 }
 
-                if(Material.Mecha_properties.Fluid == Material.get_state(blocks[x][y], units[x][y])){
+                if(Material.MechaProperties.Fluid == Material.getState(blocks[x][y], units[x][y])){
                     if(/* the cells next to the current one are of different material  */
-                        Material.is_same_mat(x, y,x,y-1, blocks, units)
+                        Material.isSameMat(x, y,x,y-1, blocks, units)
                         &&(
-                        !Material.is_same_mat(x, y,x+1,y, blocks, units)
-                        ||!Material.is_same_mat(x, y,x-1,y, blocks, units)
-                        ||!Material.is_same_mat(x, y,x+1,y-1, blocks, units)
-                        ||!Material.is_same_mat(x, y,x-1,y-1, blocks, units)
+                        !Material.isSameMat(x, y,x+1,y, blocks, units)
+                        ||!Material.isSameMat(x, y,x-1,y, blocks, units)
+                        ||!Material.isSameMat(x, y,x+1,y-1, blocks, units)
+                        ||!Material.isSameMat(x, y,x-1,y-1, blocks, units)
                         )
                     ) { /* the cell is a liquid on top of another liquid, so it must move. */
                         forces[x][y].set(forces[x][y].x, 0.99f);
@@ -306,9 +306,9 @@ public class ElementalAspect extends RealityAspect {
                             }
                         }
                     }
-                }else if(Material.Mecha_properties.Plasma == Material.get_state(blocks[x][y], units[x][y])){
+                }else if(Material.MechaProperties.Plasma == Material.getState(blocks[x][y], units[x][y])){
                     for (int nx = (x - 1); nx < (x + 2); ++nx) for (int ny = (y - 1); ny < (y + 2); ++ny) {
-                        if ((x != nx) && (y != ny)&&(Material.is_same_mat(x, y,nx,ny, blocks, units))){
+                        if ((x != nx) && (y != ny)&&(Material.isSameMat(x, y,nx,ny, blocks, units))){
                             float weight_difference = Math.max(-1.5f, Math.min(1.5f, (get_weight(x, y, units) - get_weight(nx, ny, units))));
                             forces[x][y].add(-(nx - x) * weight_difference, -(ny - y) * weight_difference);
                         }
@@ -580,7 +580,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     public Color getColor(int x, int y, float[][] units){
-        return Material.get_color(blocks[x][y], units[x][y]).cpy();
+        return Material.getColor(blocks[x][y], units[x][y]).cpy();
     }
 
     public Color getDebugColor(int x, int y, float[][] units){

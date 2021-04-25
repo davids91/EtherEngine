@@ -1,11 +1,12 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.world;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.math.Vector3;
 import com.crystalline.aether.models.spells.SpellAction;
 import com.crystalline.aether.services.utils.Util;
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.models.Material;
+import com.crystalline.aether.models.world.Material;
 
 
 /**TODO:
@@ -32,8 +33,8 @@ public class World {
 
     public World(Config conf_){
         conf = conf_;
-        sizeX = conf.world_block_number[0];
-        sizeY = conf.world_block_number[1];
+        sizeX = conf.WORLD_BLOCK_NUMBER[0];
+        sizeY = conf.WORLD_BLOCK_NUMBER[1];
         units = new float[sizeX][sizeY];
         etherealPlane = new EtherealAspect(conf);
         elementalPlane = new ElementalAspect(conf);
@@ -123,18 +124,18 @@ public class World {
     }
     public ElementalAspect getElementalPlane(){ return elementalPlane; }
 
-    public void doAction(SpellAction action){
+    public void doAction(SpellAction action, Vector3 offset){
         if(action.active()){
             if(action.aetherActive())
-                addAetherTo((int)action.pos.x,(int)action.pos.y, action.usedAether);
+                addAetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedAether);
             if(action.netherActive())
-                addNetherTo((int)action.pos.x,(int)action.pos.y, action.usedNether);
+                addNetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedNether);
             if(Material.Elements.Nothing != action.targetElement){ /* Most likely equalize action is attempted */
                 getEtherealPlane().setTargetRatio(
-                    (int)action.pos.x,(int)action.pos.y, Material.ratioOf(action.targetElement)
+                    (int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), Material.ratioOf(action.targetElement)
                 );
                 getElementalPlane().setElement(
-                    (int)action.pos.x, (int)action.pos.y, action.targetElement
+                    (int)(action.pos.x + offset.x), (int)(action.pos.y + offset.y), action.targetElement
                 );
             }
         }

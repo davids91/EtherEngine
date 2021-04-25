@@ -1,4 +1,4 @@
-package com.crystalline.aether.services;
+package com.crystalline.aether.services.scenes;
 
 import com.badlogic.gdx.Gdx;
 import com.crystalline.aether.models.architecture.Scene;
@@ -59,9 +59,15 @@ public class SceneHandler {
         }
     }
 
-    public void accept_signal(String signal){
-        if(signal.equals(transitions.get(activeScene).getKey()))
+    public void acceptSignal(String name, Object... parameters){
+        if(name.equals(transitions.get(activeScene).getKey())) {
+            if(0 < parameters.length){ /* If a scene transition contains some objects */
+                scenes.get(transitions.get(activeScene).getValue()).receiveSignalFromOtherScene(
+                    scenes.get(activeScene), parameters
+                );
+            }
             activateScene(transitions.get(activeScene).getValue());
+        }
     }
 
     public void activateScene(int i){

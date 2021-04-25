@@ -1,7 +1,7 @@
 package com.crystalline.aether.models.architecture;
 
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.services.World;
+import com.crystalline.aether.services.world.World;
 
 import java.util.Stack;
 

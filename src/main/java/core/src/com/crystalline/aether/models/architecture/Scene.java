@@ -3,7 +3,7 @@ package com.crystalline.aether.models.architecture;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
-import com.crystalline.aether.services.SceneHandler;
+import com.crystalline.aether.services.scenes.SceneHandler;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,6 +13,7 @@ import java.util.Map;
 public abstract class Scene{
     public abstract InputProcessor getInputProcessor();
     public abstract void resize(int width, int height);
+    public abstract String getName();
 
     protected SceneHandler parent;
     private int activeUserView;
@@ -39,6 +40,18 @@ public abstract class Scene{
         collectedSignals = new HashMap<>();
     }
 
+    /** Receive a signal instantly, but do not forward it to the parent.
+     *  Mainly used when a scene-transition occurs, and scenes wish to share objects
+     *  in-between them.
+     *  */
+    public void receiveSignalFromOtherScene(Scene otherScene, Object... parameters){
+        for(int i = 0;i <capsules.size(); ++i){
+            if(activeCapsules.get(i)){
+                capsules.get(i).acceptInput("transitionFrom:"+otherScene.getName(), parameters);
+            }
+        }
+    }
+
     public void signal(String name, Object... parameters){ /* TODO: use a queue of signals instead */
         collectedSignals.put(name, parameters);
     }
@@ -55,14 +68,14 @@ public abstract class Scene{
         for(Map.Entry<String,Object[]> entry : signalsToSend.entrySet()){
             for(int i = 0;i <capsules.size(); ++i){
                 if(activeCapsules.get(i)){
-                    capsules.get(i).accept_input(entry.getKey(),entry.getValue());
+                    capsules.get(i).acceptInput(entry.getKey(),entry.getValue());
                 }
             }
-            parent.accept_signal(entry.getKey());
+            parent.acceptSignal(entry.getKey(), entry.getValue()); /* TODO: Return with whether or not scene transitions happened*/
         }
         signalsToSend.clear();
 
-        for(int i = 0;i <capsules.size(); ++i){
+        for(int i = 0;i < capsules.size(); ++i){
             if(activeCapsules.get(i)){
                 capsules.get(i).calculate();
             }
@@ -76,8 +89,8 @@ public abstract class Scene{
         inputHandlers.addAll(Arrays.asList(inputHandlers_));
     }
     public void addCapsules(CapsuleService... capsuleServices){
-        for(CapsuleService capsl : capsuleServices){
-            capsules.add(capsl);
+        for(CapsuleService capsule : capsuleServices){
+            capsules.add(capsule);
             activeCapsules.add(Boolean.TRUE);
         }
     }

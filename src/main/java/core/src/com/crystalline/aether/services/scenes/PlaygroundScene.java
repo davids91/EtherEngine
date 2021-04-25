@@ -12,7 +12,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.services.SceneHandler;
 import com.crystalline.aether.models.architecture.Scene;
 import com.crystalline.aether.services.capsules.UserInputCapsule;
 import com.crystalline.aether.services.capsules.WorldCapsule;
@@ -25,6 +24,11 @@ public class PlaygroundScene extends Scene {
     private final Stage stage;
     private final EtherBrushPanel etherBrushPanel;
     private final InputMultiplexer inputMultiplexer;
+
+    @Override
+    public String getName() {
+        return "playground";
+    }
 
     public PlaygroundScene(SceneHandler.Builder builder, Config conf_){
         super(builder);

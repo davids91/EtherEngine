@@ -1,4 +1,4 @@
-package com.crystalline.aether.models;
+package com.crystalline.aether.models.world;
 
 import com.badlogic.gdx.graphics.Color;
 import com.crystalline.aether.services.utils.Util;
@@ -17,8 +17,8 @@ public class Material {
         }
     }
 
-    public enum Mecha_properties{
-        Negligible, Gas, Fluid, Plasma, Granular, Solid, Crystal, Hard, Superhard, Ultrahard, Morning_wood
+    public enum MechaProperties {
+        Negligible, Gas, Fluid, Plasma, Granular, Solid, Crystal, Hard, Superhard, Ultrahard, MorningWood
     }
 
     public static final HashMap<Elements,HashSet<Elements>> compatibility = new HashMap<Elements,HashSet<Elements>>(){{
@@ -64,13 +64,13 @@ public class Material {
         {Color.CLEAR} /* Nothing */
     };
 
-    public static final Mecha_properties[][] type_specific_state = {
-        {Mecha_properties.Gas, Mecha_properties.Granular}, /* Ether */
-        {Mecha_properties.Granular, Mecha_properties.Granular,Mecha_properties.Solid, Mecha_properties.Crystal, Mecha_properties.Hard, Mecha_properties.Superhard}, /* Earth */
-        {Mecha_properties.Fluid, Mecha_properties.Gas, Mecha_properties.Fluid},/* Water */
-        {Mecha_properties.Negligible, Mecha_properties.Negligible}, /* Air */
-        {Mecha_properties.Plasma, Mecha_properties.Fluid, Mecha_properties.Ultrahard}, /* Fire */
-        {Mecha_properties.Negligible}, /* Nothing */
+    public static final MechaProperties[][] type_specific_state = {
+        {MechaProperties.Gas, MechaProperties.Granular}, /* Ether */
+        {MechaProperties.Granular, MechaProperties.Granular, MechaProperties.Solid, MechaProperties.Crystal, MechaProperties.Hard, MechaProperties.Superhard}, /* Earth */
+        {MechaProperties.Fluid, MechaProperties.Gas, MechaProperties.Fluid},/* Water */
+        {MechaProperties.Negligible, MechaProperties.Negligible}, /* Air */
+        {MechaProperties.Plasma, MechaProperties.Fluid, MechaProperties.Ultrahard}, /* Fire */
+        {MechaProperties.Negligible}, /* Nothing */
     };
 
     public static final float[][] type_specific_gravity = {
@@ -82,35 +82,35 @@ public class Material {
         {0,0} /* Nothing */
     };
 
-    public static boolean is_same_mat(int ax, int ay, int bx, int by, Elements[][] types, float[][] units){
-        return is_same_mat(types[ax][ay],units[ax][ay],types[bx][by],units[bx][by]);
+    public static boolean isSameMat(int ax, int ay, int bx, int by, Elements[][] types, float[][] units){
+        return isSameMat(types[ax][ay],units[ax][ay],types[bx][by],units[bx][by]);
     }
 
-    public static boolean is_same_mat(Elements typeA, float unitA, Elements typeB, float unitB){
-        return((typeA == typeB)&&(is_same_mat(typeA, unitA,unitB)));
+    public static boolean isSameMat(Elements typeA, float unitA, Elements typeB, float unitB){
+        return((typeA == typeB)&&(isSameMat(typeA, unitA,unitB)));
     }
 
-    public static boolean is_same_mat(Elements type, float unitA, float unitB){
+    public static boolean isSameMat(Elements type, float unitA, float unitB){
         return Util.index_in(type_unit_selector[type.ordinal()],unitA) == Util.index_in(type_unit_selector[type.ordinal()],unitB);
     }
 
-    public static Mecha_properties get_state(Elements type, float unit){
+    public static MechaProperties getState(Elements type, float unit){
         return type_specific_state[type.ordinal()][Util.index_in(type_unit_selector[type.ordinal()], unit)];
     }
 
     public static boolean discardable(Elements type, float unit){
-        return Mecha_properties.Negligible == get_state(type,unit);
+        return MechaProperties.Negligible == getState(type,unit);
     }
 
     public static boolean movable(Elements type, float unit){
-        Mecha_properties state = get_state(type,unit);
+        MechaProperties state = getState(type,unit);
         return (
-            (Mecha_properties.Negligible.ordinal() < state.ordinal())
-            &&(Mecha_properties.Solid.ordinal() > state.ordinal())
+            (MechaProperties.Negligible.ordinal() < state.ordinal())
+            &&(MechaProperties.Solid.ordinal() > state.ordinal())
         );
     }
 
-    public static Color get_color(Elements type, float unit){
+    public static Color getColor(Elements type, float unit){
         return type_colors[type.ordinal()][Math.min((
             type_colors[type.ordinal()].length - 1),
             Util.index_in(type_unit_selector[type.ordinal()],unit)

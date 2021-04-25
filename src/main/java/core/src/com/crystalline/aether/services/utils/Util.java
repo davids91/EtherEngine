@@ -1,8 +1,10 @@
 package com.crystalline.aether.services.utils;
 
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 
 public class Util {
+    public static final Vector3 zeroVec = new Vector3(0,0, 0);
     private static final Vector2 gravity = new Vector2(0f,-3.81f);
     private static final Vector2 tmp_gravity = new Vector2(gravity);
     public final Vector2 getGravity(int posX, int posY){

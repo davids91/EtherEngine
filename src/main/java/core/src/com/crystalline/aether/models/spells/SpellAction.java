@@ -1,7 +1,7 @@
 package com.crystalline.aether.models.spells;
 
 import com.badlogic.gdx.math.Vector3;
-import com.crystalline.aether.models.Material;
+import com.crystalline.aether.models.world.Material;
 
 public class SpellAction {
     public float usedAether = 0.0f, usedNether = 0.0f;

@@ -5,8 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
-import com.crystalline.aether.models.Material;
-import com.crystalline.aether.models.spells.Spell;
+import com.crystalline.aether.models.world.Material;
+import com.crystalline.aether.services.utils.SpellUtil;
 import com.crystalline.aether.models.architecture.CapsuleService;
 import com.crystalline.aether.models.architecture.Scene;
 
@@ -28,14 +28,14 @@ public class EtherBrushPanel extends CapsuleService {
     private float manaToUse = 5.0f;
     private boolean addingAether = false;
     private boolean addingNether = false;
-    private Spell.SpellEtherTendency usageTendency;
+    private SpellUtil.SpellEtherTendency usageTendency;
     private Material.Elements targetMaterial;
 
     public EtherBrushPanel(Scene parent, Skin skin_, float maxMana_) {
         super(parent);
         skin = skin_;
         maxMana = maxMana_;
-        usageTendency = Spell.SpellEtherTendency.GIVE;
+        usageTendency = SpellUtil.SpellEtherTendency.GIVE;
         targetMaterial = Material.Elements.Nothing;
         BitmapFont font = skin.getFont("default-font");
 
@@ -117,7 +117,7 @@ public class EtherBrushPanel extends CapsuleService {
     }
 
     @Override
-    public void accept_input(String name, Object... parameters) {
+    public void acceptInput(String name, Object... parameters) {
         if(name.equals("netherActive")){
             setBrushAction(getAddingAether(),true);
         }else if(name.equals("netherInactive")){
@@ -142,15 +142,15 @@ public class EtherBrushPanel extends CapsuleService {
     }
 
     private void refreshTendency(){
-        if(Spell.SpellEtherTendency.GIVE == usageTendency){
+        if(SpellUtil.SpellEtherTendency.GIVE == usageTendency){
             minusBtn.setChecked(false);
             ohBtn.setChecked(false);
             plusBtn.setChecked(true);
-        }else if(Spell.SpellEtherTendency.EQUALIZE == usageTendency){
+        }else if(SpellUtil.SpellEtherTendency.EQUALIZE == usageTendency){
             minusBtn.setChecked(false);
             ohBtn.setChecked(true);
             plusBtn.setChecked(false);
-        }else if(Spell.SpellEtherTendency.TAKE == usageTendency){
+        }else if(SpellUtil.SpellEtherTendency.TAKE == usageTendency){
             minusBtn.setChecked(true);
             ohBtn.setChecked(false);
             plusBtn.setChecked(false);
@@ -174,7 +174,7 @@ public class EtherBrushPanel extends CapsuleService {
     }
 
     public void upTendency() {
-        if (Spell.SpellEtherTendency.values().length - 1 > usageTendency.ordinal()){
+        if (SpellUtil.SpellEtherTendency.values().length - 1 > usageTendency.ordinal()){
             usageTendency = usageTendency.next();
         }else{
             targetMaterial = targetMaterial.next();

@@ -7,25 +7,27 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.services.*;
 import com.crystalline.aether.models.architecture.Scene;
 import com.crystalline.aether.services.capsules.UserInputCapsule;
 import com.crystalline.aether.services.capsules.WorldCapsule;
-import com.crystalline.aether.services.spells.SpellFrame;
+import com.crystalline.aether.services.spells.SpellBuilder;
 import com.crystalline.aether.services.ui.EmptyBlackScreen;
 import com.crystalline.aether.services.ui.EtherBrushPanel;
+import com.crystalline.aether.services.ui.SpellFrameView;
 import com.crystalline.aether.services.ui.TimeframeTable;
 import com.crystalline.aether.services.utils.SkinFactory;
+import com.crystalline.aether.services.utils.Util;
+import com.crystalline.aether.services.world.World;
 
 import java.util.ArrayList;
 
@@ -39,15 +41,21 @@ public class EditorScene extends Scene {
     private final Config conf;
     private final World world;
     private WorldCapsule worldCapsule; /* a sandbox world to display the direct consequences of actions */
+    private final SpellBuilder spellBuilder;
+    private final ArrayList<SpellFrameView> spellFrameViews;
+    private final TimeframeTable timeframeTable;
     private final EtherBrushPanel ebrushPanel; /* a spell panel indicator to see which actions are in focus */
     private final ShapeRenderer shapeRenderer;
     private final InputMultiplexer inputMultiplexer;
 
     private boolean showActions = true;
-    private final ArrayList<SpellFrame> spellFrames;
-    private final TimeframeTable timeframeTable;
-    private int activeTimeFrame = 0;
     private int numberOfFrames = 10;
+    private int activeTimeFrame = 0;
+
+    @Override
+    public String getName() {
+        return "editor";
+    }
 
     public EditorScene(SceneHandler.Builder builder, Config conf_){
         super(builder);
@@ -75,8 +83,10 @@ public class EditorScene extends Scene {
         backBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent changeEvent, Actor actor) {
-                signal("back");
-                changeEvent.handle();
+            if(0 < spellBuilder.getCurrentSpell().getFrames().size()) {
+                signal("back", spellBuilder.getCurrentSpell());
+            }else signal("back");
+            changeEvent.handle();
             }
         });
 
@@ -85,20 +95,20 @@ public class EditorScene extends Scene {
         toggleViewBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                if(toggleViewBtn.getText().toString().equals("Show Actions only")){
-                    toggleViewBtn.setText("Show World only");
-                    setActiveUserView(0); /* Set Black Screen as active */
-                    showActions = true;
-                }else if(toggleViewBtn.getText().toString().equals("Show World only")){
-                    toggleViewBtn.setText("Show World and Actions");
-                    setActiveUserView(1); /* set world as user View */
-                    showActions = false;
-                }else if(toggleViewBtn.getText().toString().equals("Show World and Actions")){
-                    toggleViewBtn.setText("Show Actions only");
-                    setActiveUserView(1); /* set world as user View */
-                    showActions = true;
-                }
-                event.handle();
+            if(toggleViewBtn.getText().toString().equals("Show Actions only")){
+                toggleViewBtn.setText("Show World only");
+                setActiveUserView(0); /* Set Black Screen as active */
+                showActions = true;
+            }else if(toggleViewBtn.getText().toString().equals("Show World only")){
+                toggleViewBtn.setText("Show World and Actions");
+                setActiveUserView(1); /* set world as user View */
+                showActions = false;
+            }else if(toggleViewBtn.getText().toString().equals("Show World and Actions")){
+                toggleViewBtn.setText("Show Actions only");
+                setActiveUserView(1); /* set world as user View */
+                showActions = true;
+            }
+            event.handle();
             }
         });
 
@@ -110,14 +120,16 @@ public class EditorScene extends Scene {
         pbarstyle.background = skin.getDrawable("progress-bar-vertical");
         pbarstyle.knob = skin.getDrawable("progress-bar-knob-vertical");
         pbarstyle.knobBefore = skin.getDrawable("progress-bar-knob-vertical");
-        ProgressBar manaBar = new ProgressBar(0, conf.maxMana,0.1f, true, pbarstyle);
-        manaBar.setAnimateDuration(0.25f);
-        manaBar.setValue(5);
-        manaBar.setProgrammaticChangeEvents(false);
+        ProgressBar availableManaInFrame = new ProgressBar(0, conf.maxMana,0.1f, true, pbarstyle);
+        availableManaInFrame.setAnimateDuration(0.25f);
+        availableManaInFrame.setValue(5);
+        availableManaInFrame.setProgrammaticChangeEvents(false);
 
-        spellPanel.add(manaBar);
+//        spellPanel.add(availableManaInFrame); /*TODO: Maximize the amount of mana to be moved in a frame */
         spellPanel.add(ebrushPanel.getContainer()).row();
 
+        spellBuilder = new SpellBuilder(this, conf, conf.WORLD_DIMENSIONS);
+        /*!Note: The editor is a full world of a relative small size */
         timeframeTable = new TimeframeTable(worldCapsule,numberOfFrames,skin,conf);
         timeframeTable.addListener(new ClickListener(){
             @Override
@@ -137,12 +149,12 @@ public class EditorScene extends Scene {
         cancelBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                worldCapsule.reset();
-                for(int i = 0; i < numberOfFrames; ++i){
-                    timeframeTable.getFrame(i).setFrame(worldCapsule.getDisplay());
-                    spellFrames.get(i).clearActions();
-                }
-                event.handle();
+            worldCapsule.reset();
+            for(int i = 0; i < numberOfFrames; ++i){
+                timeframeTable.getFrame(i).setFrame(worldCapsule.getDisplay());
+                spellBuilder.getCurrentSpell().getFrame(i).clearActions();
+            }
+            event.handle();
             }
         });
 
@@ -158,16 +170,17 @@ public class EditorScene extends Scene {
         stage.addActor(outerTable);
 
         addViews(new EmptyBlackScreen(), worldCapsule);
-        spellFrames = new ArrayList<>();
-        for(int i = 0; i < numberOfFrames; ++i){
+        spellFrameViews = new ArrayList<>();
+        spellBuilder.setFrameNumber(numberOfFrames);
+        for(int i = 0; i < numberOfFrames; ++i){ /* TODO: Adapt to be able to handle multiple different spells */
+            spellFrameViews.add(new SpellFrameView(conf, spellBuilder.getCurrentSpell().getFrame(i)));
             addViews(timeframeTable.getFrame(i));
-            spellFrames.add(new SpellFrame(this, conf, i));
         }
         setActiveUserView(0); /* TODO: select views by name */
         UserInputCapsule userInputCapsule = new UserInputCapsule(this);
         addInputHandlers(userInputCapsule);
         addCapsules(worldCapsule, ebrushPanel);
-        addCapsules(spellFrames.toArray(new SpellFrame[]{}));
+        addCapsules(spellBuilder);
         inputMultiplexer = new InputMultiplexer(stage, userInputCapsule);
     }
 
@@ -184,7 +197,7 @@ public class EditorScene extends Scene {
         worldCapsule.setBroadcastActions(false);
         for(int i = 0; i < numberOfFrames; ++i){
             if(activeTimeFrame == i)world.pushState();
-            worldCapsule.doActions(spellFrames.get(i).getActions());
+            worldCapsule.doActions(Util.zeroVec, spellBuilder.getCurrentSpell().getFrame(i).getActions());
             worldCapsule.step();
             timeframeTable.getFrame(i).setFrame(worldCapsule.getDisplay());
         }
@@ -216,13 +229,13 @@ public class EditorScene extends Scene {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(Color.LIME);
         float lineWidth = 5.0f;
-        for(float x = 0; x<conf.world_block_number[0]; x+=1.0){
-            float xPos = (stage.getWidth()/conf.world_block_number[0]) * x;
-            shapeRenderer.rect(xPos - lineWidth/2.0f,0,lineWidth,conf.world_size[1]);
+        for(float x = 0; x<conf.WORLD_BLOCK_NUMBER[0]; x+=1.0){
+            float xPos = (stage.getWidth()/conf.WORLD_BLOCK_NUMBER[0]) * x;
+            shapeRenderer.rect(xPos - lineWidth/2.0f,0,lineWidth,conf.WORLD_SIZE[1]);
         }
-        for(float y = 0; y<conf.world_block_number[1]; y+=1.0){
-            float yPos = (stage.getHeight()/conf.world_block_number[0]) * y;
-            shapeRenderer.rect(0,yPos - lineWidth/2.0f,conf.world_size[0],lineWidth);
+        for(float y = 0; y<conf.WORLD_BLOCK_NUMBER[1]; y+=1.0){
+            float yPos = (stage.getHeight()/conf.WORLD_BLOCK_NUMBER[0]) * y;
+            shapeRenderer.rect(0,yPos - lineWidth/2.0f,conf.WORLD_SIZE[0],lineWidth);
         }
         shapeRenderer.end();
         if(showActions){
@@ -230,7 +243,7 @@ public class EditorScene extends Scene {
             sb.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_DST_ALPHA);
             sb.setProjectionMatrix(stage.getCamera().combined);
             sb.begin();
-            sb.draw(spellFrames.get(activeTimeFrame).getDisplay(), 0,0,stage.getWidth(), stage.getHeight());
+            sb.draw(spellFrameViews.get(activeTimeFrame).getDisplay(), 0,0,stage.getWidth(), stage.getHeight());
             sb.end();
         }
         stage.draw();

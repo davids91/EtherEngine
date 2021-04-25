@@ -10,6 +10,6 @@ public abstract class CapsuleService {
         parent.signal(signal,parameters);
     }
     public abstract void calculate();
-    public abstract void accept_input(String name, Object... parameters);
+    public abstract void acceptInput(String name, Object... parameters);
     public abstract void dispose();
 }

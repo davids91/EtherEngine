@@ -319,7 +319,7 @@ public class EtherealAspect extends RealityAspect {
 
     public void tryToEqualize(int x, int y, float aetherDelta, float netherDelta, float ratio){
         aetherValues[x][y] = getEqualizeAttemptAetherValue(aetherValues[x][y],netherValues[x][y],aetherDelta,netherDelta,ratio);
-        netherValues[x][y] = getEqualizeAttemptNetherValue(aetherValues[x][y],netherValues[x][y],aetherDelta,netherDelta,ratio);;
+        netherValues[x][y] = getEqualizeAttemptNetherValue(aetherValues[x][y],netherValues[x][y],aetherDelta,netherDelta,ratio);
         /* TODO: the remainder should be radiated into pra-effects */
     }
 

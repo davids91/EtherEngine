@@ -126,17 +126,36 @@ public class World {
 
     public void doAction(SpellAction action, Vector3 offset){
         if(action.active()){
-            if(action.aetherActive())
-                addAetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedAether);
-            if(action.netherActive())
-                addNetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedNether);
+            /* not very punctual... */ /* TODO: Make Spells of different levels; Lower level mages shall use the less punctual algorithm */
+//            if(action.aetherActive())
+//                addAetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedAether);
+//            if(action.netherActive())
+//                addNetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedNether);
+//            if(Material.Elements.Nothing != action.targetElement){ /* Most likely equalize action is attempted */
+//                getEtherealPlane().setTargetRatio(
+//                        (int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), Material.ratioOf(action.targetElement)
+//                );
+//                getElementalPlane().setElement(
+//                        (int)(action.pos.x + offset.x), (int)(action.pos.y + offset.y), action.targetElement
+//                );
+//            }
+
             if(Material.Elements.Nothing != action.targetElement){ /* Most likely equalize action is attempted */
+                getEtherealPlane().tryToEqualize(
+                    (int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y),
+                    action.usedAether, action.usedNether, Material.ratioOf(action.targetElement)
+                );
                 getEtherealPlane().setTargetRatio(
-                    (int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), Material.ratioOf(action.targetElement)
+                        (int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), Material.ratioOf(action.targetElement)
                 );
                 getElementalPlane().setElement(
-                    (int)(action.pos.x + offset.x), (int)(action.pos.y + offset.y), action.targetElement
+                        (int)(action.pos.x + offset.x), (int)(action.pos.y + offset.y), action.targetElement
                 );
+            }else{
+                if(action.aetherActive())
+                    addAetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedAether);
+                if(action.netherActive())
+                    addNetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedNether);
             }
         }
     }

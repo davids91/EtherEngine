@@ -13,7 +13,7 @@ public class Util {
         return tmp_gravity;
     }
 
-    public static int index_in(float[] table, float value){
+    public static int index_in(int[] table, float value){
         int index = table.length-1;
         while((index > 0)&&(table[index] >= value))--index;
         return index;

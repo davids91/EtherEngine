@@ -6,13 +6,13 @@ import com.crystalline.aether.services.world.World;
 import java.util.Stack;
 
 public abstract class RealityAspect {
-    public abstract void determine_units(float[][] units, World parent);
-    public abstract void processUnits(float[][] units, World parent);
-    public abstract void processTypes(float[][] units, World parent);
-    public abstract void processMechanics(float[][] units, World parent);
-    public abstract void postProcess(float[][] units, World parent);
-    public abstract void switch_values(int fromX, int fromY, int toX, int toY);
-    public abstract void take_over_unit_changes(int x, int y, float[][] units);
+    public abstract void determineUnits(int[][] units, World parent);
+    public abstract void processUnits(int[][] units, World parent);
+    public abstract void processTypes(int[][] units, World parent);
+    public abstract void processMechanics(int[][] units, World parent);
+    public abstract void postProcess(int[][] units, World parent);
+    public abstract void switchValues(int fromX, int fromY, int toX, int toY);
+    public abstract void takeOverUnitChanges(int x, int y, int[][] units);
     protected abstract Object[] getState();
     protected abstract void setState(Object[] state);
 

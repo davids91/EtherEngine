@@ -25,7 +25,7 @@ public class EtherBrushPanel extends CapsuleService {
     private final ProgressBar strengthBar;
     private final HorizontalGroup horizontalGroup;
 
-    private float manaToUse = 5.0f;
+    private int manaToUse = 5;
     private boolean addingAether = false;
     private boolean addingNether = false;
     private SpellUtil.SpellEtherTendency usageTendency;
@@ -191,12 +191,12 @@ public class EtherBrushPanel extends CapsuleService {
         refreshTendency();
     }
 
-    public float modifyManaToUse(float amount){
-        float modif = Math.max(0.1f,Math.min(0.3f, (manaToUse / maxMana)));
+    public int modifyManaToUse(float amount){
+        float modif = Math.max(0.4f,Math.min(0.6f, (manaToUse / maxMana)));
         if(0 < -amount) {
-            manaToUse = Math.min(Math.max(0.1f, manaToUse * (1+modif)), maxMana);
+            manaToUse = (int)Math.min(Math.max(0.1f, manaToUse * (1+modif)), maxMana);
         } else {
-            manaToUse = Math.min(Math.max(0.1f, manaToUse * (1-modif)), maxMana);
+            manaToUse = (int)Math.min(Math.max(0.1f, manaToUse * (1-modif)), maxMana);
         }
         strengthBar.setValue(manaToUse);
         return manaToUse;

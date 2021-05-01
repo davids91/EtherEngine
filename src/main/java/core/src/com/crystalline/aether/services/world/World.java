@@ -29,16 +29,16 @@ public class World {
 
     EtherealAspect etherealPlane;
     ElementalAspect elementalPlane;
-    private final float [][] units;
+    private final int[][] units;
 
     public World(Config conf_){
         conf = conf_;
         sizeX = conf.WORLD_BLOCK_NUMBER[0];
         sizeY = conf.WORLD_BLOCK_NUMBER[1];
-        units = new float[sizeX][sizeY];
+        units = new int[sizeX][sizeY];
         etherealPlane = new EtherealAspect(conf);
         elementalPlane = new ElementalAspect(conf);
-        etherealPlane.determine_units(units,this);
+        etherealPlane.determineUnits(units,this);
         reset();
     }
 
@@ -53,15 +53,15 @@ public class World {
 
     }
 
-    public void pond_with_grill(){
-        elementalPlane.pond_with_grill(units,(int)(sizeY/2.0f));
-        elementalPlane.determine_units(units, this);
+    public void pondWithGrill(){
+        elementalPlane.pondWithGrill(units,(int)(sizeY/2.0f));
+        elementalPlane.determineUnits(units, this);
 
-        etherealPlane.define_by(elementalPlane, units);
-        etherealPlane.determine_units(units,this);
+        etherealPlane.defineBy(elementalPlane, units);
+        etherealPlane.determineUnits(units,this);
     }
 
-    public float avg_of_compatible(int x, int y, float[][] table){
+    public float avgOfCompatible(int x, int y, float[][] table){
         float average_val = 0.0f;
         float division = 0.0f;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
@@ -80,10 +80,10 @@ public class World {
     }
 
     public void switch_elements(Util.MyCell from, Util.MyCell to){
-        etherealPlane.switch_values(from.get_i_x(),from.get_i_y(),to.get_i_x(),to.get_i_y());
-        elementalPlane.switch_values(from.get_i_x(),from.get_i_y(),to.get_i_x(),to.get_i_y());
+        etherealPlane.switchValues(from.get_i_x(),from.get_i_y(),to.get_i_x(),to.get_i_y());
+        elementalPlane.switchValues(from.get_i_x(),from.get_i_y(),to.get_i_x(),to.get_i_y());
 
-        float tmp_val = units[to.get_i_x()][to.get_i_y()];
+        int tmp_val = units[to.get_i_x()][to.get_i_y()];
         units[to.get_i_x()][to.get_i_y()] = units[from.get_i_x()][from.get_i_y()];
         units[from.get_i_x()][from.get_i_y()] = tmp_val;
     }
@@ -159,21 +159,21 @@ public class World {
             }
         }
     }
-    private void addAetherTo(int x, int y, float value){
+    private void addAetherTo(int x, int y, int value){
         etherealPlane.addAetherTo(x,y,value);
-        etherealPlane.determine_units(units,this);
+        etherealPlane.determineUnits(units,this);
         elementalPlane.define_by(etherealPlane);
     }
 
-    private void addNetherTo(int x, int y, float value){
+    private void addNetherTo(int x, int y, int value){
         etherealPlane.addNetherTo(x,y,value);
-        etherealPlane.determine_units(units,this);
+        etherealPlane.determineUnits(units,this);
         elementalPlane.define_by(etherealPlane);
     }
 
-    private void tryToEqualize(int x, int y, float aetherToUse, float netherToUse, Material.Elements target) {
+    private void tryToEqualize(int x, int y, int aetherToUse, int netherToUse, Material.Elements target) {
         etherealPlane.tryToEqualize(x,y,aetherToUse,netherToUse, Material.netherRatios[target.ordinal()]);
-        etherealPlane.determine_units(units,this);
+        etherealPlane.determineUnits(units,this);
         elementalPlane.define_by(etherealPlane);
     }
 
@@ -188,7 +188,7 @@ public class World {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 Color finalColor;
-                finalColor = elementalPlane.getColor(x,(sizeY - 1 - y),units);
+                finalColor = elementalPlane.getDebugColor(x,(sizeY - 1 - y),units);
                 worldImage.drawPixel(x,y, Color.rgba8888(finalColor));
             }
         }

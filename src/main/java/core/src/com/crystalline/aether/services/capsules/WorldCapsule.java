@@ -48,7 +48,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     private boolean play = true;
     private boolean aetherActive = false;
     private boolean netherActive = false;
-    private float manaToUse = 0.1f;
+    private int manaToUse = 1;
     private SpellUtil.SpellEtherTendency tendency = SpellUtil.SpellEtherTendency.GIVE;
     private boolean doActions = true;
     private boolean collectActions = true;
@@ -81,8 +81,8 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     public void doSpell(Spell spell, int spellFrame, Vector3 offset){
         Vector3 actualOffset = new Vector3(offset);
         if(0 < actualOffset.len()){
-            actualOffset.x -= spell.getSize().x/2.0f;
-            actualOffset.y -= spell.getSize().y/2.0f;
+            actualOffset.x -= spell.getSize().x/2;
+            actualOffset.y -= spell.getSize().y/2;
         }
         doActions(actualOffset, spell.getFrame(spellFrame).getActions());
     }
@@ -108,14 +108,14 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
             if(collectActions){
                 if(SpellUtil.SpellEtherTendency.GIVE == tendency){
                     if(aetherActive)spellAction.usedAether += manaToUse;
-                    else spellAction.usedAether = 0.0f;
+                    else spellAction.usedAether = 0;
                     if(netherActive)spellAction.usedNether += manaToUse;
-                    else spellAction.usedNether = 0.0f;
+                    else spellAction.usedNether = 0;
                 }else if(SpellUtil.SpellEtherTendency.TAKE == tendency){
                     if(aetherActive)spellAction.usedAether -= manaToUse;
-                    else spellAction.usedAether = 0.0f;
+                    else spellAction.usedAether = 0;
                     if(netherActive)spellAction.usedNether -= manaToUse;
-                    else spellAction.usedNether = 0.0f;
+                    else spellAction.usedNether = 0;
                 }else if(SpellUtil.SpellEtherTendency.EQUALIZE == tendency){
                     spellAction.usedAether = EtherealAspect.getAetherDeltaToTargetRatio(
                             manaToUse,
@@ -163,11 +163,11 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     @Override
     public void acceptInput(String name, Object... parameters) {
         if(name.equals("initialize")&&(0 == parameters.length)){
-            world.pond_with_grill();
+            world.pondWithGrill();
         }else if(name.equals("playPause")&&(0 == parameters.length)){
             play = !play;
         }else if(name.equals("mouseOnScreen2D")&&(2 == parameters.length)){
-            spellAction.pos = camera.unproject(new Vector3((float)parameters[0], (float)parameters[1], 0.0f));
+            spellAction.pos = camera.unproject(new Vector3((float)parameters[0], (float)parameters[1], 0));
         }else if(name.equals("netherActive")){
             netherActive = true;
         }else if(name.equals("netherInactive")){
@@ -190,7 +190,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
             }
         }else if(collectActions){
             if(name.equals("manaToUse")&&(1 == parameters.length)){
-                manaToUse = (float)parameters[0];
+                manaToUse = (int)parameters[0];
             }else if(name.equals("targetElement")&&(1 == parameters.length)){
                 if(parameters[0] == Material.Elements.Earth){
                     spellAction.targetElement = Material.Elements.Earth;

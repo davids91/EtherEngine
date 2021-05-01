@@ -31,27 +31,26 @@ public class Material {
 
     /**!Note: The ratio of the two values define the material states. Reality tries to "stick" to given ratios,
      * The difference is radiating away.  */
-    public static final float PHI = 1.6f;/*!Note: original value 1.61803398875f needed to be dumbed down to reduce calculation errors */
-    public static final float [] netherRatios = {
+    public static final int [] netherRatios = {
         /* Ratio of sides of the golden rectangle */
-        1.0f, /* Ether *//*!Note: PHI^0 == 0.1*/
-        (PHI), /* Earth */
-        (PHI * PHI), /* Water */
-        (PHI * PHI * PHI), /* Air */
-        (PHI * PHI * PHI * PHI), /* Fire */
-        0.0f, /* Nothing */
+        1, /* Ether *//*!Note: PHI^0 == 0.1*/
+        2, /* Earth */
+        3, /* Water */
+        4, /* Air */
+        5, /* Fire */
+        0 /* Nothing */
     };
 
-    public static float ratioOf(Elements element){
+    public static int ratioOf(Elements element){
         return netherRatios[element.ordinal()];
     }
 
-    public static final float[][] type_unit_selector = {
-        {0.0f, 50.0f},
-        {0.0f,4.0f,8f,70.0f,700.0f,1000.0f}, /* Earth */
-        {0,10.0f,20.0f},  /* Water */
-        {0.0f, 10.0f}, /* Air*/
-        {10.0f,50.0f,100.0f}, /* Fire */
+    public static final int[][] type_unit_selector = {
+        {0,50},
+        {0,4,8,70,700,1000}, /* Earth */
+        {0,10,20},  /* Water */
+        {0, 10}, /* Air*/
+        {10,50,100}, /* Fire */
         {0,0} /* Nothing */
     };
 
@@ -73,36 +72,36 @@ public class Material {
         {MechaProperties.Negligible}, /* Nothing */
     };
 
-    public static final float[][] type_specific_gravity = {
-        {0.0f,0.0f}, /* Ether */
-        {8.0f,16.0f,32.0f,64.0f,128.0f,256.0f}, /* Earth */ /* TODO: Glass */
-        {2.5f,-0.2f,4.0f}, /* Water */ /* TODO: steam, foam and ice */
-        {-0.002f, -0.001f}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */
-        {-2.5f,2.0f,4.0f}, /* Fire */
+    public static final int[][] type_specific_gravity = {
+        {0,0}, /* Ether */
+        {8,16,32,64,128,256}, /* Earth */ /* TODO: Glass */
+        {5,-10,10}, /* Water */ /* TODO: steam, foam and ice */
+        {-6, -5}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */
+        {-10,2,4}, /* Fire */
         {0,0} /* Nothing */
     };
 
-    public static boolean isSameMat(int ax, int ay, int bx, int by, Elements[][] types, float[][] units){
+    public static boolean isSameMat(int ax, int ay, int bx, int by, Elements[][] types, int[][] units){
         return isSameMat(types[ax][ay],units[ax][ay],types[bx][by],units[bx][by]);
     }
 
-    public static boolean isSameMat(Elements typeA, float unitA, Elements typeB, float unitB){
+    public static boolean isSameMat(Elements typeA, int unitA, Elements typeB, int unitB){
         return((typeA == typeB)&&(isSameMat(typeA, unitA,unitB)));
     }
 
-    public static boolean isSameMat(Elements type, float unitA, float unitB){
+    public static boolean isSameMat(Elements type, int unitA, int unitB){
         return Util.index_in(type_unit_selector[type.ordinal()],unitA) == Util.index_in(type_unit_selector[type.ordinal()],unitB);
     }
 
-    public static MechaProperties getState(Elements type, float unit){
+    public static MechaProperties getState(Elements type, int unit){
         return type_specific_state[type.ordinal()][Util.index_in(type_unit_selector[type.ordinal()], unit)];
     }
 
-    public static boolean discardable(Elements type, float unit){
+    public static boolean discardable(Elements type, int unit){
         return MechaProperties.Negligible == getState(type,unit);
     }
 
-    public static boolean movable(Elements type, float unit){
+    public static boolean movable(Elements type, int unit){
         MechaProperties state = getState(type,unit);
         return (
             (MechaProperties.Negligible.ordinal() < state.ordinal())

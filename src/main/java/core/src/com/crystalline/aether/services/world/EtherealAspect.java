@@ -167,14 +167,14 @@ public class EtherealAspect extends RealityAspect {
 
                 /* Surplus Nether to goes into other effects */
                 if(netherValues[x][y] > aetherValues[x][y] * targetRatios[x][y]) {
-                    parent.getElementalPlane().get_force(x,y).scl( /* Surplus Nether enhances movement */
+                    parent.getElementalPlane().getForce(x,y).scl( /* Surplus Nether enhances movement */
                         (netherValues[x][y] / (float)Math.max(1,(aetherValues[x][y] * targetRatios[x][y])))
                     );
                     netherValues[x][y] -= 0.1f * (netherValues[x][y] - (aetherValues[x][y] * (float)targetRatios[x][y]));
                 }
 
                 if(aetherValues[x][y] > netherValues[x][y] / targetRatios[x][y]) {
-                    parent.getElementalPlane().get_force(x,y).scl( /* Surplus Aether depresses movement */
+                    parent.getElementalPlane().getForce(x,y).scl( /* Surplus Aether depresses movement */
                         ((netherValues[x][y] / (float)targetRatios[x][y]) / (float)Math.max(1,aetherValues[x][y]))
                     );
                     aetherValues[x][y] -= 0.1f * (aetherValues[x][y] - (netherValues[x][y] / (float)targetRatios[x][y]));

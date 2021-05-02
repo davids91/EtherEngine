@@ -7,6 +7,7 @@ import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.services.utils.MathUtils;
 import com.crystalline.aether.services.utils.MiscUtil;
+import com.crystalline.aether.services.utils.Vector2i;
 
 import java.util.*;
 
@@ -14,13 +15,14 @@ public class ElementalAspect extends RealityAspect {
     MiscUtil myMiscUtil;
     protected final int sizeX;
     protected final int sizeY;
-    private final int velocityMaxTicks = 9;
+    private final int velocityMaxTicks = 3;
     private final Random rnd = new Random();
 
     private Material.Elements[][] blocks;
-    private Vector2 [][] forces;
-    private int[][] gravityCorrectionAmount;
+    private Vector2i[][] forces;
     private int[][] velocityTicks;
+    private int[][] gravityCorrectionAmount;
+
     private int[][] touchedByMechanics; /* Debug purposes */
 
     public ElementalAspect(Config conf_){
@@ -29,7 +31,7 @@ public class ElementalAspect extends RealityAspect {
         sizeY = conf.WORLD_BLOCK_NUMBER[1];
         myMiscUtil = new MiscUtil();
         blocks = new Material.Elements[sizeX][sizeY];
-        forces = new Vector2[sizeX][sizeY];
+        forces = new Vector2i[sizeX][sizeY];
         gravityCorrectionAmount = new int[sizeX][sizeY];
         velocityTicks = new int[sizeX][sizeY];
         touchedByMechanics = new int[sizeX][sizeY];
@@ -50,7 +52,7 @@ public class ElementalAspect extends RealityAspect {
     @Override
     protected void setState(Object[] state) {
         blocks = (Material.Elements[][]) state[0];
-        forces = (Vector2[][]) state[1];
+        forces = (Vector2i[][]) state[1];
         gravityCorrectionAmount = (int[][]) state[2];
         velocityTicks = (int[][]) state[3];
         touchedByMechanics = (int[][]) state[4];
@@ -60,7 +62,7 @@ public class ElementalAspect extends RealityAspect {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 blocks[x][y] = Material.Elements.Air;
-                forces[x][y] = new Vector2();
+                forces[x][y] = new Vector2i();
                 touchedByMechanics[x][y] = 0;
                 gravityCorrectionAmount[x][y] = 0;
                 velocityTicks[x][y] = velocityMaxTicks;
@@ -117,7 +119,7 @@ public class ElementalAspect extends RealityAspect {
         blocks[toX][toY] = blocks[fromX][fromY];
         blocks[fromX][fromY] = tmp_bloc;
 
-        Vector2 tmp_vec = forces[toX][toY];
+        Vector2i tmp_vec = forces[toX][toY];
         forces[toX][toY] = forces[fromX][fromY];
         forces[fromX][fromY] = tmp_vec;
     }
@@ -151,7 +153,7 @@ public class ElementalAspect extends RealityAspect {
                 if(Material.Elements.Water == blocks[x][y]){ /* TODO: This will be ill-defined in a multi-threaded environment */
                     if(y > sizeY * 0.9){ /* TODO: Make rain based on steam */
                         units[x][y] *= 0.9;
-                        forces[x][y].y = Math.min(forces[x][y].y, forces[x][y].y*-1.6f);
+                        forces[x][y].y = (int)Math.min(forces[x][y].y, forces[x][y].y*-1.6f);
                     }
                     if(avgOfBlock(x,y,units, Material.Elements.Water) < avgOfBlock(x,y,units, Material.Elements.Fire)){
                         blocks[x][y] = Material.Elements.Air;
@@ -216,7 +218,7 @@ public class ElementalAspect extends RealityAspect {
         );
     }
 
-    public Vector2 getForce(int x, int y){
+    public Vector2i getForce(int x, int y){
         return forces[x][y];
     }
 
@@ -230,13 +232,6 @@ public class ElementalAspect extends RealityAspect {
         HashMap<MiscUtil.MyCell, MiscUtil.MyCell> remaining_proposed_changes = new HashMap<>();
         for(int x = 1; x < sizeX-1; ++x){ /* Pre-process: Add gravity, and nullify forces on discardable objects; */
             for(int y = sizeY-2; y > 0; --y){
-                if(!Material.discardable(blocks[x][y], units[x][y])){
-                    gravityCorrectionAmount[x][y] = (int)(getWeight(x,y,units));
-                    velocityTicks[x][y] = velocityMaxTicks;
-                } else{
-                    forces[x][y].set(0,0); /* If the cell is not air */
-                    gravityCorrectionAmount[x][y] = 0;
-                }
                 touchedByMechanics[x][y] = 0;
             }
         }
@@ -245,12 +240,19 @@ public class ElementalAspect extends RealityAspect {
             processMechanicsBackend(units,parent,remaining_proposed_changes);
         }
 
+        for(Map.Entry<MiscUtil.MyCell, MiscUtil.MyCell> missedCells : remaining_proposed_changes.entrySet()){
+            gravityCorrectionAmount[missedCells.getKey().getIX()][missedCells.getKey().getIY()] =
+                    (int)(getWeight(missedCells.getKey().getIX(),missedCells.getKey().getIY(),units));
+            gravityCorrectionAmount[missedCells.getValue().getIX()][missedCells.getValue().getIY()] =
+                    (int)(getWeight(missedCells.getValue().getIX(),missedCells.getValue().getIY(),units));
+        }
+
         for(int x = 1; x < sizeX-1; ++x){
             for(int y = sizeY-2; y > 0; --y){
                 if(Material.movable(blocks[x][y], units[x][y])){
                     forces[x][y].add(
-                    myMiscUtil.getGravity(x,y).x * gravityCorrectionAmount[x][y],
-                    myMiscUtil.getGravity(x,y).y * gravityCorrectionAmount[x][y]
+                        myMiscUtil.getGravity(x,y).x * gravityCorrectionAmount[x][y],
+                        myMiscUtil.getGravity(x,y).y * gravityCorrectionAmount[x][y]
                     );
                 }
             }
@@ -263,6 +265,13 @@ public class ElementalAspect extends RealityAspect {
         /* update forces based on context, calculate intended velocities based on them */
         for(int x = 1; x < sizeX-2; ++x){
             for(int y = 1; y < sizeY-2; ++y){
+                if(!Material.discardable(blocks[x][y], units[x][y])){
+                    gravityCorrectionAmount[x][y] = (int)(getWeight(x,y,units));
+                    velocityTicks[x][y] = velocityMaxTicks;
+                } else{
+                    forces[x][y].set(0,0); /* If the cell is not air */
+                    gravityCorrectionAmount[x][y] = 0;
+                }
                 if(Material.Elements.Ether == blocks[x][y]){
                     for (int nx = (x - 2); nx < (x + 3); ++nx) for (int ny = (y - 2); ny < (y + 3); ++ny) {
                         if ( /* in the bounds of the chunk */
@@ -274,10 +283,7 @@ public class ElementalAspect extends RealityAspect {
                             float aether_diff = Math.max(-10.5f, Math.min(10.5f, (
                                 parent.getEtherealPlane().aetherValueAt(x,y) - parent.getEtherealPlane().aetherValueAt(nx,ny)
                             )));
-                            forces[x][y].add(
-                            (nx - x) * aether_diff,
-                            (ny - y) * aether_diff
-                            );
+                            forces[x][y].add(((nx - x) * aether_diff), ((ny - y) * aether_diff));
                         }
                     }
                 }
@@ -302,9 +308,6 @@ public class ElementalAspect extends RealityAspect {
         for(Map.Entry<MiscUtil.MyCell, MiscUtil.MyCell> currChange : previouslyLeftOutProposals.entrySet()){
             if(!evaluateForMechanics(units, currChange.getKey(), currChange.getValue(),proposedChanges,already_changed)){
                 remaining.put(currChange.getKey(),currChange.getValue());
-            }else{ /* Able to evaluate the cells in this loop, gravity shall be applied directly */
-                gravityCorrectionAmount[currChange.getKey().getIX()][currChange.getKey().getIY()] = 0;
-                gravityCorrectionAmount[currChange.getValue().getIX()][currChange.getValue().getIY()] = 0;
             }
         }
         previouslyLeftOutProposals.clear();
@@ -363,28 +366,28 @@ public class ElementalAspect extends RealityAspect {
             ){
                 /* swap the 2 cells, decreasing the forces on both */
                 forces[source_x][source_y].add(
-                -forces[source_x][source_y].x * (Math.abs(getWeight(source_x,source_y,units)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,units)), forces[source_x][source_y].x))),
-                -forces[source_x][source_y].y * (Math.abs(getWeight(source_x,source_y,units)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,units)), forces[source_x][source_y].y)))
+                    (-forces[source_x][source_y].x * (Math.abs(getWeight(source_x,source_y,units)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,units)), forces[source_x][source_y].x)))),
+                    (-forces[source_x][source_y].y * (Math.abs(getWeight(source_x,source_y,units)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,units)), forces[source_x][source_y].y))))
                 );
                 forces[source_x][source_y].add(
-                myMiscUtil.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units),
-                myMiscUtil.getGravity(source_x,source_y).y * getWeight(source_x,source_y,units)
+                    (int)(myMiscUtil.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units)),
+                    (int)(myMiscUtil.getGravity(source_x,source_y).y * getWeight(source_x,source_y,units))
                 );
 
                 parent.switchElements(curr_change.getKey(),curr_change.getValue());
             }else{ /* The cells collide, updating forces, but no swapping */
                 float m1 = getWeight(source_x, source_y, units);
-                Vector2 u1 = forces[source_x][source_y].cpy().nor();
+                Vector2 u1 = forces[source_x][source_y].fCpy().nor();
                 float m2 = getWeight(target_x, target_y, units);
-                Vector2 u2 = forces[target_x][target_y].cpy().nor();
+                Vector2 u2 = forces[target_x][target_y].fCpy().nor();
                 Vector2 result_speed = new Vector2();
                 result_speed.set( /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
                     ((m1 - m2)/(m1+m2)*u1.x) + (2*m2/(m1+m2))*u2.x,
                     ((m1 - m2)/(m1+m2)*u1.y) + (2*m2/(m1+m2))*u2.y
                 );
                 forces[source_x][source_y].set( /* F = m*a --> `a` is the delta v, which is the change in the velocity */
-                    m1 * (result_speed.x - u1.x),
-                    m1 * (result_speed.y - u1.y)
+                    (m1 * (result_speed.x - u1.x)),
+                    (m1 * (result_speed.y - u1.y))
                 );
                 forces[source_x][source_y].add(
                 myMiscUtil.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units),
@@ -543,10 +546,6 @@ public class ElementalAspect extends RealityAspect {
         return blocks[x][y];
     }
 
-    public void setElement(int x, int y, Material.Elements target){
-        blocks[x][y] = target;
-    }
-
     public Color getColor(int x, int y, int[][] units){
         return Material.getColor(blocks[x][y], units[x][y]).cpy();
     }
@@ -556,9 +555,11 @@ public class ElementalAspect extends RealityAspect {
         if(0 < touchedByMechanics[x][y]){ /* it was modified.. */
 //            defColor.lerp(Color.GREEN, 0.5f); /* to see if it was touched by the mechanics */
             defColor.lerp(new Color(
-                0.5f,//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
-                -Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
-                    (0 == touchedByMechanics[x][y])?0.0f:1.0f, 1.0f
+                0.0f,//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
+                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
+                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
+                0.0f,
+                1.0f
             ), 0.5f);
         }
         return defColor;

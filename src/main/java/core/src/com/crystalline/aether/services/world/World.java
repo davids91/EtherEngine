@@ -177,6 +177,7 @@ public class World {
             for(int y = 0; y < sizeY; ++y){
                 Color finalColor;
                 finalColor = elementalPlane.getColor(x,(sizeY - 1 - y),units);
+//                finalColor = elementalPlane.getDebugColor(x,(sizeY - 1 - y),units);
                 worldImage.drawPixel(x,y, Color.rgba8888(finalColor));
             }
         }

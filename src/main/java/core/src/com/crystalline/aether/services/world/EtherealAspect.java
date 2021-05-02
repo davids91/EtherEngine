@@ -11,13 +11,13 @@ public class EtherealAspect extends RealityAspect {
     protected final int sizeX;
     protected final int sizeY;
 
-    private int [][] ratio_change_tick;
+    private int [][] ratioChangeTick;
     private int[][] aetherValues; /* Stationary substance */
     private int[][] netherValues; /* Moving substance */
     private int[][] targetRatios;
 
-    private static final int ticks_to_change = 0;
-    private static final float nether_dynamic = 0.9f;
+    private static final int ticksToChange = 0;
+    private static final float netherDynamic = 0.9f;
 
     public EtherealAspect(Config conf_){
         super(conf_);
@@ -26,17 +26,17 @@ public class EtherealAspect extends RealityAspect {
         aetherValues = new int[sizeX][sizeY];
         netherValues = new int[sizeX][sizeY];
         targetRatios = new int[sizeX][sizeY];
-        ratio_change_tick = new int[sizeX][sizeY];
+        ratioChangeTick = new int[sizeX][sizeY];
         reset();
     }
 
     @Override
     protected Object[] getState() {
         return new Object[]{
-                Arrays.copyOf(aetherValues,aetherValues.length),
-                Arrays.copyOf(netherValues,netherValues.length),
-                Arrays.copyOf(targetRatios,targetRatios.length),
-                Arrays.copyOf(ratio_change_tick,ratio_change_tick.length)
+            Arrays.copyOf(aetherValues,aetherValues.length),
+            Arrays.copyOf(netherValues,netherValues.length),
+            Arrays.copyOf(targetRatios,targetRatios.length),
+            Arrays.copyOf(ratioChangeTick, ratioChangeTick.length)
         };
     }
 
@@ -45,7 +45,7 @@ public class EtherealAspect extends RealityAspect {
         aetherValues = (int[][])state[0];
         netherValues = (int[][])state[1];
         targetRatios = (int[][])state[2];
-        ratio_change_tick = (int[][])state[3];
+        ratioChangeTick = (int[][])state[3];
     }
 
     public void reset(){
@@ -54,7 +54,7 @@ public class EtherealAspect extends RealityAspect {
                 aetherValues[x][y] = 1;
                 targetRatios[x][y] = Material.ratioOf(Material.Elements.Air);
                 netherValues[x][y] = Material.ratioOf(Material.Elements.Air);
-                ratio_change_tick[x][y] = 0;
+                ratioChangeTick[x][y] = 0;
             }
         }
     }
@@ -77,10 +77,6 @@ public class EtherealAspect extends RealityAspect {
     private float getEtherStep(float requested, float available){
         if(0 < requested) return Math.min(requested, available);
         else return requested;
-    }
-
-    public void setTargetRatio(int x, int y, int target){
-        targetRatios[x][y] = target;
     }
 
     @Override
@@ -121,10 +117,10 @@ public class EtherealAspect extends RealityAspect {
             for (int y = 0; y < sizeY; ++y) {
 
                 if (decide_target_ratios){
-                    if(0 == ratio_change_tick[x][y]){
+                    if(0 == ratioChangeTick[x][y]){
                         targetRatios[x][y] = getTargetRatio(x, y);
-                        ratio_change_tick[x][y] = ticks_to_change;
-                    }else --ratio_change_tick[x][y];
+                        ratioChangeTick[x][y] = ticksToChange;
+                    }else --ratioChangeTick[x][y];
                 }
 
                 /* calculate the values ether is converging to */
@@ -135,23 +131,17 @@ public class EtherealAspect extends RealityAspect {
             }
         }
 
-        /* Sharing ether */
-        for (int x = 0; x < sizeX; ++x) {
+        for (int x = 0; x < sizeX; ++x) { /* Sharing ether */
             for (int y = 0; y < sizeY; ++y) {
-//                availableAvgAe[x][y] = parent.avgOfCompatible(x, y, availableAether);
-//                availableAvgNe[x][y] = parent.avgOfCompatible(x, y, availableNether);
                 availableAvgAe[x][y] = avgOf(x, y, availableAether);
                 availableAvgNe[x][y] = avgOf(x, y, availableNether);
             }
         }
 
-        /* finalize Ether */
-        for (int x = 0; x < sizeX; ++x) {
+        for (int x = 0; x < sizeX; ++x) { /* finalize Ether */
             for (int y = 0; y < sizeY; ++y) {
                 availableAether[x][y] = (availableAvgAe[x][y] + requestedAether[x][y]);
                 availableNether[x][y] = (availableAvgNe[x][y] + requestedNether[x][y]);
-//                availableAether[x][y] = (availableAether[x][y] + requestedAether[x][y]);
-//                availableNether[x][y] = (availableNether[x][y] + requestedNether[x][y]);
 
                 /* step in the direction of the target ratio */
                 float tmpEther = getEtherStep(requestedAether[x][y], availableAether[x][y]);
@@ -282,11 +272,11 @@ public class EtherealAspect extends RealityAspect {
     }
 
     private float getTargetAether(int x, int y){
-        return (netherValues[x][y] / (targetRatios[x][y] + ((1 - nether_dynamic)*get_ratio_delta(x,y))));
+        return (netherValues[x][y] / (targetRatios[x][y] + ((1 - netherDynamic)*get_ratio_delta(x,y))));
     }
 
     private float getTargetNether(int x, int y){
-        return (aetherValues[x][y] * (targetRatios[x][y] + nether_dynamic*(get_ratio_delta(x,y))));
+        return (aetherValues[x][y] * (targetRatios[x][y] + netherDynamic *(get_ratio_delta(x,y))));
     }
 
     public void addAetherTo(int x, int y, int value){

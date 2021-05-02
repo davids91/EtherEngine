@@ -12,7 +12,7 @@ import com.crystalline.aether.models.spells.Spell;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.services.utils.SpellUtil;
 import com.crystalline.aether.models.spells.SpellAction;
-import com.crystalline.aether.services.utils.Util;
+import com.crystalline.aether.services.utils.MiscUtil;
 import com.crystalline.aether.services.world.EtherealAspect;
 import com.crystalline.aether.models.architecture.CapsuleService;
 import com.crystalline.aether.models.Config;
@@ -94,7 +94,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     }
 
     public void step(){
-        world.main_loop(0.01f);
+        world.mainLoop(0.01f);
     }
 
     public void reset(){
@@ -133,7 +133,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
             }
             /* applying simple actions */
             if(doActions){
-                world.doAction(spellAction, Util.zeroVec);
+                world.doAction(spellAction, MiscUtil.zeroVec);
             }
             if(broadcastActions)signal("lastAction", spellAction);
 
@@ -146,7 +146,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
             spellFrameCounter = 0;
         }
         if(play){
-            world.main_loop(0.01f);
+            world.mainLoop(0.01f);
         }
     }
 

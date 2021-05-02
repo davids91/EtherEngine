@@ -4,7 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector3;
 import com.crystalline.aether.models.spells.SpellAction;
-import com.crystalline.aether.services.utils.Util;
+import com.crystalline.aether.services.utils.MiscUtil;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.Material;
 
@@ -62,7 +62,7 @@ public class World {
     }
 
     public float avgOfCompatible(int x, int y, float[][] table){
-        float average_val = 0.0f;
+        float averageVal = 0.0f;
         float division = 0.0f;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
             for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
@@ -70,25 +70,25 @@ public class World {
                     //(50.0f > Math.abs(units[x][y] - units[nx][ny])) /* Only reach out only for the same solidity */
                     (Material.compatibility.get(elementalPlane.elementAt(x,y)).contains(elementalPlane.elementAt(nx,ny)))
                 ){
-                    average_val += table[nx][ny];
+                    averageVal += table[nx][ny];
                     division += 1.0f;
                 }
             }
         }
-        if(0 < division)average_val /= division;
-        return average_val;
+        if(0 < division)averageVal /= division;
+        return averageVal;
     }
 
-    public void switch_elements(Util.MyCell from, Util.MyCell to){
-        etherealPlane.switchValues(from.get_i_x(),from.get_i_y(),to.get_i_x(),to.get_i_y());
-        elementalPlane.switchValues(from.get_i_x(),from.get_i_y(),to.get_i_x(),to.get_i_y());
+    public void switchElements(MiscUtil.MyCell from, MiscUtil.MyCell to){
+        etherealPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
+        elementalPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
 
-        int tmp_val = units[to.get_i_x()][to.get_i_y()];
-        units[to.get_i_x()][to.get_i_y()] = units[from.get_i_x()][from.get_i_y()];
-        units[from.get_i_x()][from.get_i_y()] = tmp_val;
+        int tmp_val = units[to.getIX()][to.getIY()];
+        units[to.getIX()][to.getIY()] = units[from.getIX()][from.getIY()];
+        units[from.getIX()][from.getIY()] = tmp_val;
     }
 
-    public void main_loop(float step){
+    public void mainLoop(float step){
         /* ============= PROCESS UNITS ============= */
         etherealPlane.processUnits(units,this);
         elementalPlane.processUnits(units, this);
@@ -141,15 +141,9 @@ public class World {
 //            }
 
             if(Material.Elements.Nothing != action.targetElement){ /* Most likely equalize action is attempted */
-                getEtherealPlane().tryToEqualize(
+                tryToEqualize(
                     (int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y),
-                    action.usedAether, action.usedNether, Material.ratioOf(action.targetElement)
-                );
-                getEtherealPlane().setTargetRatio(
-                        (int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), Material.ratioOf(action.targetElement)
-                );
-                getElementalPlane().setElement(
-                        (int)(action.pos.x + offset.x), (int)(action.pos.y + offset.y), action.targetElement
+                    action.usedAether, action.usedNether, action.targetElement
                 );
             }else{
                 if(action.aetherActive())
@@ -177,12 +171,6 @@ public class World {
         elementalPlane.defineBy(etherealPlane);
     }
 
-    public float get_weight(int posX, int posY){
-        return getElementalPlane().getWeight(posX,posY, units);
-    }
-    public float unit_at(int posX, int posY){
-        return units[posX][posY];
-    }
     public Pixmap getWorldImage(){
         Pixmap worldImage = new Pixmap(sizeX,sizeY, Pixmap.Format.RGB888);
         for(int x = 0;x < sizeX; ++x){

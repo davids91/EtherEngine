@@ -1,7 +1,7 @@
 package com.crystalline.aether.models.world;
 
 import com.badlogic.gdx.graphics.Color;
-import com.crystalline.aether.services.utils.Util;
+import com.crystalline.aether.services.utils.MiscUtil;
 
 import java.util.*;
 
@@ -45,7 +45,7 @@ public class Material {
         return netherRatios[element.ordinal()];
     }
 
-    public static final int[][] type_unit_selector = {
+    public static final int[][] TYPE_UNIT_SELECTOR = {
         {0,50},
         {0,4,8,70,700,1000}, /* Earth */
         {0,10,20},  /* Water */
@@ -54,7 +54,7 @@ public class Material {
         {0,0} /* Nothing */
     };
 
-    public static final Color[][] type_colors = { /* TODO: Ether Crystals */ /* TODO: Ether Vapor */
+    public static final Color[][] TYPE_COLORS = { /* TODO: Ether Crystals */ /* TODO: Ether Vapor */
         {Color.PINK, Color.PURPLE}, /* Ether */
         {Color.TAN,Color.GOLDENROD,Color.BROWN,Color.GRAY,Color.SLATE,Color.TEAL}, /* Earth */
         {Color.ROYAL, Color.valueOf("#d9c9c9"), Color.NAVY}, /* Water */
@@ -63,7 +63,7 @@ public class Material {
         {Color.CLEAR} /* Nothing */
     };
 
-    public static final MechaProperties[][] type_specific_state = {
+    public static final MechaProperties[][] TYPE_SPECIFIC_STATE = {
         {MechaProperties.Gas, MechaProperties.Granular}, /* Ether */
         {MechaProperties.Granular, MechaProperties.Granular, MechaProperties.Solid, MechaProperties.Crystal, MechaProperties.Hard, MechaProperties.Superhard}, /* Earth */
         {MechaProperties.Fluid, MechaProperties.Gas, MechaProperties.Fluid},/* Water */
@@ -72,7 +72,7 @@ public class Material {
         {MechaProperties.Negligible}, /* Nothing */
     };
 
-    public static final int[][] type_specific_gravity = {
+    public static final int[][] TYPE_SPECIFIC_GRAVITY = {
         {0,0}, /* Ether */
         {8,16,32,64,128,256}, /* Earth */ /* TODO: Glass */
         {5,-10,10}, /* Water */ /* TODO: steam, foam and ice */
@@ -90,11 +90,11 @@ public class Material {
     }
 
     public static boolean isSameMat(Elements type, int unitA, int unitB){
-        return Util.index_in(type_unit_selector[type.ordinal()],unitA) == Util.index_in(type_unit_selector[type.ordinal()],unitB);
+        return MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unitA) == MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unitB);
     }
 
     public static MechaProperties getState(Elements type, int unit){
-        return type_specific_state[type.ordinal()][Util.index_in(type_unit_selector[type.ordinal()], unit)];
+        return TYPE_SPECIFIC_STATE[type.ordinal()][MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()], unit)];
     }
 
     public static boolean discardable(Elements type, int unit){
@@ -110,9 +110,9 @@ public class Material {
     }
 
     public static Color getColor(Elements type, float unit){
-        return type_colors[type.ordinal()][Math.min((
-            type_colors[type.ordinal()].length - 1),
-            Util.index_in(type_unit_selector[type.ordinal()],unit)
+        return TYPE_COLORS[type.ordinal()][Math.min((
+            TYPE_COLORS[type.ordinal()].length - 1),
+            MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unit)
         )];
     }
 

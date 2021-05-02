@@ -3,7 +3,7 @@ package com.crystalline.aether.services.utils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 
-public class Util {
+public class MiscUtil {
     public static final Vector3 zeroVec = new Vector3(0,0, 0);
     private static final Vector2 gravity = new Vector2(0f,-9.81f);
     private static final Vector2 tmp_gravity = new Vector2(gravity);
@@ -13,7 +13,7 @@ public class Util {
         return tmp_gravity;
     }
 
-    public static int index_in(int[] table, float value){
+    public static int indexIn(int[] table, float value){
         int index = table.length-1;
         while((index > 0)&&(table[index] >= value))--index;
         return index;
@@ -37,11 +37,11 @@ public class Util {
             sizeX = sizeX_;
         }
 
-        public int get_i_x(){
+        public int getIX(){
             return (int)x;
         }
 
-        public int get_i_y(){
+        public int getIY(){
             return (int)y;
         }
 

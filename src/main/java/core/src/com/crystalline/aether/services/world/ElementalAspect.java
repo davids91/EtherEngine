@@ -164,7 +164,7 @@ public class ElementalAspect extends RealityAspect {
 
                 if(Material.Elements.Air == blocks[x][y]) {
                     if(
-                        (2 < units[x][y])
+                        (5 < units[x][y])
                         &&(0 < avgOfBlock(x,y,units, Material.Elements.Earth))
                         &&(0 == avgOfBlock(x,y,units, Material.Elements.Water))
                         &&(avgOfBlock(x,y,units, Material.Elements.Air) < avgOfBlock(x,y,units, Material.Elements.Fire))
@@ -187,7 +187,7 @@ public class ElementalAspect extends RealityAspect {
 //                    if(avg_of_block(x,y,units,Materials.Names.Water) > avg_of_block(x,y,units, Materials.Names.Fire)){
 //                        blocks[x][y] = Materials.Names.Earth;
 //                    }
-                    if(10 > units[x][y]){
+                    if(5 > units[x][y]){
                         blocks[x][y] = Material.Elements.Air;
                     }
                 }
@@ -630,7 +630,7 @@ public class ElementalAspect extends RealityAspect {
         if(minDiff >netherDebugVal(parent,x,y))
             minDiff = netherDebugVal(parent,x,y);
 
-        float unitsDiff = Math.abs(unitsAtLoopBegin[x][y] - parent.getUnits(x,y));
+        float unitsDiff = Math.abs(unitsAtLoopBegin[x][y] - parent.getUnits(x,y))/ (float)parent.getUnits(x,y);
             Color debugColor = new Color(
                 netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
                 //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
@@ -639,7 +639,7 @@ public class ElementalAspect extends RealityAspect {
                 aetherDebugVal(parent,x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
                 1.0f
             );
-            defColor.lerp(debugColor,0.1f);
+            defColor.lerp(debugColor,0f);
 //        }
         return defColor;
     }

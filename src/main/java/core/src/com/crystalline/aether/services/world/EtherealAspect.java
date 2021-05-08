@@ -139,7 +139,7 @@ public class EtherealAspect extends RealityAspect {
                     }
 
                     /* Only release Aether if there is more, than currently needed */
-                    if(aetherValues[x][y] >= (getMinAether(x,y) - (netherValues[x][y] * etherReleaseThreshold))){
+                    if(aetherValues[x][y] > (getMinAether(x,y) + (netherValues[x][y] * etherReleaseThreshold))){
                         if (0 == releaseTick[x][y]) {
                             releasedAether[x][y] = (aetherValues[x][y] - getMinAether(x, y))/9.0f;
                             aetherValues[x][y] -= releasedAether[x][y];
@@ -214,8 +214,8 @@ public class EtherealAspect extends RealityAspect {
         float oldRatio = getRatio(x,y);
         float oldUnit = getUnit(x,y);
         setAetherTo(x,y, (int)Math.ceil(
-            (aetherValues[x][y] + netherValues[x][y]) * units[x][y]
-            / (oldUnit + oldUnit * oldRatio)
+            (aetherValueAt(x,y) + netherValueAt(x,y)) * units[x][y]
+                / (oldUnit + oldUnit * oldRatio)
         ));
         setNetherTo(x,y, (int)(aetherValues[x][y] * oldRatio));
     }

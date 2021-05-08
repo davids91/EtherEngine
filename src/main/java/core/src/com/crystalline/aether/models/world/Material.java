@@ -57,7 +57,7 @@ public class Material {
         {0,0} /* Nothing */
     };
 
-    public static final Color[][] TYPE_COLORS = { /* TODO: Ether Crystals */ /* TODO: Ether Vapor */
+    public static final Color[][] TYPE_COLORS = { /* TODO: Ether Vapor */
         {Color.PINK, Color.PURPLE}, /* Ether */
         {Color.TAN,Color.GOLDENROD,Color.BROWN,Color.GRAY,Color.SLATE,Color.TEAL}, /* Earth */
         {Color.ROYAL, Color.valueOf("#d9c9c9"), Color.NAVY}, /* Water */

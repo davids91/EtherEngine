@@ -24,6 +24,7 @@ public class ElementalAspect extends RealityAspect {
     private int[][] gravityCorrectionAmount;
 
     private int[][] touchedByMechanics; /* Debug purposes */
+    private int[][] unitsAtLoopBegin; /* Debug purposes */
 
     public ElementalAspect(Config conf_){
         super(conf_);
@@ -35,6 +36,7 @@ public class ElementalAspect extends RealityAspect {
         gravityCorrectionAmount = new int[sizeX][sizeY];
         velocityTicks = new int[sizeX][sizeY];
         touchedByMechanics = new int[sizeX][sizeY];
+        unitsAtLoopBegin = new int[sizeX][sizeY];
         reset();
     }
 
@@ -162,7 +164,7 @@ public class ElementalAspect extends RealityAspect {
 
                 if(Material.Elements.Air == blocks[x][y]) {
                     if(
-                        (0.2 < units[x][y])
+                        (2 < units[x][y])
                         &&(0 < avgOfBlock(x,y,units, Material.Elements.Earth))
                         &&(0 == avgOfBlock(x,y,units, Material.Elements.Water))
                         &&(avgOfBlock(x,y,units, Material.Elements.Air) < avgOfBlock(x,y,units, Material.Elements.Fire))
@@ -176,7 +178,7 @@ public class ElementalAspect extends RealityAspect {
                 if(Material.Elements.Fire == blocks[x][y]){
                     if(
                         (Material.MechaProperties.Plasma == Material.getState(blocks[x][y], units[x][y]))
-                        && (units[x][y] <= avgOfBlock(x,y,units, Material.Elements.Fire))
+//                        && (units[x][y] <= avgOfBlock(x,y,units, Material.Elements.Fire))
                     ){
                         units[x][y] *= 0.8f;
                     }
@@ -185,7 +187,7 @@ public class ElementalAspect extends RealityAspect {
 //                    if(avg_of_block(x,y,units,Materials.Names.Water) > avg_of_block(x,y,units, Materials.Names.Fire)){
 //                        blocks[x][y] = Materials.Names.Earth;
 //                    }
-                    if(0.2f > units[x][y]){
+                    if(10 > units[x][y]){
                         blocks[x][y] = Material.Elements.Air;
                     }
                 }
@@ -198,12 +200,12 @@ public class ElementalAspect extends RealityAspect {
                             || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, units[x][y]).ordinal()
                         ){
                             units[x][y] *= 0.8f;
-                            if(0.2f < units[x][y])blocks[x][y] = Material.Elements.Fire;
+                            if(2 < units[x][y])blocks[x][y] = Material.Elements.Fire;
                         }
                     }
 
                 }
-                if(0.2 > units[x][y]) units[x][y] = Math.abs(units[x][y] * 2);
+                if(1 > units[x][y]) units[x][y] = 1;
             }
         }
 
@@ -289,8 +291,44 @@ public class ElementalAspect extends RealityAspect {
                 }
 
                 if(Material.MechaProperties.Fluid == Material.getState(blocks[x][y], units[x][y])){
-                    if(Material.isSameMat(x, y,x,y-1, blocks, units)) /* the cell is a liquid on top of another liquid, so it must move. */
-                        forces[x][y].set((rnd.nextInt(6)-3),1);
+
+                    if(Material.isSameMat(x, y,x,y-1, blocks, units)) {
+                      /* The random method */
+//                    if(Material.isSameMat(x, y,x,y-1, blocks, units)) /* the cell is a liquid on top of another liquid, so it must move. */
+//                        forces[x][y].set((rnd.nextInt(7)-3),1);
+                        /* The amplify method */
+                        if(Material.isSameMat(x, y,x,y-1, blocks, units)) { /* the cell is a liquid on top of another liquid, so it must move. */
+                            if(0.0f < forces[x][y].x)
+                                forces[x][y].x *= 4;
+                            else forces[x][y].set((rnd.nextInt(7) - 3), 1);
+                        }
+                        /* The particle method */
+//                        float divisor = 1.0f;
+//                        for (int nx = (x - 1); nx < (x + 2); ++nx)
+//                            for (int ny = (y - 1); ny < (y + 2); ++ny) {
+//                                /* B-A * d' == B'*/
+//                                if (
+//                                        (x != nx) && (y != ny)
+//                                                && Material.isSameMat(x, y, nx, ny, blocks, units)
+//                                ) {
+//                                    forces[x][y].add(
+//                                            (3.0f * (x - nx))
+//                                                    ,//+ rnd.nextInt(4) - 2,
+//                                            (5.0f * (y - ny))
+//                                    );
+//                                    divisor += 1.0f;
+//                                }
+//                            }
+//                        if(1.0f < divisor){
+//                            if(y%2 == 0)forces[x][y].add(4,0);
+//                            else forces[x][y].add(-4,0);
+//                        }
+//                        forces[x][y].div(divisor);
+//                        forces[x][y].add(
+//                                myMiscUtil.getGravity(x, y).x * getWeight(x, y, units),
+//                                myMiscUtil.getGravity(x, y).y * getWeight(x, y, units)
+//                        );
+                    }
                 }else if(Material.MechaProperties.Plasma == Material.getState(blocks[x][y], units[x][y])){
                     forces[x][y].add((rnd.nextInt(4)-2),0);
                 }
@@ -413,9 +451,9 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private void createProposalForCell(
-            int x, int y, int[][] units,
-            HashMap<MiscUtil.MyCell, MiscUtil.MyCell> previously_left_out_proposals,
-            HashMap<MiscUtil.MyCell, MiscUtil.MyCell> proposed_changes, HashSet<Integer> already_changed
+        int x, int y, int[][] units,
+        HashMap<MiscUtil.MyCell, MiscUtil.MyCell> previously_left_out_proposals,
+        HashMap<MiscUtil.MyCell, MiscUtil.MyCell> proposed_changes, HashSet<Integer> already_changed
     ){
         MiscUtil.MyCell intendedSourceCell = new MiscUtil.MyCell(sizeX);
         MiscUtil.MyCell intendedTargetCell = new MiscUtil.MyCell(sizeX);
@@ -465,8 +503,8 @@ public class ElementalAspect extends RealityAspect {
      * @return whether or not the cells could be placed into the already proposed changes
      */
     private boolean evaluateForMechanics(
-            int[][] units, MiscUtil.MyCell source_cell, MiscUtil.MyCell targetCell,
-            HashMap<MiscUtil.MyCell, MiscUtil.MyCell> alreadyProposedChanges, HashSet<Integer> alreadyChanged
+        int[][] units, MiscUtil.MyCell source_cell, MiscUtil.MyCell targetCell,
+        HashMap<MiscUtil.MyCell, MiscUtil.MyCell> alreadyProposedChanges, HashSet<Integer> alreadyChanged
     ){
         int x = source_cell.getIX();
         int y = source_cell.getIY();
@@ -550,18 +588,59 @@ public class ElementalAspect extends RealityAspect {
         return Material.getColor(blocks[x][y], units[x][y]).cpy();
     }
 
-    public Color getDebugColor(int x, int y, int[][] units){
-        Color defColor = getColor(x,y, units).cpy();
-        if(0 < touchedByMechanics[x][y]){ /* it was modified.. */
-//            defColor.lerp(Color.GREEN, 0.5f); /* to see if it was touched by the mechanics */
-            defColor.lerp(new Color(
-                0.0f,//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
-                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
-                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
-                0.0f,
-                1.0f
-            ), 0.5f);
+
+    private float netherDebugVal(World parent, int x, int y){
+        return Math.max(0,
+            parent.getEtherealPlane().netherValueAt(x,y)
+            - parent.getEtherealPlane().getMaxNether(x,y)
+        );
+    }
+
+    private float aetherDebugVal(World parent, int x, int y){
+        return Math.max(0,
+                parent.getEtherealPlane().aetherValueAt(x,y)
+                - parent.getEtherealPlane().getMinAether(x,y)
+        );
+    }
+
+    public void debugMeasure(World parent){
+        for(int x = 0;x < sizeX; ++x){ /* create the ground floor */
+            for(int y = 0; y < sizeY; ++y){
+                unitsAtLoopBegin[x][y] = parent.getUnits(x,y);
+                if(minDiff < netherDebugVal(parent,x,y)) /* Collect the maximum for measure */
+                    minDiff = netherDebugVal(parent,x,y);
+            }
         }
+    }
+
+    public void debugPrint(){
+//        System.out.println("min diff: " + minDiff);
+    }
+
+    float minDiff = 999;
+    public Color getDebugColor(int x, int y, int[][] units, World parent){
+        Color defColor = getColor(x,y, units).cpy(); /*  TODO: Use spellUtil getColorOf */
+//        if(0 < touchedByMechanics[x][y]){ /* it was modified.. */
+//            defColor.lerp(Color.GREEN, 0.5f); /* to see if it was touched by the mechanics */
+//            float aetherDebugVal = Math.abs(
+//                parent.getEtherealPlane().getTargetAether(x,y)
+//                - parent.getEtherealPlane().aetherValueAt(x,y)
+//            ) / Math.max(0.001f, parent.getEtherealPlane().aetherValueAt(x,y));
+
+        if(minDiff >netherDebugVal(parent,x,y))
+            minDiff = netherDebugVal(parent,x,y);
+
+        float unitsDiff = Math.abs(unitsAtLoopBegin[x][y] - parent.getUnits(x,y));
+            Color debugColor = new Color(
+                netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
+                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
+//                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
+                    0.0f,//unitsDiff,
+                aetherDebugVal(parent,x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
+                1.0f
+            );
+            defColor.lerp(debugColor,0.1f);
+//        }
         return defColor;
     }
 

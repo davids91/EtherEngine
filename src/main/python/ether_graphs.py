@@ -10,8 +10,9 @@ from matplotlib.widgets import Slider
 from datetime import datetime
 
 PHI = (1 + 5 ** 0.5) / 2
-#Elements: Fire, Air, Water, Earth
-ELEMENTAL_RATIOS = [(PHI),(PHI + 1/PHI),(PHI + 1/PHI + 1/(PHI ** 2)),(PHI + 1/PHI + 1/(PHI ** 2) + 1/(PHI ** 3))]
+#Elements: Earth, Water, AIr, Fire
+#ELEMENTAL_RATIOS = [(PHI),(PHI + 1/PHI),(PHI + 1/PHI + 1/(PHI ** 2)),(PHI + 1/PHI + 1/(PHI ** 2) + 1/(PHI ** 3))]
+ELEMENTAL_RATIOS = [2,3,4,5]
 
 class Cell:
     aether = float(random.uniform(0,10)) #stationary
@@ -117,7 +118,7 @@ target_ratio_plot = []
 nether_dynamic = 0.6
 
 fig, axs = plt.subplots(6, 3) #rows, cols
-nether_dynamic_slider = Slider(plt.axes([0.25, 0.15, 0.65, 0.03]), "nether dynamic", 0,1, valinit=nether_dynamic)
+nether_dynamic_slider = Slider(plt.axes([0.25, 0.15, 0.65, 0.03]), "nether dynamic", 0,1.5, valinit=nether_dynamic)
 plt.subplots_adjust(left=0.1,bottom=0.35)
 ratio_y_ax = [-ELEMENTAL_RATIOS[3],-ELEMENTAL_RATIOS[2],-ELEMENTAL_RATIOS[1],-ELEMENTAL_RATIOS[0],0.0, ELEMENTAL_RATIOS[0],ELEMENTAL_RATIOS[1],ELEMENTAL_RATIOS[2],ELEMENTAL_RATIOS[3]]
 

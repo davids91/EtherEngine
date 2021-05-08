@@ -29,6 +29,7 @@ public class World {
 
     EtherealAspect etherealPlane;
     ElementalAspect elementalPlane;
+
     private final int[][] units;
 
     public World(Config conf_){
@@ -45,12 +46,8 @@ public class World {
     public void reset(){
         etherealPlane.reset();
         elementalPlane.reset();
-        for(int x = 0;x < sizeX; ++x){
-            for(int y = 0; y < sizeY; ++y){
-                units[x][y] = 0;
-            }
-        }
-
+        elementalPlane.defineBy(etherealPlane);
+        etherealPlane.determineUnits(units, this);
     }
 
     public void pondWithGrill(){
@@ -89,8 +86,10 @@ public class World {
     }
 
     public void mainLoop(float step){
+        elementalPlane.debugMeasure(this);
         /* ============= PROCESS UNITS ============= */
         etherealPlane.processUnits(units,this);
+//        elementalPlane.processTypes(units, this); /* <-- debug line only! */
         elementalPlane.processUnits(units, this);
 
         /* ============= PROCESS MECHANICS ============= */
@@ -104,9 +103,8 @@ public class World {
 
         /* ============= POST PROCESS ============= */
         etherealPlane.postProcess(units, this);
-
-        /* Elemental takes over finalised type changes from Ethereal */
-        elementalPlane.postProcess(units, this);
+        elementalPlane.postProcess(units, this); /* Elemental takes over finalised type changes from Ethereal */
+        elementalPlane.debugPrint();
     }
 
     public void pushState(){
@@ -153,16 +151,19 @@ public class World {
             }
         }
     }
+
+    public int getUnits(int x, int y) {
+        return units[x][y];
+    }
+
     private void addAetherTo(int x, int y, int value){
         etherealPlane.addAetherTo(x,y,value);
         etherealPlane.determineUnits(units,this);
-        elementalPlane.defineBy(etherealPlane);
     }
 
     private void addNetherTo(int x, int y, int value){
         etherealPlane.addNetherTo(x,y,value);
         etherealPlane.determineUnits(units,this);
-        elementalPlane.defineBy(etherealPlane);
     }
 
     private void tryToEqualize(int x, int y, int aetherToUse, int netherToUse, Material.Elements target) {
@@ -176,8 +177,8 @@ public class World {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 Color finalColor;
-                finalColor = elementalPlane.getColor(x,(sizeY - 1 - y),units);
-//                finalColor = elementalPlane.getDebugColor(x,(sizeY - 1 - y),units);
+//                finalColor = elementalPlane.getColor(x,(sizeY - 1 - y),units);
+                finalColor = elementalPlane.getDebugColor(x,(sizeY - 1 - y),units, this);
                 worldImage.drawPixel(x,y, Color.rgba8888(finalColor));
             }
         }

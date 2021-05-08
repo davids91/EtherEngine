@@ -164,6 +164,8 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     public void acceptInput(String name, Object... parameters) {
         if(name.equals("initialize")&&(0 == parameters.length)){
             world.pondWithGrill();
+        }else if(name.equals("step")){
+            world.mainLoop(0.0f);
         }else if(name.equals("playPause")&&(0 == parameters.length)){
             play = !play;
         }else if(name.equals("mouseOnScreen2D")&&(2 == parameters.length)){
@@ -192,7 +194,9 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
             if(name.equals("manaToUse")&&(1 == parameters.length)){
                 manaToUse = (int)parameters[0];
             }else if(name.equals("targetElement")&&(1 == parameters.length)){
-                if(parameters[0] == Material.Elements.Earth){
+                if(parameters[0] == Material.Elements.Nothing){
+                    spellAction.targetElement = Material.Elements.Nothing;
+                }else if(parameters[0] == Material.Elements.Earth){
                     spellAction.targetElement = Material.Elements.Earth;
                 }else if(parameters[0] == Material.Elements.Water){
                     spellAction.targetElement = Material.Elements.Water;

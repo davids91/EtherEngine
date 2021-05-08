@@ -49,6 +49,11 @@ public class Vector2i{
         y *= m;
         return this;
     }
+    public Vector2i div(float m){
+        x /= m;
+        y /= m;
+        return this;
+    }
     public double len(){
         return Math.sqrt((double)(x*x + y*y));
     }

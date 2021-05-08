@@ -194,9 +194,9 @@ public class EtherBrushPanel extends CapsuleService {
     public int modifyManaToUse(float amount){
         float modif = Math.max(0.4f,Math.min(0.6f, (manaToUse / maxMana)));
         if(0 < -amount) {
-            manaToUse = (int)Math.min(Math.max(0.1f, manaToUse * (1+modif)), maxMana);
+            manaToUse = (int)Math.min(Math.max(1, manaToUse * (1+modif)), maxMana);
         } else {
-            manaToUse = (int)Math.min(Math.max(0.1f, manaToUse * (1-modif)), maxMana);
+            manaToUse = (int)Math.min(Math.max(1, manaToUse * (1-modif)), maxMana);
         }
         strengthBar.setValue(manaToUse);
         return manaToUse;

@@ -10,11 +10,14 @@ public class Material {
         Ether, Earth, Water, Air, Fire, Nothing;
         private static final Elements[] vals = values();
         public Elements next(){ return vals[(this.ordinal() + 1) % vals.length]; }
+        public Elements strictNext(){ return vals[Math.min((vals.length - 1),(this.ordinal() + 1))]; }
         public Elements previous(){
             if(0 == this.ordinal())
                 return vals[vals.length-1];
             else return vals[this.ordinal() -1];
         }
+        public Elements strictPrevious(){ return vals[Math.max(0,(this.ordinal() - 1))]; }
+
     }
 
     public enum MechaProperties {
@@ -50,7 +53,7 @@ public class Material {
         {0,4,8,70,700,1000}, /* Earth */
         {0,10,20},  /* Water */
         {0, 10}, /* Air*/
-        {10,50,100}, /* Fire */
+        {30,60,100}, /* Fire */
         {0,0} /* Nothing */
     };
 

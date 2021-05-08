@@ -21,6 +21,9 @@ public class UserInputCapsule extends InputService implements InputProcessor {
         if(Input.Keys.ENTER == keycode){
             signal("playPause");
         }
+        if(Input.Keys.TAB == keycode){
+            signal("step");
+        }
         return false;
     }
 

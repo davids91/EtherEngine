@@ -106,8 +106,6 @@ public class EtherealAspect extends RealityAspect {
         return (ret / divisor);
     }
 
-    private static final int ticksToChange = 0;
-    private static final int ticksToRelease = 5;
     private static final float etherReleaseThreshold = 0.1f;
 
     public float getMaxNether(int x, int y){
@@ -129,22 +127,20 @@ public class EtherealAspect extends RealityAspect {
                 releasedNether[x][y] = 0;
                 releasedAether[x][y] = 0;
 
-                if(1.0 < Math.abs(getRatio(x,y) - Material.ratioOf(Material.Elements.Ether))){
-                    if( netherValues[x][y] >= (getMaxNether(x,y)) + (aetherValues[x][y] * etherReleaseThreshold) ){
-                        if (0 == releaseTick[x][y]) {
-                            releasedNether[x][y] = (netherValues[x][y] - getMaxNether(x, y)) / 9.f;
+                if(0.5 < Math.abs(getRatio(x,y) - Material.ratioOf(Material.Elements.Ether))){
+                    float aetherToRelease = (aetherValues[x][y] - getMinAether(x, y));
+                    float netherToRelease = (netherValues[x][y] - getMaxNether(x,y));
+                    if(
+                        ( netherValues[x][y] >= (getMaxNether(x,y)) + (aetherValueAt(x,y) * etherReleaseThreshold) )
+                        ||( aetherValues[x][y] > (getMinAether(x,y) + (netherValues[x][y] * etherReleaseThreshold)) )
+                    ){
+                        if(netherToRelease >= aetherToRelease){
+                            releasedNether[x][y] = netherToRelease / 9.f;
                             netherValues[x][y] -= releasedNether[x][y];
-                            releaseTick[x][y] = ticksToRelease; /* TODO: Tics to release to depend on Nether */
-                        } else --releaseTick[x][y];
-                    }
-
-                    /* Only release Aether if there is more, than currently needed */
-                    if(aetherValues[x][y] > (getMinAether(x,y) + (netherValues[x][y] * etherReleaseThreshold))){
-                        if (0 == releaseTick[x][y]) {
-                            releasedAether[x][y] = (aetherValues[x][y] - getMinAether(x, y))/9.0f;
+                        }else{
+                            releasedAether[x][y] = aetherToRelease / 9.0f;
                             aetherValues[x][y] -= releasedAether[x][y];
-                            releaseTick[x][y] = ticksToRelease; /* TODO: Tics to release to depend on Nether */
-                        } else --releaseTick[x][y];
+                        }
                     }
                 }
             }
@@ -246,7 +242,7 @@ public class EtherealAspect extends RealityAspect {
     }
 
     public Material.Elements elementAt(int x, int y){
-        if((netherValues[x][y] + netherValues[x][y]) < 1) return Material.Elements.Air;
+        if((netherValues[x][y] <= 2)&&(aetherValues[x][y] <= 2)) return Material.Elements.Air;
         else if(0 == Math.abs(getRatio(x,y) - Material.ratioOf(Material.Elements.Ether)))
             return Material.Elements.Ether;
         else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))

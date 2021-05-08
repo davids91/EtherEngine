@@ -23,7 +23,7 @@ public class SpellAction {
     }
 
     public boolean active(){
-        return ((0 < usedNether)||(0<usedAether));
+        return ((0 <Math.abs(usedNether))||(0<Math.abs(usedAether)));
     }
     public boolean aetherActive(){
         return (0 < Math.abs(usedAether));

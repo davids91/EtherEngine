@@ -178,9 +178,9 @@ public class ElementalAspect extends RealityAspect {
                 if(Material.Elements.Fire == blocks[x][y]){
                     if(
                         (Material.MechaProperties.Plasma == Material.getState(blocks[x][y], units[x][y]))
-//                        && (units[x][y] <= avgOfBlock(x,y,units, Material.Elements.Fire))
+                        && (units[x][y] <= avgOfBlock(x,y,units, Material.Elements.Fire))
                     ){
-                        units[x][y] *= 0.8f;
+                        units[x][y] *= 0.75f;
                     }
 
                     /* TODO: Make lava cool off to earth by heat */
@@ -639,7 +639,7 @@ public class ElementalAspect extends RealityAspect {
                 aetherDebugVal(parent,x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
                 1.0f
             );
-            defColor.lerp(debugColor,0f);
+            defColor.lerp(debugColor,0.4f);
 //        }
         return defColor;
     }

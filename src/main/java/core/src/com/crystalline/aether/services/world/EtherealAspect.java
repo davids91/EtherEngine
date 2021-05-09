@@ -157,8 +157,8 @@ public class EtherealAspect extends RealityAspect {
             for (int y = 0; y < sizeY; ++y) {
 
                 /* The more units there is, the more ether is absorbed */
-                aetherValues[x][y] += availableAvgAe[x][y];// / parent.getUnits(x,y);
-                netherValues[x][y] += availableAvgNe[x][y];// / parent.getUnits(x,y);
+                aetherValues[x][y] += availableAvgAe[x][y] * 0.9f;// / parent.getUnits(x,y);
+                netherValues[x][y] += availableAvgNe[x][y] * 0.9f;// / parent.getUnits(x,y);
 
                 /* TODO: Surplus Nether to goes into other effects?? */
                 /* TODO: Implement heat */

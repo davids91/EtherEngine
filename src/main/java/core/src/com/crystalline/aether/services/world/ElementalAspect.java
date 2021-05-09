@@ -154,7 +154,7 @@ public class ElementalAspect extends RealityAspect {
                 /* TODO: Move averages to before the process step for consistent behavior for context dependent stuff */
                 if(Material.Elements.Water == blocks[x][y]){ /* TODO: This will be ill-defined in a multi-threaded environment */
                     if(y > sizeY * 0.9){ /* TODO: Make rain based on steam */
-                        units[x][y] *= 0.9;
+                        units[x][y] -= (units[x][y] * 0.2f);
                         forces[x][y].y = (int)Math.min(forces[x][y].y, forces[x][y].y*-1.6f);
                     }
                     if(avgOfBlock(x,y,units, Material.Elements.Water) < avgOfBlock(x,y,units, Material.Elements.Fire)){
@@ -180,7 +180,7 @@ public class ElementalAspect extends RealityAspect {
                         (Material.MechaProperties.Plasma == Material.getState(blocks[x][y], units[x][y]))
                         && (units[x][y] <= avgOfBlock(x,y,units, Material.Elements.Fire))
                     ){
-                        units[x][y] *= 0.75f;
+                        units[x][y] -= (units[x][y] * 0.3f);
                     }
 
                     /* TODO: Make lava cool off to earth by heat */
@@ -598,26 +598,31 @@ public class ElementalAspect extends RealityAspect {
 
     private float aetherDebugVal(World parent, int x, int y){
         return Math.max(0,
-                parent.getEtherealPlane().aetherValueAt(x,y)
-                - parent.getEtherealPlane().getMinAether(x,y)
+            parent.getEtherealPlane().aetherValueAt(x,y)
+            - parent.getEtherealPlane().getMinAether(x,y)
         );
     }
 
     public void debugMeasure(World parent){
-        for(int x = 0;x < sizeX; ++x){ /* create the ground floor */
-            for(int y = 0; y < sizeY; ++y){
-                unitsAtLoopBegin[x][y] = parent.getUnits(x,y);
-                if(minDiff < netherDebugVal(parent,x,y)) /* Collect the maximum for measure */
-                    minDiff = netherDebugVal(parent,x,y);
-            }
-        }
+//        avgUnit = 0; avgDivisor = 0;
+//        for(int x = 0;x < sizeX; ++x){ /* create the ground floor */
+//            for(int y = 0; y < sizeY; ++y){
+//                unitsAtLoopBegin[x][y] = parent.getUnits(x,y);
+//                if(elementAt(x,y) == Material.Elements.Fire){
+//                    avgUnit += parent.etherealPlane.aetherValueAt(x,y);
+//                    avgDivisor += 1.0f;
+//                }
+//            }
+//        }
+//        avgUnit /= Math.max(1.0f,avgDivisor);
     }
 
     public void debugPrint(){
-//        System.out.println("min diff: " + minDiff);
+//        System.out.println("avg fire units: " + avgUnit);
     }
 
-    float minDiff = 999;
+    float avgUnit = 0;
+    float avgDivisor = 0;
     public Color getDebugColor(int x, int y, int[][] units, World parent){
         Color defColor = getColor(x,y, units).cpy(); /*  TODO: Use spellUtil getColorOf */
 //        if(0 < touchedByMechanics[x][y]){ /* it was modified.. */
@@ -626,10 +631,6 @@ public class ElementalAspect extends RealityAspect {
 //                parent.getEtherealPlane().getTargetAether(x,y)
 //                - parent.getEtherealPlane().aetherValueAt(x,y)
 //            ) / Math.max(0.001f, parent.getEtherealPlane().aetherValueAt(x,y));
-
-        if(minDiff >netherDebugVal(parent,x,y))
-            minDiff = netherDebugVal(parent,x,y);
-
         float unitsDiff = Math.abs(unitsAtLoopBegin[x][y] - parent.getUnits(x,y))/ (float)parent.getUnits(x,y);
             Color debugColor = new Color(
                 netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
@@ -639,7 +640,7 @@ public class ElementalAspect extends RealityAspect {
                 aetherDebugVal(parent,x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
                 1.0f
             );
-            defColor.lerp(debugColor,0.4f);
+            defColor.lerp(debugColor,0.3f);
 //        }
         return defColor;
     }

@@ -49,11 +49,11 @@ public class Material {
     }
 
     public static final int[][] TYPE_UNIT_SELECTOR = {
-        {0,50},
+        {0,100},
         {0,4,8,70,700,1000}, /* Earth */
         {0,10,20},  /* Water */
         {0, 10}, /* Air*/
-        {100,200,500}, /* Fire */
+        {20,50,100}, /* Fire */
         {0,0} /* Nothing */
     };
 

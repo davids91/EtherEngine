@@ -89,7 +89,6 @@ public class World {
         elementalPlane.debugMeasure(this);
         /* ============= PROCESS UNITS ============= */
         etherealPlane.processUnits(units,this);
-//        elementalPlane.processTypes(units, this); /* <-- debug line only! */
         elementalPlane.processUnits(units, this);
 
         /* ============= PROCESS MECHANICS ============= */

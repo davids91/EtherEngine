@@ -11,6 +11,8 @@ public class EtherealAspect extends RealityAspect {
     protected final int sizeX;
     protected final int sizeY;
 
+    private static final float aetherWeightInUnits = 4;
+
     private int [][] releaseTick;
     private int[][] aetherValues; /* Stationary substance */
     private int[][] netherValues; /* Moving substance */
@@ -192,8 +194,8 @@ public class EtherealAspect extends RealityAspect {
         }
     }
 
-    private float getUnit(int x, int y){
-        return ((aetherValueAt(x,y) + netherValueAt(x,y))/2.0f);
+    private float getUnit(int x, int y){ /* Since Aether is the stabilizer */
+        return ((aetherValueAt(x,y)* aetherWeightInUnits + netherValueAt(x,y))/(aetherWeightInUnits +1));
     }
 
     @Override
@@ -210,8 +212,8 @@ public class EtherealAspect extends RealityAspect {
         float oldRatio = getRatio(x,y);
         float oldUnit = getUnit(x,y);
         setAetherTo(x,y, (int)Math.ceil(
-            (aetherValueAt(x,y) + netherValueAt(x,y)) * units[x][y]
-                / (oldUnit + oldUnit * oldRatio)
+            ((aetherValueAt(x,y)* aetherWeightInUnits + netherValueAt(x,y)) * units[x][y])
+            / (oldUnit* aetherWeightInUnits + oldUnit * oldRatio)
         ));
         setNetherTo(x,y, (int)(aetherValues[x][y] * oldRatio));
     }
@@ -225,7 +227,6 @@ public class EtherealAspect extends RealityAspect {
     public void postProcess(int[][] units, World parent) {
         /* TODO: Decide para-modifiers ( e.g. heat ) */
         /* TODO: Increase heat where there is a surplus Nether */
-        /* Take over unit changes from Elemental plane */
     }
 
     public int aetherValueAt(int x, int y){
@@ -242,20 +243,7 @@ public class EtherealAspect extends RealityAspect {
     }
 
     public Material.Elements elementAt(int x, int y){
-        if((netherValues[x][y] <= 2)&&(aetherValues[x][y] <= 2)) return Material.Elements.Air;
-        else if(0 == Math.abs(getRatio(x,y) - Material.ratioOf(Material.Elements.Ether)))
-            return Material.Elements.Ether;
-        else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))
-            return Material.Elements.Earth;
-        else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Water) + Material.ratioOf(Material.Elements.Air))/2.0f))
-            return Material.Elements.Water;
-        else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Air) + Material.ratioOf(Material.Elements.Fire))/2.0f))
-            return Material.Elements.Air;
-        else return Material.Elements.Fire;
-    }
-
-    public Material.Elements getTargetRatio(int x, int y){
-        if((netherValues[x][y] + netherValues[x][y]) < 1) return Material.Elements.Air;
+        if(getUnit(x,y) <= Material.ratioOf(Material.Elements.Fire)) return Material.Elements.Air; /* TODO: Recheck so extra AENE are not counted, maybe? */
         else if(0 == Math.abs(getRatio(x,y) - Material.ratioOf(Material.Elements.Ether)))
             return Material.Elements.Ether;
         else if(getRatio(x,y) <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))

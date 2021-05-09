@@ -174,10 +174,12 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
             netherActive = true;
         }else if(name.equals("netherInactive")){
             netherActive = false;
+            if(collectActions)spellAction.usedNether = 0;
         }else if(name.equals("aetherActive")){
             aetherActive = true;
         }else if(name.equals("aetherInactive")){
             aetherActive = false;
+            if(collectActions)spellAction.usedAether = 0;
         }else if(name.equals("transitionFrom:editor")&&(1 == parameters.length)){
             usedSpell = (Spell)(parameters[0]);
             if(null == usedSpell){

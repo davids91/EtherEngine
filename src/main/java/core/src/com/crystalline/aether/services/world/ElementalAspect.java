@@ -19,12 +19,12 @@ public class ElementalAspect extends RealityAspect {
     private final Random rnd = new Random();
 
     private Material.Elements[][] blocks;
-    private Vector2i[][] forces;
-    private int[][] velocityTicks;
-    private int[][] gravityCorrectionAmount;
+    private Vector2[][] forces;
+    private float[][] velocityTicks;
+    private float[][] gravityCorrectionAmount;
 
-    private int[][] touchedByMechanics; /* Debug purposes */
-    private int[][] unitsAtLoopBegin; /* Debug purposes */
+    private float[][] touchedByMechanics; /* Debug purposes */
+    private float[][] unitsAtLoopBegin; /* Debug purposes */
 
     public ElementalAspect(Config conf_){
         super(conf_);
@@ -32,11 +32,11 @@ public class ElementalAspect extends RealityAspect {
         sizeY = conf.WORLD_BLOCK_NUMBER[1];
         myMiscUtil = new MiscUtil();
         blocks = new Material.Elements[sizeX][sizeY];
-        forces = new Vector2i[sizeX][sizeY];
-        gravityCorrectionAmount = new int[sizeX][sizeY];
-        velocityTicks = new int[sizeX][sizeY];
-        touchedByMechanics = new int[sizeX][sizeY];
-        unitsAtLoopBegin = new int[sizeX][sizeY];
+        forces = new Vector2[sizeX][sizeY];
+        gravityCorrectionAmount = new float[sizeX][sizeY];
+        velocityTicks = new float[sizeX][sizeY];
+        touchedByMechanics = new float[sizeX][sizeY];
+        unitsAtLoopBegin = new float[sizeX][sizeY];
         reset();
     }
 
@@ -54,17 +54,17 @@ public class ElementalAspect extends RealityAspect {
     @Override
     protected void setState(Object[] state) {
         blocks = (Material.Elements[][]) state[0];
-        forces = (Vector2i[][]) state[1];
-        gravityCorrectionAmount = (int[][]) state[2];
-        velocityTicks = (int[][]) state[3];
-        touchedByMechanics = (int[][]) state[4];
+        forces = (Vector2[][]) state[1];
+        gravityCorrectionAmount = (float[][]) state[2];
+        velocityTicks = (float[][]) state[3];
+        touchedByMechanics = (float[][]) state[4];
     }
 
     public void reset(){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 blocks[x][y] = Material.Elements.Air;
-                forces[x][y] = new Vector2i();
+                forces[x][y] = new Vector2();
                 touchedByMechanics[x][y] = 0;
                 gravityCorrectionAmount[x][y] = 0;
                 velocityTicks[x][y] = velocityMaxTicks;
@@ -80,7 +80,7 @@ public class ElementalAspect extends RealityAspect {
         }
     }
 
-    private float avgOfBlock(int x, int y, int[][] table, Material.Elements type){
+    private float avgOfBlock(int x, int y, float[][] table, Material.Elements type){
         float average_val = 0;
         float division = 0;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
@@ -95,7 +95,7 @@ public class ElementalAspect extends RealityAspect {
         return average_val;
     }
 
-    private int avgOfBlockWithinDistance(int x, int y, int[][] table, Material.Elements[][] types, int[][] units){
+    private int avgOfBlockWithinDistance(int x, int y, float[][] table, Material.Elements[][] types, float[][] units){
         float average_val = 0;
         float division = 0;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
@@ -111,7 +111,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     @Override
-    public void determineUnits(int[][] units, World parent) {
+    public void determineUnits(float[][] units, World parent) {
 
     }
 
@@ -121,14 +121,14 @@ public class ElementalAspect extends RealityAspect {
         blocks[toX][toY] = blocks[fromX][fromY];
         blocks[fromX][fromY] = tmp_bloc;
 
-        Vector2i tmp_vec = forces[toX][toY];
+        Vector2 tmp_vec = forces[toX][toY];
         forces[toX][toY] = forces[fromX][fromY];
         forces[fromX][fromY] = tmp_vec;
     }
 
     @Override
-    public void processUnits(int[][] units, World parent){
-        int[][] avgs = new int[sizeX][sizeY];
+    public void processUnits(float[][] units, World parent){
+        float[][] avgs = new float[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 if(Material.movable(blocks[x][y],units[x][y])){
@@ -147,7 +147,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     @Override
-    public void processTypes(int[][] units, World parent) {
+    public void processTypes(float[][] units, World parent) {
         for(int x = sizeX - 1;x > 0; --x){
             for(int y = sizeY - 1 ; y > 0; --y) {
                 blocks[x][y] = parent.etherealPlane.elementAt(x,y);
@@ -155,7 +155,7 @@ public class ElementalAspect extends RealityAspect {
                 if(Material.Elements.Water == blocks[x][y]){ /* TODO: This will be ill-defined in a multi-threaded environment */
                     if(y > sizeY * 0.9){ /* TODO: Make rain based on steam */
                         units[x][y] -= (units[x][y] * 0.2f);
-                        forces[x][y].y = (int)Math.min(forces[x][y].y, forces[x][y].y*-1.6f);
+                        forces[x][y].y = Math.min(forces[x][y].y, forces[x][y].y*-1.6f);
                     }
                     if(avgOfBlock(x,y,units, Material.Elements.Water) < avgOfBlock(x,y,units, Material.Elements.Fire)){
                         blocks[x][y] = Material.Elements.Air;
@@ -205,13 +205,12 @@ public class ElementalAspect extends RealityAspect {
                     }
 
                 }
-                if(1 > units[x][y]) units[x][y] = 1;
+                if(0.01f > units[x][y]) units[x][y] = 0.01f;
             }
         }
-
     }
 
-    public float getWeight(int x, int y, int[][] units){
+    public float getWeight(int x, int y, float[][] units){
         /* TODO: Weight to include pressure somehow? or at least the same materials on top */
         return (
             units[x][y] * Material.TYPE_SPECIFIC_GRAVITY[blocks[x][y].ordinal()][MiscUtil.indexIn(
@@ -220,17 +219,17 @@ public class ElementalAspect extends RealityAspect {
         );
     }
 
-    public Vector2i getForce(int x, int y){
+    public Vector2 getForce(int x, int y){
         return forces[x][y];
     }
 
     @Override
-    public void takeOverUnitChanges(int x, int y, int[][] units) {
+    public void takeOverUnitChanges(int x, int y, float[][] units) {
 
     }
 
     @Override
-    public void processMechanics(int[][] units, World parent) {
+    public void processMechanics(float[][] units, World parent) {
         HashMap<MiscUtil.MyCell, MiscUtil.MyCell> remaining_proposed_changes = new HashMap<>();
         for(int x = 1; x < sizeX-1; ++x){ /* Pre-process: Add gravity, and nullify forces on discardable objects; */
             for(int y = sizeY-2; y > 0; --y){
@@ -244,9 +243,9 @@ public class ElementalAspect extends RealityAspect {
 
         for(Map.Entry<MiscUtil.MyCell, MiscUtil.MyCell> missedCells : remaining_proposed_changes.entrySet()){
             gravityCorrectionAmount[missedCells.getKey().getIX()][missedCells.getKey().getIY()] =
-                    (int)(getWeight(missedCells.getKey().getIX(),missedCells.getKey().getIY(),units));
+                (getWeight(missedCells.getKey().getIX(),missedCells.getKey().getIY(),units));
             gravityCorrectionAmount[missedCells.getValue().getIX()][missedCells.getValue().getIY()] =
-                    (int)(getWeight(missedCells.getValue().getIX(),missedCells.getValue().getIY(),units));
+                (getWeight(missedCells.getValue().getIX(),missedCells.getValue().getIY(),units));
         }
 
         for(int x = 1; x < sizeX-1; ++x){
@@ -263,12 +262,12 @@ public class ElementalAspect extends RealityAspect {
     }
 
     /* TODO: Make movable objects, depending of the solidness "merge into one another", leaving vacuum behind, which are to resolved at the end of the mechanics round */
-    public void processMechanicsBackend(int[][] units, World parent, HashMap<MiscUtil.MyCell, MiscUtil.MyCell> previouslyLeftOutProposals){
+    public void processMechanicsBackend(float[][] units, World parent, HashMap<MiscUtil.MyCell, MiscUtil.MyCell> previouslyLeftOutProposals){
         /* update forces based on context, calculate intended velocities based on them */
         for(int x = 1; x < sizeX-2; ++x){
             for(int y = 1; y < sizeY-2; ++y){
                 if(!Material.discardable(blocks[x][y], units[x][y])){
-                    gravityCorrectionAmount[x][y] = (int)(getWeight(x,y,units));
+                    gravityCorrectionAmount[x][y] = (getWeight(x,y,units));
                     velocityTicks[x][y] = velocityMaxTicks;
                 } else{
                     forces[x][y].set(0,0); /* If the cell is not air */
@@ -408,16 +407,16 @@ public class ElementalAspect extends RealityAspect {
                     (-forces[source_x][source_y].y * (Math.abs(getWeight(source_x,source_y,units)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,units)), forces[source_x][source_y].y))))
                 );
                 forces[source_x][source_y].add(
-                    (int)(myMiscUtil.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units)),
-                    (int)(myMiscUtil.getGravity(source_x,source_y).y * getWeight(source_x,source_y,units))
+                    (myMiscUtil.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units)),
+                    (myMiscUtil.getGravity(source_x,source_y).y * getWeight(source_x,source_y,units))
                 );
 
                 parent.switchElements(curr_change.getKey(),curr_change.getValue());
             }else{ /* The cells collide, updating forces, but no swapping */
                 float m1 = getWeight(source_x, source_y, units);
-                Vector2 u1 = forces[source_x][source_y].fCpy().nor();
+                Vector2 u1 = forces[source_x][source_y].cpy().nor();
                 float m2 = getWeight(target_x, target_y, units);
-                Vector2 u2 = forces[target_x][target_y].fCpy().nor();
+                Vector2 u2 = forces[target_x][target_y].cpy().nor();
                 Vector2 result_speed = new Vector2();
                 result_speed.set( /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
                     ((m1 - m2)/(m1+m2)*u1.x) + (2*m2/(m1+m2))*u2.x,
@@ -451,7 +450,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private void createProposalForCell(
-        int x, int y, int[][] units,
+        int x, int y, float[][] units,
         HashMap<MiscUtil.MyCell, MiscUtil.MyCell> previously_left_out_proposals,
         HashMap<MiscUtil.MyCell, MiscUtil.MyCell> proposed_changes, HashSet<Integer> already_changed
     ){
@@ -503,7 +502,7 @@ public class ElementalAspect extends RealityAspect {
      * @return whether or not the cells could be placed into the already proposed changes
      */
     private boolean evaluateForMechanics(
-        int[][] units, MiscUtil.MyCell source_cell, MiscUtil.MyCell targetCell,
+        float[][] units, MiscUtil.MyCell source_cell, MiscUtil.MyCell targetCell,
         HashMap<MiscUtil.MyCell, MiscUtil.MyCell> alreadyProposedChanges, HashSet<Integer> alreadyChanged
     ){
         int x = source_cell.getIX();
@@ -531,7 +530,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     @Override
-    public void postProcess(int[][] units, World parent) {
+    public void postProcess(float[][] units, World parent) {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 blocks[x][y] = parent.etherealPlane.elementAt(x,y);
@@ -543,7 +542,7 @@ public class ElementalAspect extends RealityAspect {
      * Create a simple pond with some fire on one side
      * @param floorHeight - the height of the ground floor
      */
-    public void pondWithGrill(int[][] units, int floorHeight){
+    public void pondWithGrill(float[][] units, int floorHeight){
         for(int x = 0;x < sizeX; ++x){ /* create the ground floor */
             for(int y = 0; y < sizeY; ++y){
                 forces[x][y].set(0,0);
@@ -561,9 +560,9 @@ public class ElementalAspect extends RealityAspect {
         int posX; int posY; /* Create the pond */
         for(float radius = 0; radius < (floorHeight/2.0f); radius += 0.5f){
             for(float sector = (float)Math.PI * 0.99f; sector < Math.PI * 2.01f; sector += Math.PI / 180){
-                posX = (int)(sizeX/2 + (float)Math.cos(sector) * radius);
+                posX = (int)(sizeX/2 + Math.cos(sector) * radius);
                 posX = Math.max(0, Math.min(sizeX, posX));
-                posY = (int)(floorHeight + (float)Math.sin(sector) * radius);
+                posY = (int)(floorHeight + Math.sin(sector) * radius);
                 posY = Math.max(0, Math.min(sizeY, posY));
                 if(posY <= (floorHeight - (floorHeight/4)) && (0 == rnd.nextInt(3)))
                     units[posX][posY] *= 2.5f;
@@ -584,7 +583,7 @@ public class ElementalAspect extends RealityAspect {
         return blocks[x][y];
     }
 
-    public Color getColor(int x, int y, int[][] units){
+    public Color getColor(int x, int y, float[][] units){
         return Material.getColor(blocks[x][y], units[x][y]).cpy();
     }
 
@@ -623,7 +622,7 @@ public class ElementalAspect extends RealityAspect {
 
     float avgUnit = 0;
     float avgDivisor = 0;
-    public Color getDebugColor(int x, int y, int[][] units, World parent){
+    public Color getDebugColor(int x, int y, float[][] units, World parent){
         Color defColor = getColor(x,y, units).cpy(); /*  TODO: Use spellUtil getColorOf */
 //        if(0 < touchedByMechanics[x][y]){ /* it was modified.. */
 //            defColor.lerp(Color.GREEN, 0.5f); /* to see if it was touched by the mechanics */
@@ -631,7 +630,7 @@ public class ElementalAspect extends RealityAspect {
 //                parent.getEtherealPlane().getTargetAether(x,y)
 //                - parent.getEtherealPlane().aetherValueAt(x,y)
 //            ) / Math.max(0.001f, parent.getEtherealPlane().aetherValueAt(x,y));
-        float unitsDiff = Math.abs(unitsAtLoopBegin[x][y] - parent.getUnits(x,y))/ (float)parent.getUnits(x,y);
+        float unitsDiff = Math.abs(unitsAtLoopBegin[x][y] - parent.getUnits(x,y))/ parent.getUnits(x,y);
             Color debugColor = new Color(
                 netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
                 //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
@@ -640,7 +639,7 @@ public class ElementalAspect extends RealityAspect {
                 aetherDebugVal(parent,x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
                 1.0f
             );
-            defColor.lerp(debugColor,0.3f);
+            defColor.lerp(debugColor,0.5f);
 //        }
         return defColor;
     }

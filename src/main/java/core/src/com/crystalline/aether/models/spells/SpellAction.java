@@ -4,7 +4,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.crystalline.aether.models.world.Material;
 
 public class SpellAction {
-    public int usedAether = 0, usedNether = 0;
+    public float usedAether = 0, usedNether = 0;
     public Material.Elements targetElement = Material.Elements.Nothing;
     public Vector3 pos = new Vector3();
 

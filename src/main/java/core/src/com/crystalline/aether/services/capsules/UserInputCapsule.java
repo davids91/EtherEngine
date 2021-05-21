@@ -75,13 +75,13 @@ public class UserInputCapsule extends InputService implements InputProcessor {
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        signal("mouseOnScreen2D", (float)screenX,(float)screenY);
+        signal("mouseOnScreen2D", (float)screenX, (float)screenY);
         return false;
     }
 
     @Override
     public boolean mouseMoved(int screenX, int screenY) {
-        signal("mouseOnScreen2D", (float)screenX,(float)screenY);
+        signal("mouseOnScreen2D", (float)screenX, (float)screenY);
         return false;
     }
 

@@ -34,21 +34,22 @@ public class Material {
 
     /**!Note: The ratio of the two values define the material states. Reality tries to "stick" to given ratios,
      * The difference is radiating away.  */
-    public static final int [] netherRatios = {
+    public static final float PHI = 1.6f;//1803398875f;
+    public static final float [] netherRatios = {
         /* Ratio of sides of the golden rectangle */
-        1, /* Ether *//*!Note: PHI^0 == 0.1*/
-        2, /* Earth */
-        3, /* Water */
-        4, /* Air */
-        5, /* Fire */
-        0 /* Nothing */
+        1.0f, /* Ether *//*!Note: PHI^0 == 0.1*/
+        (PHI), /* Earth */
+        (PHI * PHI), /* Water */
+        (PHI * PHI * PHI), /* Air */
+        (PHI * PHI * PHI * PHI), /* Fire */
+        0.0f, /* Nothing */
     };
 
-    public static int ratioOf(Elements element){
+    public static float ratioOf(Elements element){
         return netherRatios[element.ordinal()];
     }
 
-    public static final int[][] TYPE_UNIT_SELECTOR = {
+    public static final float[][] TYPE_UNIT_SELECTOR = {
         {0,100},
         {0,4,8,70,700,1000}, /* Earth */
         {0,10,20},  /* Water */
@@ -75,36 +76,36 @@ public class Material {
         {MechaProperties.Negligible}, /* Nothing */
     };
 
-    public static final int[][] TYPE_SPECIFIC_GRAVITY = {
+    public static final float[][] TYPE_SPECIFIC_GRAVITY = {
         {0,0}, /* Ether */
         {8,16,32,64,128,256}, /* Earth */ /* TODO: Glass */
         {5,-10,10}, /* Water */ /* TODO: steam, foam and ice */
         {-6, -5}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */
-        {-10,2,4}, /* Fire */
+        {-1,2,4}, /* Fire */
         {0,0} /* Nothing */
     };
 
-    public static boolean isSameMat(int ax, int ay, int bx, int by, Elements[][] types, int[][] units){
+    public static boolean isSameMat(int ax, int ay, int bx, int by, Elements[][] types, float[][] units){
         return isSameMat(types[ax][ay],units[ax][ay],types[bx][by],units[bx][by]);
     }
 
-    public static boolean isSameMat(Elements typeA, int unitA, Elements typeB, int unitB){
+    public static boolean isSameMat(Elements typeA, float unitA, Elements typeB, float unitB){
         return((typeA == typeB)&&(isSameMat(typeA, unitA,unitB)));
     }
 
-    public static boolean isSameMat(Elements type, int unitA, int unitB){
+    public static boolean isSameMat(Elements type, float unitA, float unitB){
         return MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unitA) == MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unitB);
     }
 
-    public static MechaProperties getState(Elements type, int unit){
+    public static MechaProperties getState(Elements type, float unit){
         return TYPE_SPECIFIC_STATE[type.ordinal()][MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()], unit)];
     }
 
-    public static boolean discardable(Elements type, int unit){
+    public static boolean discardable(Elements type, float unit){
         return MechaProperties.Negligible == getState(type,unit);
     }
 
-    public static boolean movable(Elements type, int unit){
+    public static boolean movable(Elements type, float unit){
         MechaProperties state = getState(type,unit);
         return (
             (MechaProperties.Negligible.ordinal() < state.ordinal())

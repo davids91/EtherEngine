@@ -30,13 +30,13 @@ public class World {
     EtherealAspect etherealPlane;
     ElementalAspect elementalPlane;
 
-    private final int[][] units;
+    private final float[][] units;
 
     public World(Config conf_){
         conf = conf_;
         sizeX = conf.WORLD_BLOCK_NUMBER[0];
         sizeY = conf.WORLD_BLOCK_NUMBER[1];
-        units = new int[sizeX][sizeY];
+        units = new float[sizeX][sizeY];
         etherealPlane = new EtherealAspect(conf);
         elementalPlane = new ElementalAspect(conf);
         etherealPlane.determineUnits(units,this);
@@ -80,7 +80,7 @@ public class World {
         etherealPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
         elementalPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
 
-        int tmp_val = units[to.getIX()][to.getIY()];
+        float tmp_val = units[to.getIX()][to.getIY()];
         units[to.getIX()][to.getIY()] = units[from.getIX()][from.getIY()];
         units[from.getIX()][from.getIY()] = tmp_val;
     }
@@ -125,15 +125,15 @@ public class World {
         if(action.active()){
             /* not very punctual... */ /* TODO: Make Spells of different levels; Lower level mages shall use the less punctual algorithm */
 //            if(action.aetherActive())
-//                addAetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedAether);
+//                addAetherTo((action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedAether);
 //            if(action.netherActive())
-//                addNetherTo((int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedNether);
+//                addNetherTo((action.pos.x + offset.x),(int)(action.pos.y + offset.y), action.usedNether);
 //            if(Material.Elements.Nothing != action.targetElement){ /* Most likely equalize action is attempted */
 //                getEtherealPlane().setTargetRatio(
-//                        (int)(action.pos.x + offset.x),(int)(action.pos.y + offset.y), Material.ratioOf(action.targetElement)
+//                        (action.pos.x + offset.x),(int)(action.pos.y + offset.y), Material.ratioOf(action.targetElement)
 //                );
 //                getElementalPlane().setElement(
-//                        (int)(action.pos.x + offset.x), (int)(action.pos.y + offset.y), action.targetElement
+//                        (action.pos.x + offset.x), (int)(action.pos.y + offset.y), action.targetElement
 //                );
 //            }
 
@@ -151,22 +151,22 @@ public class World {
         }
     }
 
-    public int getUnits(int x, int y) {
+    public float getUnits(int x, int y) {
         return units[x][y];
     }
 
-    private void addAetherTo(int x, int y, int value){
+    private void addAetherTo(int x, int y, float value){
         etherealPlane.addAetherTo(x,y,value);
         etherealPlane.determineUnits(units,this);
     }
 
-    private void addNetherTo(int x, int y, int value){
+    private void addNetherTo(int x, int y, float value){
         etherealPlane.addNetherTo(x,y,value);
         etherealPlane.determineUnits(units,this);
     }
 
-    private void tryToEqualize(int x, int y, int aetherToUse, int netherToUse, Material.Elements target) {
-        etherealPlane.tryToEqualize(x,y,aetherToUse,netherToUse, Material.netherRatios[target.ordinal()]);
+    private void tryToEqualize(int x, int y, float aetherToUse, float netherToUse, Material.Elements target) {
+        etherealPlane.tryToEqualize(x,y,aetherToUse,netherToUse, Material.ratioOf(target));
         etherealPlane.determineUnits(units,this);
         elementalPlane.defineBy(etherealPlane);
     }

@@ -8,12 +8,12 @@ public class MiscUtil {
     private static final Vector2 gravity = new Vector2(0f,-9.81f);
     private static final Vector2 tmp_gravity = new Vector2(gravity);
     public final Vector2 getGravity(int posX, int posY){
-//        if(((float)conf.world_block_number[1]*0.9f) <= posY) tmp_gravity.y = -gravity.y;
+//        if((conf.world_block_number[1]*0.9f) <= posY) tmp_gravity.y = -gravity.y;
 //        else tmp_gravity.y = gravity.y; /* TODO: Define gravity for multiple chunks */
         return tmp_gravity;
     }
 
-    public static int indexIn(int[] table, float value){
+    public static int indexIn(float[] table, float value){
         int index = table.length-1;
         while((index > 0)&&(table[index] >= value))--index;
         return index;

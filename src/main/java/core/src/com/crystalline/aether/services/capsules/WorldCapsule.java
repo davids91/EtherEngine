@@ -48,7 +48,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     private boolean play = true;
     private boolean aetherActive = false;
     private boolean netherActive = false;
-    private int manaToUse = 1;
+    private float manaToUse = 1;
     private SpellUtil.SpellEtherTendency tendency = SpellUtil.SpellEtherTendency.GIVE;
     private boolean doActions = true;
     private boolean collectActions = true;
@@ -121,13 +121,13 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
                             manaToUse,
                             world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
                             world.getEtherealPlane().netherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
-                            Material.netherRatios[spellAction.targetElement.ordinal()]
+                            Material.ratioOf(spellAction.targetElement)
                     );
                     spellAction.usedNether = EtherealAspect.getNetherDeltaToTargetRatio(
                             manaToUse,
                             world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
                             world.getEtherealPlane().netherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
-                            Material.netherRatios[spellAction.targetElement.ordinal()]
+                            Material.ratioOf(spellAction.targetElement)
                     ); /* TODO: Make editor punctual enough for ether crytals */
                 }
             }
@@ -194,7 +194,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
             }
         }else if(collectActions){
             if(name.equals("manaToUse")&&(1 == parameters.length)){
-                manaToUse = (int)parameters[0];
+                manaToUse = (float)parameters[0];
             }else if(name.equals("targetElement")&&(1 == parameters.length)){
                 if(parameters[0] == Material.Elements.Nothing){
                     spellAction.targetElement = Material.Elements.Nothing;

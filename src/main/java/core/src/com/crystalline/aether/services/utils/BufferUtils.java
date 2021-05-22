@@ -13,13 +13,14 @@ public class BufferUtils {
         return map2DTo1D(x,y,maxX) * cellsize;
     }
 
-    public static void set(int x, int y, int cellsize, int maxX, FloatBuffer buffer, float value){
-        buffer.position(indexOf(x,y,cellsize,maxX));
-        buffer.put(value);
+    public static void set(int x, int y, int maxX, int cellSize, int offset,  FloatBuffer buffer, float value){
+        if(offset >= cellSize) throw new IndexOutOfBoundsException("internal offset value is greater, than cellSize!");
+        buffer.put(indexOf(x,y,cellSize,maxX) + offset, value);
     }
 
-    public static float get(int x, int y, int cellsize, int maxX, FloatBuffer buffer){
-        return buffer.get(indexOf(x,y,cellsize,maxX));
+    public static float get(int x, int y, int maxX, int cellSize, int offset, FloatBuffer buffer){
+        if(offset >= cellSize) throw new IndexOutOfBoundsException("internal offset value is greater, than cellSize!");
+        return buffer.get(indexOf(x,y,cellSize,maxX) + offset);
     }
 
     public static FloatBuffer clone(FloatBuffer original) {

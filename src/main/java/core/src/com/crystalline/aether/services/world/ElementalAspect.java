@@ -5,14 +5,13 @@ import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
-import com.crystalline.aether.services.utils.MathUtils;
-import com.crystalline.aether.services.utils.MiscUtil;
-import com.crystalline.aether.services.utils.Vector2i;
+import com.crystalline.aether.services.utils.BufferUtils;
+import com.crystalline.aether.services.utils.MiscUtils;
 
 import java.util.*;
 
 public class ElementalAspect extends RealityAspect {
-    MiscUtil myMiscUtil;
+    MiscUtils myMiscUtils;
     protected final int sizeX;
     protected final int sizeY;
     private final int velocityMaxTicks = 3;
@@ -30,7 +29,7 @@ public class ElementalAspect extends RealityAspect {
         super(conf_);
         sizeX = conf.WORLD_BLOCK_NUMBER[0];
         sizeY = conf.WORLD_BLOCK_NUMBER[1];
-        myMiscUtil = new MiscUtil();
+        myMiscUtils = new MiscUtils();
         blocks = new Material.Elements[sizeX][sizeY];
         forces = new Vector2[sizeX][sizeY];
         gravityCorrectionAmount = new float[sizeX][sizeY];
@@ -213,7 +212,7 @@ public class ElementalAspect extends RealityAspect {
     public float getWeight(int x, int y, float[][] units){
         /* TODO: Weight to include pressure somehow? or at least the same materials on top */
         return (
-            units[x][y] * Material.TYPE_SPECIFIC_GRAVITY[blocks[x][y].ordinal()][MiscUtil.indexIn(
+            units[x][y] * Material.TYPE_SPECIFIC_GRAVITY[blocks[x][y].ordinal()][MiscUtils.indexIn(
                 Material.TYPE_UNIT_SELECTOR[blocks[x][y].ordinal()], units[x][y]
             )]
         );
@@ -230,7 +229,7 @@ public class ElementalAspect extends RealityAspect {
 
     @Override
     public void processMechanics(float[][] units, World parent) {
-        HashMap<MiscUtil.MyCell, MiscUtil.MyCell> remaining_proposed_changes = new HashMap<>();
+        HashMap<MiscUtils.MyCell, MiscUtils.MyCell> remaining_proposed_changes = new HashMap<>();
         for(int x = 1; x < sizeX-1; ++x){ /* Pre-process: Add gravity, and nullify forces on discardable objects; */
             for(int y = sizeY-2; y > 0; --y){
                 touchedByMechanics[x][y] = 0;
@@ -241,7 +240,7 @@ public class ElementalAspect extends RealityAspect {
             processMechanicsBackend(units,parent,remaining_proposed_changes);
         }
 
-        for(Map.Entry<MiscUtil.MyCell, MiscUtil.MyCell> missedCells : remaining_proposed_changes.entrySet()){
+        for(Map.Entry<MiscUtils.MyCell, MiscUtils.MyCell> missedCells : remaining_proposed_changes.entrySet()){
             gravityCorrectionAmount[missedCells.getKey().getIX()][missedCells.getKey().getIY()] =
                 (getWeight(missedCells.getKey().getIX(),missedCells.getKey().getIY(),units));
             gravityCorrectionAmount[missedCells.getValue().getIX()][missedCells.getValue().getIY()] =
@@ -252,8 +251,8 @@ public class ElementalAspect extends RealityAspect {
             for(int y = sizeY-2; y > 0; --y){
                 if(Material.movable(blocks[x][y], units[x][y])){
                     forces[x][y].add(
-                        myMiscUtil.getGravity(x,y).x * gravityCorrectionAmount[x][y],
-                        myMiscUtil.getGravity(x,y).y * gravityCorrectionAmount[x][y]
+                        myMiscUtils.getGravity(x,y).x * gravityCorrectionAmount[x][y],
+                        myMiscUtils.getGravity(x,y).y * gravityCorrectionAmount[x][y]
                     );
                 }
             }
@@ -262,7 +261,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     /* TODO: Make movable objects, depending of the solidness "merge into one another", leaving vacuum behind, which are to resolved at the end of the mechanics round */
-    public void processMechanicsBackend(float[][] units, World parent, HashMap<MiscUtil.MyCell, MiscUtil.MyCell> previouslyLeftOutProposals){
+    public void processMechanicsBackend(float[][] units, World parent, HashMap<MiscUtils.MyCell, MiscUtils.MyCell> previouslyLeftOutProposals){
         /* update forces based on context, calculate intended velocities based on them */
         for(int x = 1; x < sizeX-2; ++x){
             for(int y = 1; y < sizeY-2; ++y){
@@ -337,12 +336,12 @@ public class ElementalAspect extends RealityAspect {
         /* TODO: First come first served to be replaced by a better system */
         /*!Note: Proposed changes are of the structure: key/source block array --> value/target block array
          * */
-        HashMap<MiscUtil.MyCell, MiscUtil.MyCell> proposedChanges = new HashMap<>();
+        HashMap<MiscUtils.MyCell, MiscUtils.MyCell> proposedChanges = new HashMap<>();
         HashSet<Integer> already_changed = new HashSet<>();
-        HashMap<MiscUtil.MyCell, MiscUtil.MyCell> remaining = new HashMap<>();
+        HashMap<MiscUtils.MyCell, MiscUtils.MyCell> remaining = new HashMap<>();
 
         /* Take over proposals left out from the previous process loop */
-        for(Map.Entry<MiscUtil.MyCell, MiscUtil.MyCell> currChange : previouslyLeftOutProposals.entrySet()){
+        for(Map.Entry<MiscUtils.MyCell, MiscUtils.MyCell> currChange : previouslyLeftOutProposals.entrySet()){
             if(!evaluateForMechanics(units, currChange.getKey(), currChange.getValue(),proposedChanges,already_changed)){
                 remaining.put(currChange.getKey(),currChange.getValue());
             }
@@ -370,7 +369,7 @@ public class ElementalAspect extends RealityAspect {
         }
 
         /* apply changes */
-        for(Map.Entry<MiscUtil.MyCell, MiscUtil.MyCell> curr_change : proposedChanges.entrySet()){
+        for(Map.Entry<MiscUtils.MyCell, MiscUtils.MyCell> curr_change : proposedChanges.entrySet()){
             int source_x = curr_change.getKey().getIX();
             int source_y = curr_change.getKey().getIY();
             int target_x = curr_change.getValue().getIX();
@@ -407,8 +406,8 @@ public class ElementalAspect extends RealityAspect {
                     (-forces[source_x][source_y].y * (Math.abs(getWeight(source_x,source_y,units)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,units)), forces[source_x][source_y].y))))
                 );
                 forces[source_x][source_y].add(
-                    (myMiscUtil.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units)),
-                    (myMiscUtil.getGravity(source_x,source_y).y * getWeight(source_x,source_y,units))
+                    (myMiscUtils.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units)),
+                    (myMiscUtils.getGravity(source_x,source_y).y * getWeight(source_x,source_y,units))
                 );
 
                 parent.switchElements(curr_change.getKey(),curr_change.getValue());
@@ -427,8 +426,8 @@ public class ElementalAspect extends RealityAspect {
                     (m1 * (result_speed.y - u1.y))
                 );
                 forces[source_x][source_y].add(
-                myMiscUtil.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units),
-                myMiscUtil.getGravity(source_x,source_y).y * getWeight(source_x,source_y,units)
+                myMiscUtils.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units),
+                myMiscUtils.getGravity(source_x,source_y).y * getWeight(source_x,source_y,units)
                 );
                 gravityCorrectionAmount[source_x][source_y] = 0;
                 if(Material.movable(blocks[target_x][target_y],units[target_x][target_y])){
@@ -438,8 +437,8 @@ public class ElementalAspect extends RealityAspect {
                     );
                     forces[target_x][target_y].set( m2 * (result_speed.x - u2.x), m2 * (result_speed.y - u2.y) );
                     forces[target_x][target_y].add( /* Since forces are changed, gravity correction shall be done in-place */
-                    myMiscUtil.getGravity(target_x,target_y).x * getWeight(target_x,target_y,units),
-                    myMiscUtil.getGravity(target_x,target_y).y * getWeight(target_x,target_y,units)
+                    myMiscUtils.getGravity(target_x,target_y).x * getWeight(target_x,target_y,units),
+                    myMiscUtils.getGravity(target_x,target_y).y * getWeight(target_x,target_y,units)
                     );
                     gravityCorrectionAmount[target_x][target_y] = 0;
                 } /* do not update the force for unmovable objects */
@@ -450,12 +449,12 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private void createProposalForCell(
-        int x, int y, float[][] units,
-        HashMap<MiscUtil.MyCell, MiscUtil.MyCell> previously_left_out_proposals,
-        HashMap<MiscUtil.MyCell, MiscUtil.MyCell> proposed_changes, HashSet<Integer> already_changed
+            int x, int y, float[][] units,
+            HashMap<MiscUtils.MyCell, MiscUtils.MyCell> previously_left_out_proposals,
+            HashMap<MiscUtils.MyCell, MiscUtils.MyCell> proposed_changes, HashSet<Integer> already_changed
     ){
-        MiscUtil.MyCell intendedSourceCell = new MiscUtil.MyCell(sizeX);
-        MiscUtil.MyCell intendedTargetCell = new MiscUtil.MyCell(sizeX);
+        MiscUtils.MyCell intendedSourceCell = new MiscUtils.MyCell(sizeX);
+        MiscUtils.MyCell intendedTargetCell = new MiscUtils.MyCell(sizeX);
         Vector2 target_final_position = new Vector2();
         if( !Material.discardable(blocks[x][y], units[x][y]) && (1 <= forces[x][y].len()) ){
             intendedSourceCell.set(x,y);
@@ -483,7 +482,7 @@ public class ElementalAspect extends RealityAspect {
             /* see if the two cells still intersect with forces included */
             if(2 > intendedSourceCell.dst(target_final_position)){
                 if(!evaluateForMechanics(units, intendedSourceCell,intendedTargetCell,proposed_changes,already_changed)){
-                    previously_left_out_proposals.put(new MiscUtil.MyCell(intendedSourceCell),new MiscUtil.MyCell(intendedTargetCell));
+                    previously_left_out_proposals.put(new MiscUtils.MyCell(intendedSourceCell),new MiscUtils.MyCell(intendedTargetCell));
                     /* Since these cells are left out, add no gravity to them! */
                     gravityCorrectionAmount[intendedSourceCell.getIX()][intendedSourceCell.getIY()] = 0;
                     gravityCorrectionAmount[intendedTargetCell.getIX()][intendedTargetCell.getIY()] = 0;
@@ -502,8 +501,8 @@ public class ElementalAspect extends RealityAspect {
      * @return whether or not the cells could be placed into the already proposed changes
      */
     private boolean evaluateForMechanics(
-        float[][] units, MiscUtil.MyCell source_cell, MiscUtil.MyCell targetCell,
-        HashMap<MiscUtil.MyCell, MiscUtil.MyCell> alreadyProposedChanges, HashSet<Integer> alreadyChanged
+            float[][] units, MiscUtils.MyCell source_cell, MiscUtils.MyCell targetCell,
+            HashMap<MiscUtils.MyCell, MiscUtils.MyCell> alreadyProposedChanges, HashSet<Integer> alreadyChanged
     ){
         int x = source_cell.getIX();
         int y = source_cell.getIY();
@@ -515,13 +514,13 @@ public class ElementalAspect extends RealityAspect {
                 !Material.discardable(blocks[x][y],units[x][y])
                 ||!Material.discardable(blocks[intendedX][intendedY],units[intendedX][intendedY])
             )
-            &&(!alreadyChanged.contains(MathUtils.coordinateToHash(x,y,sizeX)))
-            &&(!alreadyChanged.contains(MathUtils.coordinateToHash(intendedX,intendedY,sizeX)))
+            &&(!alreadyChanged.contains(BufferUtils.map2DTo1D(x,y,sizeX)))
+            &&(!alreadyChanged.contains(BufferUtils.map2DTo1D(intendedX,intendedY,sizeX)))
         ){
             if(velocityMaxTicks == velocityTicks[x][y]){
-                alreadyProposedChanges.put(new MiscUtil.MyCell(x,y,sizeX),new MiscUtil.MyCell(intendedX,intendedY,sizeX));
-                alreadyChanged.add(MathUtils.coordinateToHash(x,y,sizeX));
-                alreadyChanged.add(MathUtils.coordinateToHash(intendedX,intendedY,sizeX));
+                alreadyProposedChanges.put(new MiscUtils.MyCell(x,y,sizeX),new MiscUtils.MyCell(intendedX,intendedY,sizeX));
+                alreadyChanged.add(BufferUtils.map2DTo1D(x,y,sizeX));
+                alreadyChanged.add(BufferUtils.map2DTo1D(intendedX,intendedY,sizeX));
                 velocityTicks[x][y] = 0;
                 return true;
             }else ++velocityTicks[x][y];

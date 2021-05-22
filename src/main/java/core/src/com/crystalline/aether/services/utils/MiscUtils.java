@@ -3,7 +3,7 @@ package com.crystalline.aether.services.utils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 
-public class MiscUtil {
+public class MiscUtils {
     public static final Vector3 zeroVec = new Vector3(0,0, 0);
     private static final Vector2 gravity = new Vector2(0f,-9.81f);
     private static final Vector2 tmp_gravity = new Vector2(gravity);
@@ -47,7 +47,7 @@ public class MiscUtil {
 
         @Override
         public int hashCode() {
-            return MathUtils.coordinateToHash((int)x,(int)y,sizeX);
+            return BufferUtils.map2DTo1D((int)x,(int)y,sizeX);
         }
     }
 }

@@ -25,7 +25,7 @@ import com.crystalline.aether.services.ui.EtherBrushPanel;
 import com.crystalline.aether.services.ui.SpellFrameView;
 import com.crystalline.aether.services.ui.TimeframeTable;
 import com.crystalline.aether.services.utils.SkinFactory;
-import com.crystalline.aether.services.utils.MiscUtil;
+import com.crystalline.aether.services.utils.MiscUtils;
 import com.crystalline.aether.services.world.World;
 
 import java.util.ArrayList;
@@ -196,7 +196,7 @@ public class EditorScene extends Scene {
         worldCapsule.setBroadcastActions(false);
         for(int i = 0; i < numberOfFrames; ++i){
             if(activeTimeFrame == i)world.pushState();
-            worldCapsule.doActions(MiscUtil.zeroVec, spellBuilder.getCurrentSpell().getFrame(i).getActions());
+            worldCapsule.doActions(MiscUtils.zeroVec, spellBuilder.getCurrentSpell().getFrame(i).getActions());
             worldCapsule.step();
             timeframeTable.getFrame(i).setFrame(worldCapsule.getDisplay());
         }

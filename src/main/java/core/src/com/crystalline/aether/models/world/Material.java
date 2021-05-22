@@ -1,7 +1,7 @@
 package com.crystalline.aether.models.world;
 
 import com.badlogic.gdx.graphics.Color;
-import com.crystalline.aether.services.utils.MiscUtil;
+import com.crystalline.aether.services.utils.MiscUtils;
 
 import java.util.*;
 
@@ -94,11 +94,11 @@ public class Material {
     }
 
     public static boolean isSameMat(Elements type, float unitA, float unitB){
-        return MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unitA) == MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unitB);
+        return MiscUtils.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unitA) == MiscUtils.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unitB);
     }
 
     public static MechaProperties getState(Elements type, float unit){
-        return TYPE_SPECIFIC_STATE[type.ordinal()][MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()], unit)];
+        return TYPE_SPECIFIC_STATE[type.ordinal()][MiscUtils.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()], unit)];
     }
 
     public static boolean discardable(Elements type, float unit){
@@ -116,7 +116,7 @@ public class Material {
     public static Color getColor(Elements type, float unit){
         return TYPE_COLORS[type.ordinal()][Math.min((
             TYPE_COLORS[type.ordinal()].length - 1),
-            MiscUtil.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unit)
+            MiscUtils.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()],unit)
         )];
     }
 

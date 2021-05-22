@@ -3,8 +3,12 @@ package com.crystalline.aether.services.world;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
+import com.crystalline.aether.services.utils.BufferUtils;
 
-import java.util.Arrays;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 
 /* TODO: Surplus Ether to modify the force of the Ether vapor in an increased amount */
 public class EtherealAspect extends RealityAspect {
@@ -14,30 +18,29 @@ public class EtherealAspect extends RealityAspect {
     protected final int sizeX;
     protected final int sizeY;
 
-    private float[][] aetherValues; /* Stationary substance */
-    private float[][] netherValues; /* Moving substance */
+    private FloatBuffer aetherValues; /* Stationary substance */
+    private FloatBuffer netherValues; /* Moving substance */
 
     public EtherealAspect(Config conf_){
         super(conf_);
         sizeX = conf.WORLD_BLOCK_NUMBER[0];
         sizeY = conf.WORLD_BLOCK_NUMBER[1];
-        aetherValues = new float[sizeX][sizeY];
-        netherValues = new float[sizeX][sizeY];
+        aetherValues = ByteBuffer.allocateDirect(Float.BYTES * 4 * sizeX * sizeY)
+            .order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer(); /* RGBA */
+        netherValues = ByteBuffer.allocateDirect(Float.BYTES * 4 * sizeX * sizeY)
+            .order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer(); /* RGBA */
         reset();
     }
 
     @Override
     protected Object[] getState() {
-        return new Object[]{
-            Arrays.copyOf(aetherValues,aetherValues.length),
-            Arrays.copyOf(netherValues,netherValues.length)
-        };
+        return new Object[]{BufferUtils.clone(aetherValues), BufferUtils.clone(netherValues)};
     }
 
     @Override
     protected void setState(Object[] state) {
-        aetherValues = (float[][])state[0];
-        netherValues = (float[][])state[1];
+        aetherValues = (FloatBuffer)state[0];
+        netherValues = (FloatBuffer)state[1];
     }
 
     public void reset(){
@@ -131,24 +134,20 @@ public class EtherealAspect extends RealityAspect {
             for (int y = 0; y < sizeY; ++y) {
 
                 /* Subtract the released Ether, and add the shared */
-                netherValues[x][y] -= releasedNether[x][y];
-                aetherValues[x][y] -= releasedAether[x][y];
                 /* TODO: The more units there is, the more ether is absorbed */
-                aetherValues[x][y] += availableAvgAe[x][y] * 0.9f;// / parent.getUnits(x,y);
-                netherValues[x][y] += availableAvgNe[x][y] * 0.9f;// / parent.getUnits(x,y);
+                float newAetherValue = Math.max( 0.01f, /* Update values with safety cut */
+                    aetherValueAt(x,y) - releasedAether[x][y] + (availableAvgAe[x][y] * 0.9f)// / parent.getUnits(x,y));
+                );
+                float newNetherValue = Math.max( 0.01f,
+                    netherValueAt(x,y) - releasedNether[x][y] + (availableAvgNe[x][y] * 0.9f)// / parent.getUnits(x,y));
+                );
 
                 /* TODO: Surplus Nether to goes into other effects?? */
                 /* TODO: Implement heat */
                 /* TODO: Surplus Aether to go into para-effects also */
                 /* TODO: Make Earth not share Aether so easily ( decide if this is even needed )  */
-                /* Safety to never let values below zero */
-                if (0 >= aetherValueAt(x,y)) {
-                    aetherValues[x][y] = 0.01f;
-                }
-                if (0 >= netherValueAt(x,y)) {
-                    netherValues[x][y] = 0.01f;
-                }
-
+                setAetherTo(x,y,newAetherValue);
+                setNetherTo(x,y,newNetherValue);
             }
         }
     }
@@ -205,10 +204,10 @@ public class EtherealAspect extends RealityAspect {
     }
 
     public float aetherValueAt(int x, int y){
-        return aetherValues[x][y];
+        return aetherValues.get(BufferUtils.indexOf(x,y,4,sizeX));
     }
     public float netherValueAt(int x, int y){
-        return netherValues[x][y];
+        return netherValues.get(BufferUtils.indexOf(x,y,4,sizeX));
     }
 
     public float getRatio(int x, int y){
@@ -234,13 +233,13 @@ public class EtherealAspect extends RealityAspect {
         setAetherTo(x,y, Math.max(0.01f, aetherValueAt(x,y) + value));
     }
     public void setAetherTo(int x, int y, float value){
-        aetherValues[x][y] = Math.max(0.01f, value);
+        BufferUtils.set(x,y,4,sizeX,aetherValues,Math.max(0.01f, value));
     }
     public void addNetherTo(int x, int y, float value){
         setNetherTo(x,y, Math.max(0.01f, netherValueAt(x,y) + value));
     }
     public void setNetherTo(int x, int y, float value){
-        netherValues[x][y] = Math.max(0.01f, value);
+        BufferUtils.set(x,y,4,sizeX,netherValues,Math.max(0.01f, value));
     }
 
 

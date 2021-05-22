@@ -4,7 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector3;
 import com.crystalline.aether.models.spells.SpellAction;
-import com.crystalline.aether.services.utils.MiscUtil;
+import com.crystalline.aether.services.utils.MiscUtils;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.Material;
 
@@ -76,7 +76,7 @@ public class World {
         return averageVal;
     }
 
-    public void switchElements(MiscUtil.MyCell from, MiscUtil.MyCell to){
+    public void switchElements(MiscUtils.MyCell from, MiscUtils.MyCell to){
         etherealPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
         elementalPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
 

@@ -12,7 +12,7 @@ import com.crystalline.aether.models.spells.Spell;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.services.utils.SpellUtil;
 import com.crystalline.aether.models.spells.SpellAction;
-import com.crystalline.aether.services.utils.MiscUtil;
+import com.crystalline.aether.services.utils.MiscUtils;
 import com.crystalline.aether.services.world.EtherealAspect;
 import com.crystalline.aether.models.architecture.CapsuleService;
 import com.crystalline.aether.models.Config;
@@ -133,7 +133,7 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
             }
             /* applying simple actions */
             if(doActions){
-                world.doAction(spellAction, MiscUtil.zeroVec);
+                world.doAction(spellAction, MiscUtils.zeroVec);
             }
             if(broadcastActions)signal("lastAction", spellAction);
 

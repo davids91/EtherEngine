@@ -6,7 +6,7 @@ import com.crystalline.aether.models.architecture.CapsuleService;
 import com.crystalline.aether.models.architecture.Scene;
 import com.crystalline.aether.models.spells.Spell;
 import com.crystalline.aether.models.spells.SpellAction;
-import com.crystalline.aether.services.utils.MathUtils;
+import com.crystalline.aether.services.utils.BufferUtils;
 
 public class SpellBuilder extends CapsuleService {
     private final Config conf;
@@ -48,7 +48,7 @@ public class SpellBuilder extends CapsuleService {
             activeTimeframe = (int)parameters[0];
         }else if(name.equals("lastAction")&&(1 == parameters.length)){
             SpellAction action = ((SpellAction)parameters[0]);
-            int coordinateHash = MathUtils.coordinateToHash((int)action.pos.x, (int)action.pos.y, conf.WORLD_BLOCK_NUMBER[0]);
+            int coordinateHash = BufferUtils.map2DTo1D((int)action.pos.x, (int)action.pos.y, conf.WORLD_BLOCK_NUMBER[0]);
             getCurrentSpell().getFrame(activeTimeframe).addAction(action, coordinateHash);
         }
     }

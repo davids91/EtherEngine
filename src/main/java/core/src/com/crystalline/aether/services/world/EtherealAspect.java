@@ -8,12 +8,12 @@ import java.util.Arrays;
 
 /* TODO: Surplus Ether to modify the force of the Ether vapor in an increased amount */
 public class EtherealAspect extends RealityAspect {
+    private static final float aetherWeightInUnits = 4;
+    private static final float etherReleaseThreshold = 0.1f;
+
     protected final int sizeX;
     protected final int sizeY;
 
-    private static final float aetherWeightInUnits = 4;
-
-    private float[][] releaseTick;
     private float[][] aetherValues; /* Stationary substance */
     private float[][] netherValues; /* Moving substance */
 
@@ -23,7 +23,6 @@ public class EtherealAspect extends RealityAspect {
         sizeY = conf.WORLD_BLOCK_NUMBER[1];
         aetherValues = new float[sizeX][sizeY];
         netherValues = new float[sizeX][sizeY];
-        releaseTick = new float[sizeX][sizeY];
         reset();
     }
 
@@ -31,8 +30,7 @@ public class EtherealAspect extends RealityAspect {
     protected Object[] getState() {
         return new Object[]{
             Arrays.copyOf(aetherValues,aetherValues.length),
-            Arrays.copyOf(netherValues,netherValues.length),
-            Arrays.copyOf(releaseTick, releaseTick.length)
+            Arrays.copyOf(netherValues,netherValues.length)
         };
     }
 
@@ -40,14 +38,13 @@ public class EtherealAspect extends RealityAspect {
     protected void setState(Object[] state) {
         aetherValues = (float[][])state[0];
         netherValues = (float[][])state[1];
-        releaseTick = (float[][])state[2];
     }
 
     public void reset(){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                aetherValues[x][y] = 1;
-                netherValues[x][y] = Material.ratioOf(Material.Elements.Air);
+                setAetherTo(x,y, 1);
+                setNetherTo(x,y, Material.ratioOf(Material.Elements.Air));
             }
         }
     }
@@ -56,44 +53,25 @@ public class EtherealAspect extends RealityAspect {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 if(0 < units[x][y]) {
-                    aetherValues[x][y] = (((2.0f * units[x][y]) / (1.0f + Material.ratioOf(plane.elementAt(x, y)))));
-                    netherValues[x][y] = aetherValues[x][y] * Material.ratioOf(plane.elementAt(x, y));
+                    setAetherTo(x,y, (((2.0f * units[x][y]) / (1.0f + Material.ratioOf(plane.elementAt(x, y))))));
+                    setNetherTo(x,y, ( aetherValueAt(x,y)* Material.ratioOf(plane.elementAt(x, y))));
                 }else{
-                    aetherValues[x][y] = 1;
-                    netherValues[x][y] = Material.ratioOf(Material.Elements.Air);
+                    setAetherTo(x,y,1);
+                    setNetherTo(x,y, Material.ratioOf(Material.Elements.Air));
                 }
             }
         }
-    }
-
-    private float getEtherDelta(float requested, float available){
-        if(0 < requested) return Math.min(requested, available);
-        else return Math.max(requested,-available);
     }
 
     @Override
     public void switchValues(int fromX, int fromY, int toX, int toY) {
-        float tmp_val = aetherValues[toX][toY];
-        aetherValues[toX][toY] = aetherValues[fromX][fromY];
-        aetherValues[fromX][fromY] = tmp_val;
+        float tmpVal = aetherValueAt(toX,toY);
+        setAetherTo(toX, toY, aetherValueAt(fromX,fromY));
+        setAetherTo(fromX, fromY, tmpVal);
 
-        tmp_val = netherValues[toX][toY];
-        netherValues[toX][toY] = netherValues[fromX][fromY];
-        netherValues[fromX][fromY] = tmp_val;
-    }
-
-    private float avgOfPositive(int x, int y, float[][] table){
-        float ret = 0.0f;
-        float divisor = 0.0f;
-        for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
-            for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeX, y + 2); ++ny) {
-                if(0 < table[nx][ny]){
-                    ret += table[nx][ny];
-                    ++divisor;
-                }
-            }
-        }
-        return (ret / Math.max(0.001f,divisor));
+        tmpVal = netherValueAt(toX,toY);
+        setNetherTo(toX, toY, netherValueAt(fromX,fromY));
+        setNetherTo(fromX, fromY, tmpVal);
     }
 
     private float avgOf(int x, int y, float[][] table){
@@ -108,17 +86,13 @@ public class EtherealAspect extends RealityAspect {
         return (ret / divisor);
     }
 
-    private static final float etherReleaseThreshold = 0.1f;
-
     public float getMaxNether(int x, int y){
         return aetherValueAt(x,y) * Material.ratioOf(Material.Elements.Fire);
     }
-
     public float getMinAether(int x, int y){
         return netherValueAt(x,y) / Material.ratioOf(Material.Elements.Earth);
     }
-
-    private void processEther(World parent) {
+    private void processEther() {
         float[][] releasedNether = new float[sizeX][sizeY];
         float[][] availableAvgNe = new float[sizeX][sizeY];
         float[][] releasedAether = new float[sizeX][sizeY];
@@ -130,18 +104,16 @@ public class EtherealAspect extends RealityAspect {
                 releasedAether[x][y] = 0;
                 float currentRatio = getRatio(x,y);
                 if( 0.5 < Math.abs(currentRatio - Material.ratioOf(Material.Elements.Ether)) ){
-                    float aetherToRelease = (aetherValues[x][y] - getMinAether(x, y));
-                    float netherToRelease = (netherValues[x][y] - getMaxNether(x,y));
+                    float aetherToRelease = (aetherValueAt(x,y) - getMinAether(x, y));
+                    float netherToRelease = (netherValueAt(x,y) - getMaxNether(x, y));
                     if(
-                        ( netherValues[x][y] >= (getMaxNether(x,y)) + (aetherValueAt(x,y) * etherReleaseThreshold) )
-                        || ( aetherValues[x][y] >= (getMinAether(x,y) + (netherValueAt(x,y) * etherReleaseThreshold)) )
+                        ( netherValueAt(x,y) >= (getMaxNether(x,y)) + (aetherValueAt(x,y) * etherReleaseThreshold) )
+                        || ( aetherValueAt(x,y) >= (getMinAether(x,y) + (netherValueAt(x,y) * etherReleaseThreshold)) )
                     ){
                         if(netherToRelease >= aetherToRelease){
                             releasedNether[x][y] = netherToRelease / 9.0f;
-                            netherValues[x][y] -= releasedNether[x][y];
                         }else{
                             releasedAether[x][y] = aetherToRelease / 9.0f;
-                            aetherValues[x][y] -= releasedAether[x][y];
                         }
                     }
                 }
@@ -158,6 +130,9 @@ public class EtherealAspect extends RealityAspect {
         for (int x = 0; x < sizeX; ++x) { /* finalizing Ether */
             for (int y = 0; y < sizeY; ++y) {
 
+                /* Subtract the released Ether, and add the shared */
+                netherValues[x][y] -= releasedNether[x][y];
+                aetherValues[x][y] -= releasedAether[x][y];
                 /* TODO: The more units there is, the more ether is absorbed */
                 aetherValues[x][y] += availableAvgAe[x][y] * 0.9f;// / parent.getUnits(x,y);
                 netherValues[x][y] += availableAvgNe[x][y] * 0.9f;// / parent.getUnits(x,y);
@@ -167,10 +142,10 @@ public class EtherealAspect extends RealityAspect {
                 /* TODO: Surplus Aether to go into para-effects also */
                 /* TODO: Make Earth not share Aether so easily ( decide if this is even needed )  */
                 /* Safety to never let values below zero */
-                if (0 >= aetherValues[x][y]) {
+                if (0 >= aetherValueAt(x,y)) {
                     aetherValues[x][y] = 0.01f;
                 }
-                if (0 >= netherValues[x][y]) {
+                if (0 >= netherValueAt(x,y)) {
                     netherValues[x][y] = 0.01f;
                 }
 
@@ -180,7 +155,7 @@ public class EtherealAspect extends RealityAspect {
 
     @Override
     public void processUnits(float[][] units, World parent){
-        processEther(parent);
+        processEther();
         determineUnits(units,parent);
     }
 
@@ -215,7 +190,7 @@ public class EtherealAspect extends RealityAspect {
             ((aetherValueAt(x,y)* aetherWeightInUnits + netherValueAt(x,y)) * units[x][y])
             / (oldUnit* aetherWeightInUnits + oldUnit * oldRatio)
         ));
-        setNetherTo(x,y, (aetherValues[x][y] * oldRatio));
+        setNetherTo(x,y, (aetherValueAt(x,y) * oldRatio));
     }
 
     @Override
@@ -225,7 +200,7 @@ public class EtherealAspect extends RealityAspect {
 
     @Override
     public void postProcess(float[][] units, World parent) {
-        /* TODO: Decide para-modifiers ( e.g. heat ) */
+        /* TODO: Decide para-modifiers ( e.g. heat, light?! ) */
         /* TODO: Increase heat where there is a surplus Nether */
     }
 
@@ -237,8 +212,8 @@ public class EtherealAspect extends RealityAspect {
     }
 
     public float getRatio(int x, int y){
-        if(0 != aetherValues[x][y])
-            return (netherValues[x][y]/ aetherValues[x][y]);
+        if(0 != aetherValueAt(x,y))
+            return (netherValueAt(x,y) / aetherValueAt(x,y));
         else return 0;
     }
 
@@ -256,13 +231,13 @@ public class EtherealAspect extends RealityAspect {
     }
 
     public void addAetherTo(int x, int y, float value){
-        aetherValues[x][y] = Math.max(0.01f, aetherValues[x][y]+value);
+        setAetherTo(x,y, Math.max(0.01f, aetherValueAt(x,y) + value));
     }
     public void setAetherTo(int x, int y, float value){
         aetherValues[x][y] = Math.max(0.01f, value);
     }
     public void addNetherTo(int x, int y, float value){
-        netherValues[x][y] = Math.max(0.01f, netherValues[x][y]+value);
+        setNetherTo(x,y, Math.max(0.01f, netherValueAt(x,y) + value));
     }
     public void setNetherTo(int x, int y, float value){
         netherValues[x][y] = Math.max(0.01f, value);
@@ -270,8 +245,8 @@ public class EtherealAspect extends RealityAspect {
 
 
     public void tryToEqualize(int x, int y, float aetherDelta, float netherDelta, float ratio){
-        aetherValues[x][y] = getEqualizeAttemptAetherValue(aetherValues[x][y],netherValues[x][y],aetherDelta,netherDelta,ratio);
-        netherValues[x][y] = getEqualizeAttemptNetherValue(aetherValues[x][y],netherValues[x][y],aetherDelta,netherDelta,ratio);
+        setAetherTo(x,y, getEqualizeAttemptAetherValue(aetherValueAt(x,y),netherValueAt(x,y),aetherDelta,netherDelta,ratio));
+        setNetherTo(x,y, getEqualizeAttemptNetherValue(aetherValueAt(x,y),netherValueAt(x,y),aetherDelta,netherDelta,ratio));
         /* TODO: the remainder should be radiated into pra-effects */
     }
 

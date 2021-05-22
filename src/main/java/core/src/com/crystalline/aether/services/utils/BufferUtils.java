@@ -18,6 +18,10 @@ public class BufferUtils {
         buffer.put(value);
     }
 
+    public static float get(int x, int y, int cellsize, int maxX, FloatBuffer buffer){
+        return buffer.get(indexOf(x,y,cellsize,maxX));
+    }
+
     public static FloatBuffer clone(FloatBuffer original) {
         FloatBuffer clone = ByteBuffer.allocate(original.capacity() * Float.BYTES).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         int originalPosition = original.position();

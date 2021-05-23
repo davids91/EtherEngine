@@ -24,4 +24,6 @@ public class Config {
         WORLD_DIMENSIONS.y = WORLD_BLOCK_NUMBER[1];
         return this;
     }
+
+    public static final int bufferCellSize = 4; /* RGBA */
 }

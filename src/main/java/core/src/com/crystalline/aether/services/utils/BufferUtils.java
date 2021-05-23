@@ -18,6 +18,21 @@ public class BufferUtils {
         buffer.put(indexOf(x,y,cellSize,maxX) + offset, value);
     }
 
+    public static void increase(int x, int y, int maxX, int cellSize, int offset,  FloatBuffer buffer, float value){
+        if(offset >= cellSize) throw new IndexOutOfBoundsException("internal offset value is greater, than cellSize!");
+        buffer.put(indexOf(x,y,cellSize,maxX) + offset, (get(x,y,cellSize,maxX,offset,buffer) + value));
+    }
+
+    public static void decrease(int x, int y, int maxX, int cellSize, int offset,  FloatBuffer buffer, float value){
+        if(offset >= cellSize) throw new IndexOutOfBoundsException("internal offset value is greater, than cellSize!");
+        buffer.put(indexOf(x,y,cellSize,maxX) + offset, (get(x,y,maxX,cellSize,offset,buffer) - value));
+    }
+
+    public static void multiply(int x, int y, int maxX, int cellSize, int offset,  FloatBuffer buffer, float value){
+        if(offset >= cellSize) throw new IndexOutOfBoundsException("internal offset value is greater, than cellSize!");
+        buffer.put(indexOf(x,y,cellSize,maxX) + offset, (get(x,y,cellSize,maxX,offset,buffer) * value));
+    }
+
     public static float get(int x, int y, int maxX, int cellSize, int offset, FloatBuffer buffer){
         if(offset >= cellSize) throw new IndexOutOfBoundsException("internal offset value is greater, than cellSize!");
         return buffer.get(indexOf(x,y,cellSize,maxX) + offset);

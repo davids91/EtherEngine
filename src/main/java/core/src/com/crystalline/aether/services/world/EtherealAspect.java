@@ -78,11 +78,11 @@ public class EtherealAspect extends RealityAspect {
         }
     }
 
-    public void defineBy(ElementalAspect plane, float[][] units){
+    public void defineBy(ElementalAspect plane, FloatBuffer scalars){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                if(0 < units[x][y]) {
-                    setAetherTo(x,y, etherValues, (((2.0f * units[x][y]) / (1.0f + Material.ratioOf(plane.elementAt(x, y))))));
+                if(0 < BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)) {
+                    setAetherTo(x,y, etherValues, (((2.0f * BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)) / (1.0f + Material.ratioOf(plane.elementAt(x, y))))));
                     setNetherTo(x,y, etherValues, ( aetherValueAt(x,y,etherValues)* Material.ratioOf(plane.elementAt(x, y))));
                 }else{
                     setAetherTo(x,y, etherValues,1);
@@ -209,17 +209,17 @@ public class EtherealAspect extends RealityAspect {
     }
 
     @Override
-    public void processUnits(float[][] units, World parent){
+    public void processUnits(FloatBuffer scalars, World parent){
         processEther();
-        determineUnits(units,parent);
+        determineUnits(scalars,parent);
     }
 
     @Override
-    public void processTypes(float[][] units, World parent){
+    public void processTypes(FloatBuffer scalars, World parent){
         /* Take over unit changes from Elemental plane */
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                takeOverUnitChanges(x, y, units);
+                takeOverUnitChanges(x, y, scalars);
             }
         }
     }
@@ -231,32 +231,34 @@ public class EtherealAspect extends RealityAspect {
     }
 
     @Override
-    public void determineUnits(float[][] units, World parent) {
+    public void determineUnits(FloatBuffer scalars, World parent) {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                units[x][y] = getUnit(x,y,etherValues);
+                BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, getUnit(x,y,etherValues));
             }
         }
     }
 
     @Override
-    public void takeOverUnitChanges(int x, int y, float[][] units) {
+    public void takeOverUnitChanges(int x, int y, FloatBuffer scalars) {
         float oldRatio = getRatio(x,y,etherValues);
         float oldUnit = getUnit(x,y,etherValues);
         setAetherTo(x,y, etherValues, (
-            ((aetherValueAt(x,y,etherValues)* aetherWeightInUnits + netherValueAt(x,y,etherValues)) * units[x][y])
-            / (oldUnit* aetherWeightInUnits + oldUnit * oldRatio)
+            (
+                (aetherValueAt(x,y,etherValues)* aetherWeightInUnits + netherValueAt(x,y,etherValues))
+                * BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)
+            ) / (oldUnit* aetherWeightInUnits + oldUnit * oldRatio)
         ));
         setNetherTo(x,y, etherValues, (aetherValueAt(x,y,etherValues) * oldRatio));
     }
 
     @Override
-    public void processMechanics(float[][] units, World parent) {
+    public void processMechanics(FloatBuffer scalars, World parent) {
 
     }
 
     @Override
-    public void postProcess(float[][] units, World parent) {
+    public void postProcess(FloatBuffer scalars, World parent) {
         /* TODO: Decide para-modifiers ( e.g. heat, light?! ) */
         /* TODO: Increase heat where there is a surplus Nether */
     }

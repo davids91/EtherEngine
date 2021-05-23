@@ -8,6 +8,7 @@ import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.services.utils.MiscUtils;
 
+import java.nio.FloatBuffer;
 import java.util.*;
 
 public class ElementalAspect extends RealityAspect {
@@ -18,9 +19,28 @@ public class ElementalAspect extends RealityAspect {
     private final Random rnd = new Random();
 
     private Material.Elements[][] blocks;
+
     private Vector2[][] forces;
     private float[][] velocityTicks;
     private float[][] gravityCorrectionAmount;
+
+//    /**
+//     * A texture image representing the elemental properties of reality
+//     * - R: block type --> Material.Elements
+//     * - G:
+//     * - B:
+//     * - A:
+//     */
+//    private FloatBuffer elements;
+//
+//    /**
+//     * A texture image representing the dynamism of a cell
+//     * - R: x of the force vector active on the block
+//     * - G: y of the force vector active on the block
+//     * - B: the velocity tick of the cell ( 0 means the cell would move )
+//     * - A: gravity correction amount ( helps to not add gravity in the intermediary steps of the mechanics evaluation )
+//     */
+//    private FloatBuffer dynamics;
 
     private float[][] touchedByMechanics; /* Debug purposes */
     private float[][] unitsAtLoopBegin; /* Debug purposes */
@@ -375,33 +395,13 @@ public class ElementalAspect extends RealityAspect {
             int target_x = curr_change.getValue().getIX();
             int target_y = curr_change.getValue().getIY();
             if(
-                Material.Elements.Ether == blocks[source_x][source_y]
-                && Material.Elements.Ether != blocks[target_x][target_y]
-                &&!Material.discardable(blocks[target_x][target_y], units[target_x][target_y])
-            ){ /* In case the material to move is Ether, and it has a relaitvely big force */ /* TODO: Make force transfer depending on the state of the matter, to make crystals stable */
-                forces[target_x][target_y].add(forces[source_x][source_y]);
-                blocks[source_x][source_y] = Material.Elements.Air;
-                forces[target_x][target_y].scl(units[source_x][source_y]);
-//                units[target_x][target_y] += units[source_x][source_y];
-//                units[source_x][source_y] = 0.01f;
-            }else
-            if(
-                Material.Elements.Ether == blocks[target_x][target_y]
-                && Material.Elements.Ether != blocks[source_x][source_y]
-            ){
-                forces[source_x][source_y].add(forces[target_x][target_y]);
-                blocks[target_x][target_y] = Material.Elements.Air;
-                forces[source_x][source_y].scl(units[target_x][target_y]);
-            }else
-            if(
                 Material.discardable(blocks[target_x][target_y],units[target_x][target_y])
                 ||(
                     (getWeight(source_x,source_y,units) > getWeight(target_x,target_y, units))
                     && Material.movable(blocks[target_x][target_y],units[target_x][target_y])
                 )
             ){
-                /* swap the 2 cells, decreasing the forces on both */
-                forces[source_x][source_y].add(
+                forces[source_x][source_y].add( /* swap the 2 cells, decreasing the forces on both */
                     (-forces[source_x][source_y].x * (Math.abs(getWeight(source_x,source_y,units)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,units)), forces[source_x][source_y].x)))),
                     (-forces[source_x][source_y].y * (Math.abs(getWeight(source_x,source_y,units)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,units)), forces[source_x][source_y].y))))
                 );
@@ -409,7 +409,6 @@ public class ElementalAspect extends RealityAspect {
                     (myMiscUtils.getGravity(source_x,source_y).x * getWeight(source_x,source_y,units)),
                     (myMiscUtils.getGravity(source_x,source_y).y * getWeight(source_x,source_y,units))
                 );
-
                 parent.switchElements(curr_change.getKey(),curr_change.getValue());
             }else{ /* The cells collide, updating forces, but no swapping */
                 float m1 = getWeight(source_x, source_y, units);
@@ -585,7 +584,6 @@ public class ElementalAspect extends RealityAspect {
     public Color getColor(int x, int y, float[][] units){
         return Material.getColor(blocks[x][y], units[x][y]).cpy();
     }
-
 
     private float netherDebugVal(World parent, int x, int y){
         return Math.max(0,

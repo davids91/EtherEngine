@@ -32,4 +32,10 @@ public class BufferUtils {
         clone.flip();
         return clone;
     }
+
+    public static void copy(FloatBuffer source, FloatBuffer target){
+        if(source.capacity() != target.capacity()) throw new UnsupportedOperationException("Buffer size mismatch!");
+        target.position(0);source.position(0);
+        for(int i = 0; i < source.capacity(); ++i) target.put(source.get(i));
+    }
 }

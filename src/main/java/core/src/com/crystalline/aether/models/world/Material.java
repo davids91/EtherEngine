@@ -3,6 +3,7 @@ package com.crystalline.aether.models.world;
 import com.badlogic.gdx.graphics.Color;
 import com.crystalline.aether.services.utils.MiscUtils;
 
+import java.nio.FloatBuffer;
 import java.util.*;
 
 public class Material {
@@ -50,12 +51,11 @@ public class Material {
     }
 
     public static final float[][] TYPE_UNIT_SELECTOR = {
-        {0,100},
-        {0,4,8,70,700,1000}, /* Earth */
-        {0,10,20},  /* Water */
-        {0, 10}, /* Air*/
-        {20,50,100}, /* Fire */
-        {0,0} /* Nothing */
+        {0.0f, 50.0f},
+        {0.0f,4.0f,8f,70.0f,700.0f,1000.0f}, /* Earth */
+        {0,10.0f,20.0f},  /* Water */
+        {0.0f, 10.0f}, /* Air*/
+        {10.0f,50.0f,100.0f}, /* Fire */
     };
 
     public static final Color[][] TYPE_COLORS = { /* TODO: Ether Vapor */
@@ -77,17 +77,13 @@ public class Material {
     };
 
     public static final float[][] TYPE_SPECIFIC_GRAVITY = {
-        {0,0}, /* Ether */
-        {8,16,32,64,128,256}, /* Earth */ /* TODO: Glass */
-        {5,-10,10}, /* Water */ /* TODO: steam, foam and ice */
-        {-6, -5}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */
-        {-1,2,4}, /* Fire */
+        {0.0f,0.0f}, /* Ether */
+        {8.0f,16.0f,32.0f,64.0f,128.0f,256.0f}, /* Earth */ /* TODO: Glass */
+        {2.5f,-0.2f,4.0f}, /* Water */ /* TODO: steam, foam and ice */
+        {-0.002f, -0.001f}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */
+        {-2.5f,2.0f,4.0f}, /* Fire */
         {0,0} /* Nothing */
     };
-
-    public static boolean isSameMat(int ax, int ay, int bx, int by, Elements[][] types, float[][] units){
-        return isSameMat(types[ax][ay],units[ax][ay],types[bx][by],units[bx][by]);
-    }
 
     public static boolean isSameMat(Elements typeA, float unitA, Elements typeB, float unitB){
         return((typeA == typeB)&&(isSameMat(typeA, unitA,unitB)));

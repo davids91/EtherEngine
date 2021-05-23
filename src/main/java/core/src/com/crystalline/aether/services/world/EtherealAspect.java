@@ -45,9 +45,8 @@ public class EtherealAspect extends RealityAspect {
         super(conf_);
         sizeX = conf.WORLD_BLOCK_NUMBER[0];
         sizeY = conf.WORLD_BLOCK_NUMBER[1];
-        etherValues = ByteBuffer.allocateDirect(Float.BYTES * bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
-        sharingBuffer = ByteBuffer.allocateDirect(Float.BYTES * bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         backend = new CPUBackend();
+        etherValues = ByteBuffer.allocateDirect(Float.BYTES * bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         preprocessPhaseIndex = backend.addPhase(this::preProcessCalculationPhase, (bufferCellSize * sizeX * sizeY));
         sharingPhaseIndex = backend.addPhase(this::sharingCalculationPhase, (bufferCellSize * sizeX * sizeY));
         finalizePhaseIndex = backend.addPhase(this::finalizeCalculationPhase, (bufferCellSize * sizeX * sizeY));
@@ -190,17 +189,15 @@ public class EtherealAspect extends RealityAspect {
 
     private void processEther() {
         /* Pre-process phase: copy the released ether for each buffer */
-        backend.setInputs(new FloatBuffer[]{etherValues});
+        backend.setInputs(new FloatBuffer[]{backend.getOutput(finalizePhaseIndex)});
         backend.runPhase(preprocessPhaseIndex);
-        BufferUtils.copy(backend.getOutput(preprocessPhaseIndex), sharingBuffer);
 
         /* sharing phase: released ether to be averaged together */
-        backend.setInputs(new FloatBuffer[]{sharingBuffer});
+        backend.setInputs(new FloatBuffer[]{backend.getOutput(preprocessPhaseIndex)});
         backend.runPhase(sharingPhaseIndex);
-        BufferUtils.copy(backend.getOutput(sharingPhaseIndex), sharingBuffer);
 
         /* finalize phase: final ether to be read and decided */
-        backend.setInputs(new FloatBuffer[]{etherValues, sharingBuffer});
+        backend.setInputs(new FloatBuffer[]{etherValues, backend.getOutput(sharingPhaseIndex)});
         backend.runPhase(finalizePhaseIndex);
         BufferUtils.copy(backend.getOutput(finalizePhaseIndex), etherValues);
     }

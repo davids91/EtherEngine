@@ -5,7 +5,6 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 public class CPUBackend implements CalculationPlatform<BiConsumer<FloatBuffer[], FloatBuffer>, FloatBuffer>{
     private final ArrayList<FloatBuffer> outputs;

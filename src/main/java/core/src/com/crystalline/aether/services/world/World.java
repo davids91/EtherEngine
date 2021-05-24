@@ -51,7 +51,7 @@ public class World {
         scalars = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         etherealPlane = new EtherealAspect(conf);
         elementalPlane = new ElementalAspect(conf);
-        etherealPlane.determineUnits(scalars,this);
+        etherealPlane.determineUnits(this);
         reset();
     }
 
@@ -59,43 +59,43 @@ public class World {
         etherealPlane.reset();
         elementalPlane.reset();
         elementalPlane.defineBy(etherealPlane);
-        etherealPlane.determineUnits(scalars, this);
+        etherealPlane.determineUnits(this);
     }
 
     public void pondWithGrill(){
         elementalPlane.pondWithGrill(this,(int)(sizeY/2.0f));
-        elementalPlane.determineUnits(scalars, this);
+        elementalPlane.determineUnits(this);
 
         etherealPlane.defineBy(elementalPlane, scalars);
-        etherealPlane.determineUnits(scalars,this);
+        etherealPlane.determineUnits(this);
     }
 
     public void switchElements(MiscUtils.MyCell from, MiscUtils.MyCell to){
         etherealPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
         elementalPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
-        float tmp_val = BufferUtils.get(to.getIX(),to.getIY(),sizeX,Config.bufferCellSize,0, scalars);
-        BufferUtils.set(to.getIX(),to.getIY(),sizeX,Config.bufferCellSize,0, scalars, BufferUtils.get(from.getIX(),from.getIY(),sizeX,Config.bufferCellSize,0, scalars));
-        BufferUtils.set(from.getIX(),from.getIY(),sizeX,Config.bufferCellSize,0, scalars, tmp_val);
+        float tmpVal = getUnit(to.getIX(),to.getIY());
+        setUnit(to.getIX(),to.getIY(), getUnit(from.getIX(),from.getIY()));
+        setUnit(from.getIX(),from.getIY(), tmpVal);
     }
 
     public void mainLoop(float step){
         elementalPlane.debugMeasure(this);
         /* ============= PROCESS UNITS ============= */
-        etherealPlane.processUnits(scalars,this);
-        elementalPlane.processUnits(scalars, this);
+        etherealPlane.processUnits(this);
+        elementalPlane.processUnits(this);
 
         /* ============= PROCESS MECHANICS ============= */
         /* Elemental calculates pressures and forces */
-        elementalPlane.processMechanics(scalars, this);
-        etherealPlane.processMechanics(scalars, this);
+        elementalPlane.processMechanics(this);
+        etherealPlane.processMechanics(this);
 
         /* ============= PROCESS TYPES ============= */
-        elementalPlane.processTypes(scalars, this);
-        etherealPlane.processTypes(scalars,this); /* Ethereal tries to take over type changes from Elemental */
+        elementalPlane.processTypes(this);
+        etherealPlane.processTypes(this); /* Ethereal tries to take over type changes from Elemental */
 
         /* ============= POST PROCESS ============= */
-        etherealPlane.postProcess(scalars, this);
-        elementalPlane.postProcess(scalars, this); /* Elemental takes over finalised type changes from Ethereal */
+        etherealPlane.postProcess(this);
+        elementalPlane.postProcess(this); /* Elemental takes over finalised type changes from Ethereal */
         elementalPlane.debugPrint();
     }
 
@@ -155,15 +155,15 @@ public class World {
     }
     private void addAetherTo(int x, int y, float value){
         etherealPlane.addAetherTo(x,y,value);
-        etherealPlane.determineUnits(scalars,this);
+        etherealPlane.determineUnits(this);
     }
     private void addNetherTo(int x, int y, float value){
         etherealPlane.addNetherTo(x,y,value);
-        etherealPlane.determineUnits(scalars,this);
+        etherealPlane.determineUnits(this);
     }
     private void tryToEqualize(int x, int y, float aetherToUse, float netherToUse, Material.Elements target) {
         etherealPlane.tryToEqualize(x,y,aetherToUse,netherToUse, Material.ratioOf(target));
-        etherealPlane.determineUnits(scalars,this);
+        etherealPlane.determineUnits(this);
         elementalPlane.defineBy(etherealPlane);
     }
 

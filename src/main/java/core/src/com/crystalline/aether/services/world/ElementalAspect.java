@@ -126,7 +126,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     @Override
-    public void determineUnits(FloatBuffer scalars, World parent) {
+    public void determineUnits(World parent) {
 
     }
 
@@ -141,7 +141,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     @Override
-    public void processUnits(FloatBuffer scalars, World parent){
+    public void processUnits(World parent){
         float[][] avgs = new float[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
@@ -160,7 +160,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     @Override
-    public void processTypes(FloatBuffer scalars, World parent) {
+    public void processTypes(World parent) {
         for(int x = sizeX - 1;x > 0; --x){
             for(int y = sizeY - 1 ; y > 0; --y) {
                 setElement(x,y,parent.etherealPlane.elementAt(x,y));
@@ -233,12 +233,12 @@ public class ElementalAspect extends RealityAspect {
     }
 
     @Override
-    public void takeOverUnitChanges(int x, int y, FloatBuffer scalars) {
+    public void takeOverUnitChanges(int x, int y, World parent) {
 
     }
 
     @Override
-    public void processMechanics(FloatBuffer scalars, World parent) {
+    public void processMechanics(World parent) {
         HashMap<MiscUtils.MyCell, MiscUtils.MyCell> remaining_proposed_changes = new HashMap<>();
         for(int x = 1; x < sizeX-1; ++x){ /* Pre-process: Add gravity, and nullify forces on discardable objects; */
             for(int y = sizeY-2; y > 0; --y){
@@ -247,7 +247,7 @@ public class ElementalAspect extends RealityAspect {
         }
 
         for(int i = 0; i < velocityMaxTicks; ++i){
-            processMechanicsBackend(scalars,parent,remaining_proposed_changes);
+            processMechanicsBackend(parent,remaining_proposed_changes);
         }
 
         for(Map.Entry<MiscUtils.MyCell, MiscUtils.MyCell> missedCells : remaining_proposed_changes.entrySet()){
@@ -273,7 +273,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     /* TODO: Make movable objects, depending of the solidness "merge into one another", leaving vacuum behind, which are to resolved at the end of the mechanics round */
-    public void processMechanicsBackend(FloatBuffer scalars, World parent, HashMap<MiscUtils.MyCell, MiscUtils.MyCell> previouslyLeftOutProposals){
+    public void processMechanicsBackend(World parent, HashMap<MiscUtils.MyCell, MiscUtils.MyCell> previouslyLeftOutProposals){
         /* update forces based on context, calculate intended velocities based on them */
         for(int x = 1; x < sizeX-2; ++x){
             for(int y = 1; y < sizeY-2; ++y){
@@ -536,7 +536,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     @Override
-    public void postProcess(FloatBuffer scalars, World parent) {
+    public void postProcess(World parent) {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 setElement(x,y, parent.etherealPlane.elementAt(x,y));

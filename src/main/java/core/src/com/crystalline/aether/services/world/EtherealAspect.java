@@ -209,17 +209,17 @@ public class EtherealAspect extends RealityAspect {
     }
 
     @Override
-    public void processUnits(FloatBuffer scalars, World parent){
+    public void processUnits(World parent){
         processEther();
-        determineUnits(scalars,parent);
+        determineUnits(parent);
     }
 
     @Override
-    public void processTypes(FloatBuffer scalars, World parent){
+    public void processTypes(World parent){
         /* Take over unit changes from Elemental plane */
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                takeOverUnitChanges(x, y, scalars);
+                takeOverUnitChanges(x, y, parent);
             }
         }
     }
@@ -231,34 +231,32 @@ public class EtherealAspect extends RealityAspect {
     }
 
     @Override
-    public void determineUnits(FloatBuffer scalars, World parent) {
+    public void determineUnits(World parent) {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, getUnit(x,y,etherValues));
+                parent.setUnit(x,y, getUnit(x,y,etherValues));
             }
         }
     }
 
     @Override
-    public void takeOverUnitChanges(int x, int y, FloatBuffer scalars) {
+    public void takeOverUnitChanges(int x, int y, World parent) {
         float oldRatio = getRatio(x,y,etherValues);
         float oldUnit = getUnit(x,y,etherValues);
         setAetherTo(x,y, etherValues, (
-            (
-                (aetherValueAt(x,y,etherValues)* aetherWeightInUnits + netherValueAt(x,y,etherValues))
-                * BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)
-            ) / (oldUnit* aetherWeightInUnits + oldUnit * oldRatio)
+            ((aetherValueAt(x,y,etherValues)* aetherWeightInUnits + netherValueAt(x,y,etherValues)) * parent.getUnit(x,y))
+            / (oldUnit* aetherWeightInUnits + oldUnit * oldRatio)
         ));
         setNetherTo(x,y, etherValues, (aetherValueAt(x,y,etherValues) * oldRatio));
     }
 
     @Override
-    public void processMechanics(FloatBuffer scalars, World parent) {
+    public void processMechanics(World parent) {
 
     }
 
     @Override
-    public void postProcess(FloatBuffer scalars, World parent) {
+    public void postProcess(World parent) {
         /* TODO: Decide para-modifiers ( e.g. heat, light?! ) */
         /* TODO: Increase heat where there is a surplus Nether */
     }

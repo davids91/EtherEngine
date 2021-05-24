@@ -99,13 +99,13 @@ public class ElementalAspect extends RealityAspect {
         }
     }
 
-    private float avgOfBlock(int x, int y, FloatBuffer tableBuf, Material.Elements type){
+    private float avgOfUnit(int x, int y, World parent, Material.Elements type){
         float average_val = 0;
         float division = 0;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
             for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
                 if(blocks[nx][ny] == type){
-                    average_val += BufferUtils.get(nx,ny,sizeX,Config.bufferCellSize,0, tableBuf);
+                    average_val += parent.getUnit(nx,ny);
                     division += 1;
                 }
             }
@@ -114,18 +114,18 @@ public class ElementalAspect extends RealityAspect {
         return average_val;
     }
 
-    private int avgOfBlockWithinDistance(int x, int y, FloatBuffer table, Material.Elements[][] types, FloatBuffer scalars){
+    private int avgOfBlockWithinDistance(int x, int y, World parent, Material.Elements[][] types){
         float average_val = 0;
         float division = 0;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
             for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
                 if(
                     Material.isSameMat(
-                        blocks[x][y], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars),
-                        blocks[nx][ny], BufferUtils.get(nx,ny,sizeX,Config.bufferCellSize,0, scalars)
+                        types[x][y], parent.getUnit(x,y),
+                        types[nx][ny], parent.getUnit(nx,ny)
                     )
                 ){
-                    average_val += BufferUtils.get(nx,ny,sizeX,Config.bufferCellSize,0, table);
+                    average_val += parent.getUnit(nx,ny);
                     division += 1;
                 }
             }
@@ -155,16 +155,16 @@ public class ElementalAspect extends RealityAspect {
         float[][] avgs = new float[sizeX][sizeY];
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                if(Material.movable(blocks[x][y],BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))){
-                    avgs[x][y] = avgOfBlockWithinDistance(x,y,scalars,blocks,scalars);
+                if(Material.movable(blocks[x][y], parent.getUnit(x,y))){
+                    avgs[x][y] = avgOfBlockWithinDistance(x,y,parent,blocks);
                 }
             }
         }
 
         for(int x = 0;x < sizeX; ++x) { /* Calculate dilution */
             for (int y = 0; y < sizeY; ++y) {
-                if(Material.movable(blocks[x][y],BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))) {
-                    BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, avgs[x][y]);
+                if(Material.movable(blocks[x][y],parent.getUnit(x,y))) {
+                    parent.setUnit(x,y,avgs[x][y]);
                 }
             }
         }
@@ -178,20 +178,20 @@ public class ElementalAspect extends RealityAspect {
                 /* TODO: Move averages to before the process step for consistent behavior for context dependent stuff */
                 if(Material.Elements.Water == blocks[x][y]){ /* TODO: This will be ill-defined in a multi-threaded environment */
                     if(y > sizeY * 0.9){ /* TODO: Make rain based on steam */
-                        BufferUtils.decrease(x,y,sizeX,Config.bufferCellSize,0, scalars, (BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars) * 0.2f));
+                        parent.offsetUnit(x,y,-parent.getUnit(x,y) * 0.2f);
                         forces[x][y].y = Math.min(forces[x][y].y, forces[x][y].y*-1.6f);
                     }
-                    if(avgOfBlock(x,y,scalars, Material.Elements.Water) < avgOfBlock(x,y,scalars, Material.Elements.Fire)){
+                    if(avgOfUnit(x,y,parent, Material.Elements.Water) < avgOfUnit(x,y, parent, Material.Elements.Fire)){
                         blocks[x][y] = Material.Elements.Air;
                     }
                 }
 
                 if(Material.Elements.Air == blocks[x][y]) {
                     if(
-                        (5 < BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))
-                        &&(0 < avgOfBlock(x,y,scalars, Material.Elements.Earth))
-                        &&(0 == avgOfBlock(x,y,scalars, Material.Elements.Water))
-                        &&(avgOfBlock(x,y,scalars, Material.Elements.Air) < avgOfBlock(x,y,scalars, Material.Elements.Fire))
+                        (5 < parent.getUnit(x,y))
+                        &&(0 < avgOfUnit(x,y,parent, Material.Elements.Earth))
+                        &&(0 == avgOfUnit(x,y,parent, Material.Elements.Water))
+                        &&(avgOfUnit(x,y,parent, Material.Elements.Air) < avgOfUnit(x,y,parent, Material.Elements.Fire))
                     ){
                         blocks[x][y] = Material.Elements.Fire;
                     }
@@ -201,45 +201,45 @@ public class ElementalAspect extends RealityAspect {
                 /* TODO: Make fire springing out from Earth */
                 if(Material.Elements.Fire == blocks[x][y]){
                     if(
-                        (Material.MechaProperties.Plasma == Material.getState(blocks[x][y], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)))
-                        && (BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars) <= avgOfBlock(x,y,scalars, Material.Elements.Fire))
+                        (Material.MechaProperties.Plasma == Material.getState(blocks[x][y], parent.getUnit(x,y)))
+                        && (parent.getUnit(x,y) <= avgOfUnit(x,y,parent, Material.Elements.Fire))
                     ){
-                        BufferUtils.decrease(x,y,sizeX,Config.bufferCellSize,0, scalars, (BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars) * 0.3f));
+                        parent.offsetUnit(x,y, -(parent.getUnit(x,y) * 0.1f));
                     }
 
                     /* TODO: Make lava cool off to earth by heat */
 //                    if(avg_of_block(x,y,units,Materials.Names.Water) > avg_of_block(x,y,units, Materials.Names.Fire)){
 //                        blocks[x][y] = Materials.Names.Earth;
 //                    }
-                    if(5 > BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)){
+                    if(5 > parent.getUnit(x,y)){
                         blocks[x][y] = Material.Elements.Air;
                     }
                 }
 
                 if(Material.Elements.Earth == blocks[x][y]){
                     /* TODO: Make Earth keep track of heat instead of units */
-                    if((avgOfBlock(x,y,scalars, Material.Elements.Earth) < avgOfBlock(x,y, scalars, Material.Elements.Fire))){
+                    if((avgOfUnit(x,y,parent, Material.Elements.Earth) < avgOfUnit(x,y, parent, Material.Elements.Fire))){
                         if( /* TODO: Make sand melt "into" glass */
-                            Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)).ordinal()
-                            || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)).ordinal()
+                            Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, parent.getUnit(x,y)).ordinal()
+                            || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, parent.getUnit(x,y)).ordinal()
                         ){
-                            BufferUtils.multiply(x,y,sizeX,Config.bufferCellSize,0, scalars, 0.8f);
-                            if(2 < BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))blocks[x][y] = Material.Elements.Fire;
+                            parent.setUnit(x,y, parent.getUnit(x,y) * 0.8f);
+                            if(2 < parent.getUnit(x,y))blocks[x][y] = Material.Elements.Fire;
                         }
                     }
 
                 }
-                if(0.01f > BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)) BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, 0.01f);
+                if(0.01f > parent.getUnit(x,y)) parent.setUnit(x,y, 0.1f);
             }
         }
     }
 
-    public float getWeight(int x, int y, FloatBuffer scalars){
+    public float getWeight(int x, int y, World parent){
         /* TODO: Weight to include pressure somehow? or at least the same materials on top */
         return (
-            BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)
+            parent.getUnit(x,y)
             * Material.TYPE_SPECIFIC_GRAVITY[blocks[x][y].ordinal()][MiscUtils.indexIn(
-                Material.TYPE_UNIT_SELECTOR[blocks[x][y].ordinal()], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)
+                Material.TYPE_UNIT_SELECTOR[blocks[x][y].ordinal()], parent.getUnit(x,y)
             )]
         );
     }
@@ -268,14 +268,14 @@ public class ElementalAspect extends RealityAspect {
 
         for(Map.Entry<MiscUtils.MyCell, MiscUtils.MyCell> missedCells : remaining_proposed_changes.entrySet()){
             gravityCorrectionAmount[missedCells.getKey().getIX()][missedCells.getKey().getIY()] =
-                (getWeight(missedCells.getKey().getIX(),missedCells.getKey().getIY(),scalars));
+                (getWeight(missedCells.getKey().getIX(),missedCells.getKey().getIY(),parent));
             gravityCorrectionAmount[missedCells.getValue().getIX()][missedCells.getValue().getIY()] =
-                (getWeight(missedCells.getValue().getIX(),missedCells.getValue().getIY(),scalars));
+                (getWeight(missedCells.getValue().getIX(),missedCells.getValue().getIY(),parent));
         }
 
         for(int x = 1; x < sizeX-1; ++x){
             for(int y = sizeY-2; y > 0; --y){
-                if(Material.movable(blocks[x][y], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))){
+                if(Material.movable(blocks[x][y], parent.getUnit(x,y))){
                     forces[x][y].add(
                         myMiscUtils.getGravity(x,y).x * gravityCorrectionAmount[x][y],
                         myMiscUtils.getGravity(x,y).y * gravityCorrectionAmount[x][y]
@@ -291,8 +291,8 @@ public class ElementalAspect extends RealityAspect {
         /* update forces based on context, calculate intended velocities based on them */
         for(int x = 1; x < sizeX-2; ++x){
             for(int y = 1; y < sizeY-2; ++y){
-                if(!Material.discardable(blocks[x][y], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))){
-                    gravityCorrectionAmount[x][y] = (getWeight(x,y,scalars));
+                if(!Material.discardable(blocks[x][y], parent.getUnit(x,y))){
+                    gravityCorrectionAmount[x][y] = (getWeight(x,y,parent));
                     velocityTicks[x][y] = velocityMaxTicks;
                 } else{
                     forces[x][y].set(0,0); /* If the cell is not air */
@@ -303,7 +303,7 @@ public class ElementalAspect extends RealityAspect {
                         if ( /* in the bounds of the chunk */
                             (0 <= nx)&&(sizeX > nx)&&(0 <= ny)&&(sizeY > ny)
                             &&( 1 < (Math.abs(x - nx) + Math.abs(y - ny)) ) /* after the not immediate neighbourhood */
-                            &&(BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars) <= BufferUtils.get(nx,ny,sizeX,Config.bufferCellSize,0, scalars))
+                            &&(parent.getUnit(x,y) <= parent.getUnit(nx,ny))
                             &&(Material.Elements.Ether == blocks[nx][ny])
                         ){ /* Calculate forces from surplus ethers */
                             float aether_diff = Math.max(-10.5f, Math.min(10.5f, (
@@ -314,14 +314,8 @@ public class ElementalAspect extends RealityAspect {
                     }
                 }
 
-                if(Material.MechaProperties.Fluid == Material.getState(blocks[x][y], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))){
-
-                    if(
-                        Material.isSameMat(
-                            blocks[x][y], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars),
-                            blocks[x][y-1], BufferUtils.get(x,y-1,sizeX,Config.bufferCellSize,0, scalars)
-                        )
-                    ) {
+                if(Material.MechaProperties.Fluid == Material.getState(blocks[x][y], parent.getUnit(x,y))){
+                    if(Material.isSameMat(blocks[x][y], parent.getUnit(x,y), blocks[x][y-1], parent.getUnit(x,y-1))) {
                       /* The random method */
 //                        forces[x][y].set((rnd.nextInt(7)-3),1);
                         /* The amplify method */
@@ -356,7 +350,7 @@ public class ElementalAspect extends RealityAspect {
 //                                myMiscUtil.getGravity(x, y).y * getWeight(x, y, units)
 //                        );
                     }
-                }else if(Material.MechaProperties.Plasma == Material.getState(blocks[x][y], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))){
+                }else if(Material.MechaProperties.Plasma == Material.getState(blocks[x][y], parent.getUnit(x,y))){
                     forces[x][y].add((rnd.nextInt(4)-2),0);
                 }
             }
@@ -371,7 +365,7 @@ public class ElementalAspect extends RealityAspect {
 
         /* Take over proposals left out from the previous process loop */
         for(Map.Entry<MiscUtils.MyCell, MiscUtils.MyCell> currChange : previouslyLeftOutProposals.entrySet()){
-            if(!evaluateForMechanics(scalars, currChange.getKey(), currChange.getValue(),proposedChanges,already_changed)){
+            if(!evaluateForMechanics(parent, currChange.getKey(), currChange.getValue(),proposedChanges,already_changed)){
                 remaining.put(currChange.getKey(),currChange.getValue());
             }
         }
@@ -382,18 +376,18 @@ public class ElementalAspect extends RealityAspect {
         if(rnd.nextInt(2) == 0){
             if(rnd.nextInt(2) == 0){
                 for(int x = 1; x < sizeX-1; ++x) for(int y = 1; y < sizeY-1; ++y)
-                    createProposalForCell(x, y, scalars, previouslyLeftOutProposals, proposedChanges, already_changed);
+                    createProposalForCell(x, y, parent, previouslyLeftOutProposals, proposedChanges, already_changed);
             }else{
                 for(int x = 1; x < sizeX-1; ++x) for(int y = sizeY-2; y > 0; --y)
-                    createProposalForCell(x, y, scalars, previouslyLeftOutProposals, proposedChanges, already_changed);
+                    createProposalForCell(x, y, parent, previouslyLeftOutProposals, proposedChanges, already_changed);
             }
         }else{
             if(rnd.nextInt(2) == 0){
                 for(int x = sizeX-2; x > 0; --x) for(int y = 1; y < sizeY-1; ++y)
-                    createProposalForCell(x, y, scalars, previouslyLeftOutProposals, proposedChanges, already_changed);
+                    createProposalForCell(x, y, parent, previouslyLeftOutProposals, proposedChanges, already_changed);
             }else{
                 for(int x = sizeX-2; x > 0; --x) for(int y = sizeY-2; y > 0; --y)
-                    createProposalForCell(x, y, scalars, previouslyLeftOutProposals, proposedChanges, already_changed);
+                    createProposalForCell(x, y, parent, previouslyLeftOutProposals, proposedChanges, already_changed);
             }
         }
 
@@ -404,25 +398,25 @@ public class ElementalAspect extends RealityAspect {
             int target_x = curr_change.getValue().getIX();
             int target_y = curr_change.getValue().getIY();
             if(
-                Material.discardable(blocks[target_x][target_y],BufferUtils.get(target_x,target_y,sizeX,Config.bufferCellSize,0, scalars))
+                Material.discardable(blocks[target_x][target_y],parent.getUnit(target_x,target_y))
                 ||(
-                    (getWeight(source_x,source_y,scalars) > getWeight(target_x,target_y, scalars))
-                    && Material.movable(blocks[target_x][target_y],BufferUtils.get(target_x,target_y,sizeX,Config.bufferCellSize,0, scalars))
+                    (getWeight(source_x,source_y,parent) > getWeight(target_x,target_y, parent))
+                    && Material.movable(blocks[target_x][target_y],parent.getUnit(target_x,target_y))
                 )
             ){
                 forces[source_x][source_y].add( /* swap the 2 cells, decreasing the forces on both */
-                    (-forces[source_x][source_y].x * (Math.abs(getWeight(source_x,source_y,scalars)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,scalars)), forces[source_x][source_y].x)))),
-                    (-forces[source_x][source_y].y * (Math.abs(getWeight(source_x,source_y,scalars)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,scalars)), forces[source_x][source_y].y))))
+                    (-forces[source_x][source_y].x * (Math.abs(getWeight(source_x,source_y,parent)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,parent)), forces[source_x][source_y].x)))),
+                    (-forces[source_x][source_y].y * (Math.abs(getWeight(source_x,source_y,parent)) / Math.max(0.00001f, Math.max(Math.abs(getWeight(source_x,source_y,parent)), forces[source_x][source_y].y))))
                 );
                 forces[source_x][source_y].add(
-                    (myMiscUtils.getGravity(source_x,source_y).x * getWeight(source_x,source_y,scalars)),
-                    (myMiscUtils.getGravity(source_x,source_y).y * getWeight(source_x,source_y,scalars))
+                    (myMiscUtils.getGravity(source_x,source_y).x * getWeight(source_x,source_y,parent)),
+                    (myMiscUtils.getGravity(source_x,source_y).y * getWeight(source_x,source_y,parent))
                 );
                 parent.switchElements(curr_change.getKey(),curr_change.getValue());
             }else{ /* The cells collide, updating forces, but no swapping */
-                float m1 = getWeight(source_x, source_y, scalars);
+                float m1 = getWeight(source_x, source_y, parent);
                 Vector2 u1 = forces[source_x][source_y].cpy().nor();
-                float m2 = getWeight(target_x, target_y, scalars);
+                float m2 = getWeight(target_x, target_y, parent);
                 Vector2 u2 = forces[target_x][target_y].cpy().nor();
                 Vector2 result_speed = new Vector2();
                 result_speed.set( /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
@@ -434,19 +428,19 @@ public class ElementalAspect extends RealityAspect {
                     (m1 * (result_speed.y - u1.y))
                 );
                 forces[source_x][source_y].add(
-                myMiscUtils.getGravity(source_x,source_y).x * getWeight(source_x,source_y,scalars),
-                myMiscUtils.getGravity(source_x,source_y).y * getWeight(source_x,source_y,scalars)
+                myMiscUtils.getGravity(source_x,source_y).x * getWeight(source_x,source_y,parent),
+                myMiscUtils.getGravity(source_x,source_y).y * getWeight(source_x,source_y,parent)
                 );
                 gravityCorrectionAmount[source_x][source_y] = 0;
-                if(Material.movable(blocks[target_x][target_y],BufferUtils.get(target_x,target_y,sizeX,Config.bufferCellSize,0, scalars))){
+                if(Material.movable(blocks[target_x][target_y],parent.getUnit(target_x,target_y))){
                     result_speed.set( /*!Note: it is supposed, that non-movable cells do not initiate movement */
                         (2*m1/(m1+m2))*u1.x + ((m2-m1)/(m1+m2)*u2.x),
                         (2*m1/(m1+m2))*u1.y + ((m2-m1)/(m1+m2)*u2.y)
                     );
                     forces[target_x][target_y].set( m2 * (result_speed.x - u2.x), m2 * (result_speed.y - u2.y) );
                     forces[target_x][target_y].add( /* Since forces are changed, gravity correction shall be done in-place */
-                    myMiscUtils.getGravity(target_x,target_y).x * getWeight(target_x,target_y,scalars),
-                    myMiscUtils.getGravity(target_x,target_y).y * getWeight(target_x,target_y,scalars)
+                    myMiscUtils.getGravity(target_x,target_y).x * getWeight(target_x,target_y,parent),
+                    myMiscUtils.getGravity(target_x,target_y).y * getWeight(target_x,target_y,parent)
                     );
                     gravityCorrectionAmount[target_x][target_y] = 0;
                 } /* do not update the force for unmovable objects */
@@ -457,7 +451,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private void createProposalForCell(
-            int x, int y, FloatBuffer scalars,
+            int x, int y, World parent,
             HashMap<MiscUtils.MyCell, MiscUtils.MyCell> previously_left_out_proposals,
             HashMap<MiscUtils.MyCell, MiscUtils.MyCell> proposed_changes, HashSet<Integer> already_changed
     ){
@@ -465,7 +459,7 @@ public class ElementalAspect extends RealityAspect {
         MiscUtils.MyCell intendedTargetCell = new MiscUtils.MyCell(sizeX);
         Vector2 target_final_position = new Vector2();
         if(
-            !Material.discardable(blocks[x][y], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))
+            !Material.discardable(blocks[x][y], parent.getUnit(x,y))
             && (1 <= forces[x][y].len())
         ){
             intendedSourceCell.set(x,y);
@@ -492,7 +486,7 @@ public class ElementalAspect extends RealityAspect {
 
             /* see if the two cells still intersect with forces included */
             if(2 > intendedSourceCell.dst(target_final_position)){
-                if(!evaluateForMechanics(scalars, intendedSourceCell,intendedTargetCell,proposed_changes,already_changed)){
+                if(!evaluateForMechanics(parent, intendedSourceCell,intendedTargetCell,proposed_changes,already_changed)){
                     previously_left_out_proposals.put(new MiscUtils.MyCell(intendedSourceCell),new MiscUtils.MyCell(intendedTargetCell));
                     /* Since these cells are left out, add no gravity to them! */
                     gravityCorrectionAmount[intendedSourceCell.getIX()][intendedSourceCell.getIY()] = 0;
@@ -504,7 +498,7 @@ public class ElementalAspect extends RealityAspect {
 
     /**
      *  A Function to try and propose cell pairs to change in this mechanics iteration
-     * @param scalars
+     * @param parent the world encapsulating this elemental aspect
      * @param source_cell
      * @param targetCell
      * @param alreadyProposedChanges
@@ -512,8 +506,8 @@ public class ElementalAspect extends RealityAspect {
      * @return whether or not the cells could be placed into the already proposed changes
      */
     private boolean evaluateForMechanics(
-            FloatBuffer scalars, MiscUtils.MyCell source_cell, MiscUtils.MyCell targetCell,
-            HashMap<MiscUtils.MyCell, MiscUtils.MyCell> alreadyProposedChanges, HashSet<Integer> alreadyChanged
+        World parent, MiscUtils.MyCell source_cell, MiscUtils.MyCell targetCell,
+        HashMap<MiscUtils.MyCell, MiscUtils.MyCell> alreadyProposedChanges, HashSet<Integer> alreadyChanged
     ){
         int x = source_cell.getIX();
         int y = source_cell.getIY();
@@ -522,8 +516,8 @@ public class ElementalAspect extends RealityAspect {
         if(
             !((x == intendedX) && (y == intendedY))
             &&( /* In case both is discardable, then no operations shall commence */
-                !Material.discardable(blocks[x][y],BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars))
-                ||!Material.discardable(blocks[intendedX][intendedY],BufferUtils.get(intendedX,intendedY,sizeX,Config.bufferCellSize,0, scalars))
+                !Material.discardable(blocks[x][y],parent.getUnit(x,y))
+                ||!Material.discardable(blocks[intendedX][intendedY],parent.getUnit(intendedX,intendedY))
             )
             &&(!alreadyChanged.contains(BufferUtils.map2DTo1D(x,y,sizeX)))
             &&(!alreadyChanged.contains(BufferUtils.map2DTo1D(intendedX,intendedY,sizeX)))
@@ -552,17 +546,17 @@ public class ElementalAspect extends RealityAspect {
      * Create a simple pond with some fire on one side
      * @param floorHeight - the height of the ground floor
      */
-    public void pondWithGrill(FloatBuffer scalars, int floorHeight){
+    public void pondWithGrill(World parent, int floorHeight){
         for(int x = 0;x < sizeX; ++x){ /* create the ground floor */
             for(int y = 0; y < sizeY; ++y){
                 forces[x][y].set(0,0);
                 if(y <= floorHeight){
                     blocks[x][y] = Material.Elements.Earth;
-                    if(y <= (floorHeight/2)) BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, Math.min(100,rnd.nextInt(500)));
-                    else BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, Math.min(15,rnd.nextInt(50)));
+                    if(y <= (floorHeight/2)) parent.setUnit(x,y, Math.min(100,rnd.nextInt(500)));
+                    else parent.setUnit(x,y,Math.min(15,rnd.nextInt(50)));
                 }else{
                     blocks[x][y] = Material.Elements.Air;
-                    BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, Math.min(3,rnd.nextInt(10)));
+                    parent.setUnit(x,y,Math.min(3,rnd.nextInt(10)));
                 }
             }
         }
@@ -575,9 +569,7 @@ public class ElementalAspect extends RealityAspect {
                 y = (int)(floorHeight + Math.sin(sector) * radius);
                 y = Math.max(0, Math.min(sizeY, y));
                 if(y <= (floorHeight - (floorHeight/4)) && (0 == rnd.nextInt(3)))
-                    BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars,
-                        BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars) * 2.5f
-                    );
+                    parent.setUnit(x,y,parent.getUnit(x,y) * 2.5f);
                 blocks[x][y] = Material.Elements.Water;
             }
         }
@@ -595,8 +587,8 @@ public class ElementalAspect extends RealityAspect {
         return blocks[x][y];
     }
 
-    public Color getColor(int x, int y, FloatBuffer scalars){
-        return Material.getColor(blocks[x][y], BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)).cpy();
+    public Color getColor(int x, int y, World parent){
+        return Material.getColor(blocks[x][y], parent.getUnit(x,y)).cpy();
     }
 
     private float netherDebugVal(World parent, int x, int y){
@@ -633,15 +625,15 @@ public class ElementalAspect extends RealityAspect {
 
     float avgUnit = 0;
     float avgDivisor = 0;
-    public Color getDebugColor(int x, int y, FloatBuffer scalars, World parent){
-        Color defColor = getColor(x,y, scalars).cpy(); /*  TODO: Use spellUtil getColorOf */
+    public Color getDebugColor(int x, int y, World parent){
+        Color defColor = getColor(x,y, parent).cpy(); /*  TODO: Use spellUtil getColorOf */
 //        if(0 < touchedByMechanics[x][y]){ /* it was modified.. */
 //            defColor.lerp(Color.GREEN, 0.5f); /* to see if it was touched by the mechanics */
 //            float aetherDebugVal = Math.abs(
 //                parent.getEtherealPlane().getTargetAether(x,y)
 //                - parent.getEtherealPlane().aetherValueAt(x,y)
 //            ) / Math.max(0.001f, parent.getEtherealPlane().aetherValueAt(x,y));
-        float unitsDiff = Math.abs(unitsAtLoopBegin[x][y] - parent.getUnits(x,y))/ parent.getUnits(x,y);
+        float unitsDiff = Math.abs(unitsAtLoopBegin[x][y] - parent.getUnit(x,y))/ parent.getUnit(x,y);
             Color debugColor = new Color(
                 netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
                 //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,

@@ -63,7 +63,7 @@ public class World {
     }
 
     public void pondWithGrill(){
-        elementalPlane.pondWithGrill(scalars,(int)(sizeY/2.0f));
+        elementalPlane.pondWithGrill(this,(int)(sizeY/2.0f));
         elementalPlane.determineUnits(scalars, this);
 
         etherealPlane.defineBy(elementalPlane, scalars);
@@ -144,20 +144,23 @@ public class World {
         }
     }
 
-    public float getUnits(int x, int y) {
+    public float getUnit(int x, int y) {
         return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars);
     }
-
+    public void setUnit(int x, int y, float value){
+        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, value);
+    }
+    public void offsetUnit(int x, int y, float value){
+        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, (value + getUnit(x,y)));
+    }
     private void addAetherTo(int x, int y, float value){
         etherealPlane.addAetherTo(x,y,value);
         etherealPlane.determineUnits(scalars,this);
     }
-
     private void addNetherTo(int x, int y, float value){
         etherealPlane.addNetherTo(x,y,value);
         etherealPlane.determineUnits(scalars,this);
     }
-
     private void tryToEqualize(int x, int y, float aetherToUse, float netherToUse, Material.Elements target) {
         etherealPlane.tryToEqualize(x,y,aetherToUse,netherToUse, Material.ratioOf(target));
         etherealPlane.determineUnits(scalars,this);
@@ -170,7 +173,7 @@ public class World {
             for(int y = 0; y < sizeY; ++y){
                 Color finalColor;
 //                finalColor = elementalPlane.getColor(x,(sizeY - 1 - y),units);
-                finalColor = elementalPlane.getDebugColor(x,(sizeY - 1 - y),scalars, this);
+                finalColor = elementalPlane.getDebugColor(x,(sizeY - 1 - y), this);
                 worldImage.drawPixel(x,y, Color.rgba8888(finalColor));
             }
         }

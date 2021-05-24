@@ -82,8 +82,8 @@ public class EtherealAspect extends RealityAspect {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 if(0 < BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)) {
-                    setAetherTo(x,y, etherValues, (((2.0f * BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)) / (1.0f + Material.ratioOf(plane.elementAt(x, y))))));
-                    setNetherTo(x,y, etherValues, ( aetherValueAt(x,y,etherValues)* Material.ratioOf(plane.elementAt(x, y))));
+                    setAetherTo(x,y, etherValues, (((2.0f * BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)) / (1.0f + Material.ratioOf(plane.getElement(x, y))))));
+                    setNetherTo(x,y, etherValues, ( aetherValueAt(x,y,etherValues)* Material.ratioOf(plane.getElement(x, y))));
                 }else{
                     setAetherTo(x,y, etherValues,1);
                     setNetherTo(x,y, etherValues, Material.ratioOf(Material.Elements.Air));

@@ -3,12 +3,14 @@ package com.crystalline.aether.services.world;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector3;
+import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.models.spells.SpellAction;
 import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.services.utils.MiscUtils;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.Material;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -20,15 +22,6 @@ import java.nio.FloatBuffer;
  */
 public class World {
     Config conf;
-
-    public int getSizeX() {
-        return sizeX;
-    }
-
-    public int getSizeY() {
-        return sizeY;
-    }
-
     protected final int sizeX;
     protected final int sizeY;
 
@@ -51,7 +44,7 @@ public class World {
         scalars = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         etherealPlane = new EtherealAspect(conf);
         elementalPlane = new ElementalAspect(conf);
-        etherealPlane.determineUnits(this);
+        BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
         reset();
     }
 
@@ -59,15 +52,15 @@ public class World {
         etherealPlane.reset();
         elementalPlane.reset();
         elementalPlane.defineBy(etherealPlane);
-        etherealPlane.determineUnits(this);
+        BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
 
     public void pondWithGrill(){
         elementalPlane.pondWithGrill(this,(int)(sizeY/2.0f));
-        elementalPlane.determineUnits(this);
+        /* elementalPlane.determineUnits(this); *//* Included in @pondWithGrill */
 
         etherealPlane.defineBy(elementalPlane, scalars);
-        etherealPlane.determineUnits(this);
+        BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
 
     public void switchElements(MiscUtils.MyCell from, MiscUtils.MyCell to){
@@ -109,11 +102,6 @@ public class World {
         elementalPlane.popState();
     }
 
-    public EtherealAspect getEtherealPlane(){
-        return etherealPlane;
-    }
-    public ElementalAspect getElementalPlane(){ return elementalPlane; }
-
     public void doAction(SpellAction action, Vector3 offset){
         if(action.active()){
             /* not very punctual... */ /* TODO: Make Spells of different levels; Lower level mages shall use the less punctual algorithm */
@@ -144,28 +132,54 @@ public class World {
         }
     }
 
+    /* TODO: Guard against modifications */
+    public void provideScalarsTo(FloatBuffer[] inputs, int inputIndex){
+        inputs[inputIndex] = scalars;
+    }
+    public void setScalars(FloatBuffer value){
+        BufferUtils.copy(value, scalars);
+    }
+    public static float getUnit(int x,int y, int sizeX, FloatBuffer buffer){
+        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, buffer);
+    }
     public float getUnit(int x, int y) {
-        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars);
+        return getUnit(x,y,sizeX,scalars);
+    }
+    public static void setUnit(int x,int y, int sizeX, FloatBuffer buffer, float value){
+        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, buffer, value);
     }
     public void setUnit(int x, int y, float value){
-        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, value);
+        setUnit(x,y,sizeX,scalars,value);
     }
     public void offsetUnit(int x, int y, float value){
         BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, (value + getUnit(x,y)));
     }
     private void addAetherTo(int x, int y, float value){
         etherealPlane.addAetherTo(x,y,value);
-        etherealPlane.determineUnits(this);
+        BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
     private void addNetherTo(int x, int y, float value){
         etherealPlane.addNetherTo(x,y,value);
-        etherealPlane.determineUnits(this);
+        BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
     private void tryToEqualize(int x, int y, float aetherToUse, float netherToUse, Material.Elements target) {
         etherealPlane.tryToEqualize(x,y,aetherToUse,netherToUse, Material.ratioOf(target));
-        etherealPlane.determineUnits(this);
         elementalPlane.defineBy(etherealPlane);
+        BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
+
+    public int getSizeX() {
+        return sizeX;
+    }
+
+    public int getSizeY() {
+        return sizeY;
+    }
+
+    public EtherealAspect getEtherealPlane(){
+        return etherealPlane;
+    }
+    public ElementalAspect getElementalPlane(){ return elementalPlane; }
 
     public Pixmap getWorldImage(){
         Pixmap worldImage = new Pixmap(sizeX,sizeY, Pixmap.Format.RGB888);

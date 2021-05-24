@@ -1,21 +1,23 @@
 package com.crystalline.aether.models.architecture;
 
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.services.CalculationPlatform;
 import com.crystalline.aether.services.world.World;
 
 import java.nio.FloatBuffer;
 import java.util.Stack;
 
 public abstract class RealityAspect {
-    public abstract void determineUnits(World parent);
+    protected abstract Object[] getState();
+    protected abstract void setState(Object[] state);
+    public abstract void switchValues(int fromX, int fromY, int toX, int toY);
+    public abstract FloatBuffer determineUnits(World parent);
+
+    /* Processing functions to be called by World in its main loop */
     public abstract void processUnits(World parent);
     public abstract void processTypes(World parent);
     public abstract void processMechanics(World parent);
     public abstract void postProcess(World parent);
-    public abstract void switchValues(int fromX, int fromY, int toX, int toY);
-    public abstract void takeOverUnitChanges(int x, int y, World parent);
-    protected abstract Object[] getState();
-    protected abstract void setState(Object[] state);
 
     protected Config conf;
     private final Stack<Object[]> state;

@@ -126,8 +126,8 @@ public class ElementalAspect extends RealityAspect {
     }
 
     @Override
-    public void determineUnits(World parent) {
-
+    public FloatBuffer determineUnits(World parent) {
+        return null; /* Don't modify anything */
     }
 
     @Override
@@ -230,11 +230,6 @@ public class ElementalAspect extends RealityAspect {
                 Material.TYPE_UNIT_SELECTOR[getElement(x,y).ordinal()], parent.getUnit(x,y)
             )]
         );
-    }
-
-    @Override
-    public void takeOverUnitChanges(int x, int y, World parent) {
-
     }
 
     @Override

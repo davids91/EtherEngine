@@ -170,6 +170,7 @@ public class ElementalAspect extends RealityAspect {
 
     @Override
     public void processUnits(World parent){
+        processUnitsPhaseInputs[0] = elements;
         parent.provideScalarsTo(processUnitsPhaseInputs,1);
         backend.setInputs(processUnitsPhaseInputs);
         backend.runPhase(processUnitsPhaseIndex);
@@ -259,12 +260,14 @@ public class ElementalAspect extends RealityAspect {
 
         @Override
     public void processTypes(World parent) {
+        processTypesPhaseInputs[0] = elements;
         parent.getEtherealPlane().provideEtherTo(processTypesPhaseInputs,1);
         parent.provideScalarsTo(processTypesPhaseInputs,2);
         backend.setInputs(processTypesPhaseInputs);
         backend.runPhase(processTypesPhaseIndex);
         BufferUtils.copy(backend.getOutput(processTypesPhaseIndex),elements);
 
+        processTypeUnitsPhaseInputs[0] = elements;
         parent.provideScalarsTo(processTypeUnitsPhaseInputs,1);
         processTypeUnitsPhaseInputs[0] = elements;
         backend.setInputs(processTypeUnitsPhaseInputs);

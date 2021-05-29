@@ -217,6 +217,7 @@ public class EtherealAspect extends RealityAspect {
         backend.runPhase(sharingPhaseIndex);
 
         /* finalize phase: final ether to be read and decided */
+        finalizeInputs[0] = etherValues;
         backend.setInputs(finalizeInputs);
         backend.runPhase(finalizePhaseIndex);
         BufferUtils.copy(backend.getOutput(finalizePhaseIndex), etherValues);
@@ -248,6 +249,7 @@ public class EtherealAspect extends RealityAspect {
 
     @Override
     public void processTypes(World parent){
+        processTypesPhaseInputs[0] = etherValues;
         parent.provideScalarsTo(processTypesPhaseInputs,1); /* TODO: This might be needed only once? */
         backend.setInputs(processTypesPhaseInputs);
         backend.runPhase(processTypesPhaseIndex);
@@ -274,7 +276,8 @@ public class EtherealAspect extends RealityAspect {
 
     @Override
     public FloatBuffer determineUnits(World parent) {
-        backend.setInputs(determineUnitsPhaseInputs); //WTF????
+        determineUnitsPhaseInputs[0] = etherValues;
+        backend.setInputs(determineUnitsPhaseInputs);
         backend.runPhase(determineUnitsPhaseIndex);
         return backend.getOutput(determineUnitsPhaseIndex);
     }

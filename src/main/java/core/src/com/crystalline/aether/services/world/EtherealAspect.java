@@ -87,11 +87,11 @@ public class EtherealAspect extends RealityAspect {
         }
     }
 
-    public void defineBy(ElementalAspect plane, FloatBuffer scalars){
+    public void defineBy(ElementalAspect plane, World parent){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                if(0 < BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)) {
-                    setAetherTo(x,y, etherValues, (((2.0f * BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, scalars)) / (1.0f + Material.ratioOf(plane.getElement(x, y))))));
+                if(0 < parent.getUnit(x,y)) {
+                    setAetherTo(x,y, etherValues, (((2.0f * parent.getUnit(x,y)) / (1.0f + Material.ratioOf(plane.getElement(x, y))))));
                     setNetherTo(x,y, etherValues, ( aetherValueAt(x,y,etherValues)* Material.ratioOf(plane.getElement(x, y))));
                 }else{
                     setAetherTo(x,y, etherValues,1);
@@ -140,10 +140,10 @@ public class EtherealAspect extends RealityAspect {
     private void preProcessCalculationPhase(FloatBuffer[] inputs, FloatBuffer output){
         for (int x = 0; x < sizeX; ++x) { /* Preprocess Ether */
             for (int y = 0; y < sizeY; ++y) {
-                BufferUtils.set(x,y,sizeX, Config.bufferCellSize,0, output,0);
-                BufferUtils.set(x,y,sizeX, Config.bufferCellSize,1, output,0);
-                BufferUtils.set(x,y,sizeX, Config.bufferCellSize,2, output,0);
-                BufferUtils.set(x,y,sizeX, Config.bufferCellSize,3, output,0);
+                setReleasedNether(x,y,sizeX,output,0);
+                setAvgReleasedNether(x,y,sizeX,output,0);
+                setReleasedAether(x,y,sizeX,output,0);
+                setAvgReleasedAether(x,y,sizeX,output,0);
                 float currentRatio = getRatio(x,y,inputs[0]);
                 if( 0.5 < Math.abs(currentRatio - Material.ratioOf(Material.Elements.Ether)) ){
                     float aetherToRelease = (aetherValueAt(x,y,inputs[0]) - getMinAether(x,y,inputs[0]));
@@ -153,9 +153,9 @@ public class EtherealAspect extends RealityAspect {
                         || ( aetherValueAt(x,y,inputs[0]) >= (getMinAether(x,y,inputs[0]) + (netherValueAt(x,y,inputs[0]) * etherReleaseThreshold)) )
                     ){
                         if(netherToRelease >= aetherToRelease){
-                            BufferUtils.set(x,y, sizeX, Config.bufferCellSize,0, output,netherToRelease / 9.0f);
+                            setReleasedNether(x,y, sizeX, output,netherToRelease / 9.0f);
                         }else{
-                            BufferUtils.set(x,y, sizeX, Config.bufferCellSize,2, output,aetherToRelease / 9.0f);
+                            setReleasedAether(x,y, sizeX, output, aetherToRelease / 9.0f);
                         }
                     }
                 }
@@ -167,16 +167,21 @@ public class EtherealAspect extends RealityAspect {
         for (int x = 0; x < sizeX; ++x) { /* Sharing released ether */
             for (int y = 0; y < sizeY; ++y) {
                 /* save released ether from the previous phase */
-                BufferUtils.set(x,y, sizeX, Config.bufferCellSize,0, output, BufferUtils.get(x, y, sizeX, Config.bufferCellSize,0,inputs[0]));
-                BufferUtils.set(x,y, sizeX, Config.bufferCellSize,2, output, BufferUtils.get(x, y, sizeX, Config.bufferCellSize,2,inputs[0]));
+                setReleasedNether(x,y, sizeX, output, getReleasedNether(x, y, sizeX, inputs[0]));
+                setReleasedAether(x,y, sizeX, output, getReleasedAether(x, y, sizeX, inputs[0]));
 
                 /* calculate shared ether from released ether */
-                BufferUtils.set(x,y, sizeX, Config.bufferCellSize,3, output, avgOf(x, y, 2,inputs[0]));
-                BufferUtils.set(x,y, sizeX, Config.bufferCellSize,1, output, avgOf(x, y, 0,inputs[0]));
+                setAvgReleasedAether(x,y, sizeX, output, avgOf(x, y, 2,inputs[0]));
+                setAvgReleasedNether(x,y, sizeX, output, avgOf(x, y, 0,inputs[0]));
             }
         }
     }
-
+    /* which is not declared explicitly as it is part of the backend, and never used outside the calculation phases
+     * - R: Released Nether : etReleasedNether
+     * - G: Average Released Nether in context : etAvgReleasedNether
+     * - B: Released Aether : etReleasedAether
+     * - A: Released Aether in context : etAvgReleasedAether
+     * */
     private void finalizeCalculationPhase(FloatBuffer[] inputs, FloatBuffer output){
         for (int x = 0; x < sizeX; ++x) { /* finalizing Ether */
             for (int y = 0; y < sizeY; ++y) {
@@ -184,12 +189,12 @@ public class EtherealAspect extends RealityAspect {
                 /* Subtract the released Ether, and add the shared */
                 /* TODO: The more units there is, the more ether is absorbed */
                 float newAetherValue = Math.max( 0.01f, /* Update values with safety cut */
-                    aetherValueAt(x,y,inputs[0]) - BufferUtils.get(x,y,sizeX, Config.bufferCellSize,2,inputs[1])
-                    + (BufferUtils.get(x,y,sizeX, Config.bufferCellSize,3, inputs[1]) * 0.9f)// / parent.getUnits(x,y));
+                    aetherValueAt(x,y,inputs[0]) - getReleasedAether(x,y, sizeX, inputs[1])
+                    + (getAvgReleasedAether(x,y, sizeX, inputs[1]) * 0.9f)// / parent.getUnits(x,y));
                 );
                 float newNetherValue = Math.max( 0.01f,
-                    netherValueAt(x,y,inputs[0]) - BufferUtils.get(x,y,sizeX, Config.bufferCellSize,0,inputs[1])
-                    + (BufferUtils.get(x,y,sizeX, Config.bufferCellSize,1, inputs[1]) * 0.9f)// / parent.getUnits(x,y));
+                    netherValueAt(x,y,inputs[0]) - getReleasedNether(x,y, sizeX, inputs[1])
+                    + (getAvgReleasedNether(x,y, sizeX, inputs[1]) * 0.9f)// / parent.getUnits(x,y));
                 );
 
                 /* TODO: Surplus Nether to goes into other effects?? */
@@ -280,20 +285,24 @@ public class EtherealAspect extends RealityAspect {
         /* TODO: Decide para-modifiers ( e.g. heat, light?! ) */
         /* TODO: Increase heat where there is a surplus Nether */
     }
-
-    public float aetherValueAt(int x, int y){
-        return BufferUtils.get(x, y, sizeX, Config.bufferCellSize,2, etherValues);
-    }
-    private float aetherValueAt(int x, int y, FloatBuffer buffer){
+    public static float getAetherValue(int x, int y, int sizeX, FloatBuffer buffer){
         return BufferUtils.get(x, y, sizeX, Config.bufferCellSize,2, buffer);
     }
+    public static float getNetherValue(int x, int y, int sizeX, FloatBuffer buffer){
+        return BufferUtils.get(x, y, sizeX, Config.bufferCellSize,0, buffer);
+    }
+    public float aetherValueAt(int x, int y){
+        return getAetherValue(x,y, sizeX, etherValues);
+    }
+    private float aetherValueAt(int x, int y, FloatBuffer buffer){
+        return getAetherValue(x,y, sizeX, buffer);
+    }
     public float netherValueAt(int x, int y){
-        return BufferUtils.get(x, y, sizeX, Config.bufferCellSize, 0, etherValues);
+        return getNetherValue(x,y, sizeX, etherValues);
     }
     private float netherValueAt(int x, int y, FloatBuffer buffer){
-        return BufferUtils.get(x, y, sizeX, Config.bufferCellSize, 0, buffer);
+        return getNetherValue(x,y, sizeX, buffer);
     }
-
     public float getRatio(int x, int y, FloatBuffer buffer){
         if(0 != aetherValueAt(x,y, buffer))
             return (netherValueAt(x,y, buffer) / aetherValueAt(x,y, buffer));
@@ -313,7 +322,9 @@ public class EtherealAspect extends RealityAspect {
         else return Material.Elements.Fire;
     }
 
-
+    public static void setAether(int x, int y, int sizeX, FloatBuffer buffer, float value){
+        BufferUtils.set(x, y, sizeX, Config.bufferCellSize,2, buffer, value);
+    }
     public void addAetherTo(int x, int y, float value){
         addAetherTo(x,y, etherValues, Math.max(0.01f, aetherValueAt(x,y,etherValues) + value));
     }
@@ -321,7 +332,10 @@ public class EtherealAspect extends RealityAspect {
         setAetherTo(x,y, buffer, Math.max(0.01f, aetherValueAt(x,y, buffer) + value));
     }
     public void setAetherTo(int x, int y, FloatBuffer buffer, float value){
-        BufferUtils.set(x, y, sizeX, Config.bufferCellSize,2, buffer,Math.max(0.01f, value));
+        setAether(x,y, sizeX, buffer, Math.max(0.01f, value));
+    }
+    public static void setNether(int x, int y, int sizeX, FloatBuffer buffer, float value){
+        BufferUtils.set(x, y, sizeX, Config.bufferCellSize,0, buffer, value);
     }
     public void addNetherTo(int x, int y, float value){
         setNetherTo(x,y, etherValues, Math.max(0.01f, netherValueAt(x,y,etherValues) + value));
@@ -330,9 +344,8 @@ public class EtherealAspect extends RealityAspect {
         setNetherTo(x,y, buffer, Math.max(0.01f, netherValueAt(x,y, buffer) + value));
     }
     public void setNetherTo(int x, int y, FloatBuffer buffer, float value){
-        BufferUtils.set(x, y, sizeX, Config.bufferCellSize,0, buffer,Math.max(0.01f, value));
+        setNether(x,y, sizeX, buffer, Math.max(0.01f, value));
     }
-
     public void tryToEqualize(int x, int y, float aetherDelta, float netherDelta, float ratio){
         tryToEqualize(x,y,etherValues,aetherDelta,netherDelta,ratio);
     }
@@ -372,6 +385,32 @@ public class EtherealAspect extends RealityAspect {
         float remainingAether = (aetherValue + aetherDelta) - ((netherValue + netherDelta)/targetRatio);
         float remainingNether = (netherValue + netherDelta) - ((aetherValue + aetherDelta - remainingAether)*targetRatio);
         return (netherValue + netherDelta - remainingNether);
+    }
+
+    public static void setReleasedNether(int x, int y, int sizeX, FloatBuffer buffer, float value){
+        BufferUtils.set(x,y,sizeX, Config.bufferCellSize,0, buffer, value);
+    }
+    public static void setAvgReleasedNether(int x, int y, int sizeX, FloatBuffer buffer, float value){
+        BufferUtils.set(x,y,sizeX, Config.bufferCellSize,1, buffer, value);
+    }
+    public static void setReleasedAether(int x, int y, int sizeX, FloatBuffer buffer, float value){
+        BufferUtils.set(x,y,sizeX, Config.bufferCellSize,2, buffer, value);
+    }
+    public static void setAvgReleasedAether(int x, int y, int sizeX, FloatBuffer buffer, float value){
+        BufferUtils.set(x,y,sizeX, Config.bufferCellSize,3, buffer, value);
+    }
+
+    public static float getReleasedNether(int x, int y, int sizeX, FloatBuffer buffer){
+        return BufferUtils.get(x,y,sizeX, Config.bufferCellSize,0, buffer);
+    }
+    public static float getAvgReleasedNether(int x, int y, int sizeX, FloatBuffer buffer){
+        return BufferUtils.get(x,y,sizeX, Config.bufferCellSize,1, buffer);
+    }
+    public static float getReleasedAether(int x, int y, int sizeX, FloatBuffer buffer){
+        return BufferUtils.get(x,y,sizeX, Config.bufferCellSize,2, buffer);
+    }
+    public static float getAvgReleasedAether(int x, int y, int sizeX, FloatBuffer buffer){
+        return BufferUtils.get(x,y,sizeX, Config.bufferCellSize,3, buffer);
     }
 
 }

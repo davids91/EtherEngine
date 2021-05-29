@@ -59,7 +59,7 @@ public class World {
         elementalPlane.pondWithGrill(this,(int)(sizeY/2.0f));
         /* elementalPlane.determineUnits(this); *//* Included in @pondWithGrill */
 
-        etherealPlane.defineBy(elementalPlane, scalars);
+        etherealPlane.defineBy(elementalPlane, this);
         BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
 

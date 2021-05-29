@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
+import com.crystalline.aether.services.CPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.services.utils.MiscUtils;
 
@@ -42,6 +43,14 @@ public class ElementalAspect extends RealityAspect {
     private float[][] touchedByMechanics; /* Debug purposes */
     private float[][] unitsAtLoopBegin; /* Debug purposes */
 
+    private final CPUBackend backend;
+    private final FloatBuffer[] processUnitsPhaseInputs;
+    private final int processUnitsPhaseIndex;
+    private final FloatBuffer[] processTypesPhaseInputs;
+    private final int processTypesPhaseIndex;
+    private final FloatBuffer[] processTypeUnitsPhaseInputs;
+    private final int processTypeUnitsPhaseIndex;
+
     public ElementalAspect(Config conf_){
         super(conf_);
         sizeX = conf.WORLD_BLOCK_NUMBER[0];
@@ -51,6 +60,13 @@ public class ElementalAspect extends RealityAspect {
         dynamics = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         touchedByMechanics = new float[sizeX][sizeY];
         unitsAtLoopBegin = new float[sizeX][sizeY];
+        backend = new CPUBackend();
+        processUnitsPhaseInputs = new FloatBuffer[]{elements, null};
+        processUnitsPhaseIndex = backend.addPhase(this::processUnitsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        processTypesPhaseInputs = new FloatBuffer[]{elements,null,null};
+        processTypesPhaseIndex = backend.addPhase(this::processTypesPhase, (Config.bufferCellSize * sizeX * sizeY));
+        processTypeUnitsPhaseInputs = new FloatBuffer[]{elements,null};
+        processTypeUnitsPhaseIndex = backend.addPhase(this::processTypeUnitsPhase, (Config.bufferCellSize * sizeX * sizeY));
         reset();
     }
 
@@ -90,13 +106,13 @@ public class ElementalAspect extends RealityAspect {
         }
     }
 
-    private float avgOfUnit(int x, int y, World parent, Material.Elements type){
+    private float avgOfUnit(int x, int y, FloatBuffer elements, FloatBuffer scalars, Material.Elements type){
         float average_val = 0;
         float division = 0;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
             for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
-                if(getElement(nx,ny) == type){
-                    average_val += parent.getUnit(nx,ny);
+                if(getElementEnum(nx,ny, sizeX, elements) == type){
+                    average_val += World.getUnit(nx,ny,sizeX,scalars);
                     division += 1;
                 }
             }
@@ -105,18 +121,18 @@ public class ElementalAspect extends RealityAspect {
         return average_val;
     }
 
-    private int avgOfBlockWithinDistance(int x, int y, World parent){
+    private int avgOfUnitsWithinDistance(int x, int y, FloatBuffer elements, FloatBuffer scalars){
         float average_val = 0;
         float division = 0;
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
             for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
                 if(
                     Material.isSameMat(
-                        getElement(x,y), parent.getUnit(x,y),
-                        getElement(nx,ny), parent.getUnit(nx,ny)
+                        getElementEnum(x,y, sizeX, elements), World.getUnit(x,y, sizeX, scalars),
+                        getElementEnum(nx,ny, sizeX, elements), World.getUnit(nx,ny, sizeX, scalars)
                     )
                 ){
-                    average_val += parent.getUnit(nx,ny);
+                    average_val += World.getUnit(nx,ny, sizeX, scalars);
                     division += 1;
                 }
             }
@@ -140,87 +156,120 @@ public class ElementalAspect extends RealityAspect {
         setForce(fromX,fromY,dynamics,tmpVec);
     }
 
-    @Override
-    public void processUnits(World parent){
-        float[][] avgs = new float[sizeX][sizeY];
-        for(int x = 0;x < sizeX; ++x){
-            for(int y = 0; y < sizeY; ++y){
-                if(Material.movable(getElement(x,y), parent.getUnit(x,y))){
-                    avgs[x][y] = avgOfBlockWithinDistance(x,y,parent);
-                }
-            }
-        }
+    private void processUnitsPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0;x < sizeX; ++x) { /* Calculate dilution */
             for (int y = 0; y < sizeY; ++y) {
-                if(Material.movable(getElement(x,y),parent.getUnit(x,y))) {
-                    parent.setUnit(x,y,avgs[x][y]);
+                if(Material.movable(getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[1]))) {
+                    World.setUnit(x,y,sizeX, output, avgOfUnitsWithinDistance(x,y,inputs[0], inputs[1]));
+                }else{
+                    World.setUnit(x,y, sizeX, output, World.getUnit(x,y, sizeX, inputs[1]));
                 }
             }
         }
     }
 
     @Override
-    public void processTypes(World parent) {
-        for(int x = sizeX - 1;x > 0; --x){
-            for(int y = sizeY - 1 ; y > 0; --y) {
-                setElement(x,y,parent.etherealPlane.elementAt(x,y));
-                /* TODO: Move averages to before the process step for consistent behavior for context dependent stuff */
-                if(Material.Elements.Water == getElement(x,y)){ /* TODO: This will be ill-defined in a multi-threaded environment */
-                    if(y > sizeY * 0.9){ /* TODO: Make rain based on steam */
-                        parent.offsetUnit(x,y,-parent.getUnit(x,y) * 0.2f);
-                        setForceY(x,y,dynamics,Math.min(getForceY(x,y,dynamics), getForceY(x,y,dynamics)*-1.6f));
-                    }
-                    if(avgOfUnit(x,y,parent, Material.Elements.Water) < avgOfUnit(x,y, parent, Material.Elements.Fire)){
-                        setElement(x,y, Material.Elements.Air);
-                    }
+    public void processUnits(World parent){
+        parent.provideScalarsTo(processUnitsPhaseInputs,1);
+        backend.setInputs(processUnitsPhaseInputs);
+        backend.runPhase(processUnitsPhaseIndex);
+        parent.setScalars(backend.getOutput(processUnitsPhaseIndex));
+    }
+
+    private void processTypesPhase(FloatBuffer[] inputs, FloatBuffer output){
+        for(int x = sizeX - 1;x > 0; --x)for(int y = sizeY - 1 ; y > 0; --y) {
+            Material.Elements currentElement = EtherealAspect.getElementEnum(x,y,sizeX,inputs[1]);
+            float currentUnit = World.getUnit(x,y,sizeX, inputs[2]);
+            if(Material.Elements.Water == currentElement){ /* TODO: This will be ill-defined in a multi-threaded environment */
+                if(avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Water) < avgOfUnit(x,y, inputs[0],inputs[2], Material.Elements.Fire)){
+                    currentElement = Material.Elements.Air;
                 }
-
-                if(Material.Elements.Air == getElement(x,y)) {
-                    if(
-                        (5 < parent.getUnit(x,y))
-                        &&(0 < avgOfUnit(x,y,parent, Material.Elements.Earth))
-                        &&(0 == avgOfUnit(x,y,parent, Material.Elements.Water))
-                        &&(avgOfUnit(x,y,parent, Material.Elements.Air) < avgOfUnit(x,y,parent, Material.Elements.Fire))
-                    ){
-                        setElement(x,y, Material.Elements.Fire);
-                    }
-                }
-
-                /* TODO: Store Flammability */
-                /* TODO: Make fire springing out from Earth */
-                if(Material.Elements.Fire == getElement(x,y)){
-                    if(
-                        (Material.MechaProperties.Plasma == Material.getState(getElement(x,y), parent.getUnit(x,y)))
-                        && (parent.getUnit(x,y) <= avgOfUnit(x,y,parent, Material.Elements.Fire))
-                    ){
-                        parent.offsetUnit(x,y, -(parent.getUnit(x,y) * 0.1f));
-                    }
-
-                    /* TODO: Make lava cool off to earth by heat */
-//                    if(avg_of_block(x,y,units,Materials.Names.Water) > avg_of_block(x,y,units, Materials.Names.Fire)){
-//                        elementAt(x,y) = Materials.Names.Earth;
-//                    }
-                    if(5 > parent.getUnit(x,y)){
-                        setElement(x,y, Material.Elements.Air);
-                    }
-                }
-
-                if(Material.Elements.Earth == getElement(x,y)){
-                    /* TODO: Make Earth keep track of heat instead of units */
-                    if((avgOfUnit(x,y,parent, Material.Elements.Earth) < avgOfUnit(x,y, parent, Material.Elements.Fire))){
-                        if( /* TODO: Make sand melt "into" glass */
-                            Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, parent.getUnit(x,y)).ordinal()
-                            || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, parent.getUnit(x,y)).ordinal()
-                        ){
-                            parent.setUnit(x,y, parent.getUnit(x,y) * 0.8f);
-                            if(2 < parent.getUnit(x,y)) setElement(x,y, Material.Elements.Fire);
-                        }
-                    }
-
-                }
-                if(0.01f > parent.getUnit(x,y)) parent.setUnit(x,y, 0.1f);
             }
+
+            if(Material.Elements.Air == currentElement) {
+                if(
+                    (5 < currentUnit)
+                    &&(0 < avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Earth))
+                    &&(0 == avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Water))
+                    &&(avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Air) < avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Fire))
+                ){
+                    currentElement = Material.Elements.Fire;
+                }
+            }
+
+            /* TODO: Store Flammability */
+            /* TODO: Make fire springing out from Earth */
+            if(Material.Elements.Fire == currentElement){
+                 /* TODO: Make lava cool off to earth by heat */
+    //                    if(avg_of_block(x,y,units,Materials.Names.Water) > avg_of_block(x,y,units, Materials.Names.Fire)){
+    //                        elementAt(x,y) = Materials.Names.Earth;
+    //                    }
+                if(5 > currentUnit){
+                    currentElement = Material.Elements.Air;
+                }
+            }
+
+            if(Material.Elements.Earth == currentElement){
+                /* TODO: Make Earth keep track of heat instead of units */
+                if((avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Earth) < avgOfUnit(x,y, inputs[0],inputs[2], Material.Elements.Fire))){
+                    if( /* TODO: Make sand melt "into" glass */
+                        Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, currentUnit).ordinal()
+                        || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, currentUnit).ordinal()
+                    ) if(2 < currentUnit)
+                        currentElement = Material.Elements.Fire;
+                }
+            }
+            setElement(x,y,sizeX,output,currentElement);
         }
+    }
+
+    private void processTypeUnitsPhase(FloatBuffer[] inputs, FloatBuffer output) {
+        for(int x = sizeX - 1;x > 0; --x) for(int y = sizeY - 1 ; y > 0; --y) {
+            Material.Elements currentElement = getElementEnum(x,y,sizeX,inputs[0]);
+            float currentUnit = World.getUnit(x,y,sizeX, inputs[1]);
+            if(Material.Elements.Water == currentElement){
+                if(y > sizeY * 0.9){
+                    currentUnit -= currentUnit * 0.2f;
+                }
+            }
+
+            if(Material.Elements.Fire == currentElement){
+                if(
+                    (Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit))
+                    && (currentUnit <= avgOfUnit(x,y,inputs[0],inputs[1], Material.Elements.Fire))
+                ){
+                    currentUnit -= currentUnit * 0.2f;
+                }
+            }
+
+            if(Material.Elements.Earth == currentElement){
+                if((avgOfUnit(x,y,inputs[0],inputs[1], Material.Elements.Earth) < avgOfUnit(x,y, inputs[0],inputs[1], Material.Elements.Fire))){
+                    if(
+                        Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, currentUnit).ordinal()
+                        || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, currentUnit).ordinal()
+                    ){
+                        currentUnit *= 0.8f; /* TODO: Maybe sand disappears because of this? */
+                    }
+                }
+            }
+            currentUnit = Math.max(0.1f,currentUnit);
+            World.setUnit(x,y,sizeX,output,currentUnit);
+        }
+    }
+
+        @Override
+    public void processTypes(World parent) {
+        parent.getEtherealPlane().provideEtherTo(processTypesPhaseInputs,1);
+        parent.provideScalarsTo(processTypesPhaseInputs,2);
+        backend.setInputs(processTypesPhaseInputs);
+        backend.runPhase(processTypesPhaseIndex);
+        BufferUtils.copy(backend.getOutput(processTypesPhaseIndex),elements);
+
+        parent.provideScalarsTo(processTypeUnitsPhaseInputs,1);
+        processTypeUnitsPhaseInputs[0] = elements;
+        backend.setInputs(processTypeUnitsPhaseInputs);
+        backend.runPhase(processTypeUnitsPhaseIndex);
+        parent.setScalars(backend.getOutput(processTypeUnitsPhaseIndex));
     }
 
     public float getWeight(int x, int y, World parent){
@@ -580,12 +629,22 @@ public class ElementalAspect extends RealityAspect {
         setElement(x,y+1, Material.Elements.Fire);
     }
 
-    public Material.Elements getElement(int x, int y){
-        return Material.Elements.get((int)BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0,elements));
+    public static Material.Elements getElementEnum(int x, int y, int sizeX, FloatBuffer buffer){
+        return Material.Elements.get((int)getElement(x,y,sizeX,buffer));
     }
 
+    public static float getElement(int x, int y, int sizeX, FloatBuffer buffer){
+        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, buffer);
+    }
+
+    public Material.Elements getElement(int x, int y){
+        return getElementEnum(x,y,sizeX, elements);
+    }
+    public static void setElement(int x, int y, int sizeX, FloatBuffer buffer, Material.Elements element){
+        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0,buffer,(float)element.ordinal());
+    }
     public void setElement(int x, int y, Material.Elements element){
-        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0,elements,element.ordinal());
+        setElement(x,y,sizeX,elements,element);
     }
 
     private static final Vector2 tmpVec = new Vector2();

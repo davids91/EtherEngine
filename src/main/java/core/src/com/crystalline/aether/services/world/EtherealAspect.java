@@ -144,7 +144,7 @@ public class EtherealAspect extends RealityAspect {
                 setAvgReleasedNether(x,y,sizeX,output,0);
                 setReleasedAether(x,y,sizeX,output,0);
                 setAvgReleasedAether(x,y,sizeX,output,0);
-                float currentRatio = getRatio(x,y,inputs[0]);
+                float currentRatio = getRatio(x,y, sizeX, inputs[0]);
                 if( 0.5 < Math.abs(currentRatio - Material.ratioOf(Material.Elements.Ether)) ){
                     float aetherToRelease = (aetherValueAt(x,y,inputs[0]) - getMinAether(x,y,inputs[0]));
                     float netherToRelease = (netherValueAt(x,y,inputs[0]) - getMaxNether(x,y,inputs[0]));
@@ -231,8 +231,8 @@ public class EtherealAspect extends RealityAspect {
     private void processTypesPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0;x < sizeX; ++x){ /* Take over unit changes from Elemental plane */
             for(int y = 0; y < sizeY; ++y){
-                float oldRatio = getRatio(x,y,inputs[0]);
-                float oldUnit = getUnit(x,y,inputs[0]);
+                float oldRatio = getRatio(x,y, sizeX, inputs[0]);
+                float oldUnit = getUnit(x,y, sizeX, inputs[0]);
                 float newAetherValue = (
                     (
                         aetherValueAt(x,y,inputs[0])* aetherWeightInUnits + netherValueAt(x,y,inputs[0]))
@@ -254,16 +254,20 @@ public class EtherealAspect extends RealityAspect {
         BufferUtils.copy(backend.getOutput(processTypesPhaseIndex), etherValues);
     }
 
-    private float getUnit(int x, int y, FloatBuffer buffer){
+    public static float getUnit(int x, int y,  int sizeX, FloatBuffer buffer){
         return ( /* Since Aether is the stabilizer, it shall weigh more */
-            (aetherValueAt(x,y,buffer)* aetherWeightInUnits + netherValueAt(x,y,buffer)) /(aetherWeightInUnits+1)
+            (getAetherValue(x,y, sizeX, buffer)* aetherWeightInUnits + getNetherValue(x,y, sizeX, buffer)) /(aetherWeightInUnits+1)
         );
+    }
+
+    private float getUnit(int x, int y){
+        return getUnit(x,y,sizeX, etherValues);
     }
 
     private void determineUnitsPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                World.setUnit(x,y,sizeX,output,getUnit(x,y,inputs[0]));
+                World.setUnit(x,y,sizeX,output,getUnit(x,y, sizeX, inputs[0]));
             }
         }
     }
@@ -285,6 +289,11 @@ public class EtherealAspect extends RealityAspect {
         /* TODO: Decide para-modifiers ( e.g. heat, light?! ) */
         /* TODO: Increase heat where there is a surplus Nether */
     }
+
+    public void provideEtherTo(FloatBuffer[] inputs, int inputIndex){
+        inputs[inputIndex] = etherValues;
+    }
+
     public static float getAetherValue(int x, int y, int sizeX, FloatBuffer buffer){
         return BufferUtils.get(x, y, sizeX, Config.bufferCellSize,2, buffer);
     }
@@ -303,27 +312,35 @@ public class EtherealAspect extends RealityAspect {
     private float netherValueAt(int x, int y, FloatBuffer buffer){
         return getNetherValue(x,y, sizeX, buffer);
     }
-    public float getRatio(int x, int y, FloatBuffer buffer){
-        if(0 != aetherValueAt(x,y, buffer))
-            return (netherValueAt(x,y, buffer) / aetherValueAt(x,y, buffer));
+    public static float getRatio(int x, int y, int sizeX, FloatBuffer buffer){
+        if(0 != getAetherValue(x,y, sizeX, buffer))
+            return (getNetherValue(x,y, sizeX, buffer) / getAetherValue(x,y, sizeX, buffer));
         else return 0;
     }
-
-    public Material.Elements elementAt(int x, int y){
-        if(getUnit(x,y,etherValues) <= Material.ratioOf(Material.Elements.Fire)) return Material.Elements.Air; /* TODO: Recheck so extra AENE are not counted, maybe? */
-        else if(0 == Math.abs(getRatio(x,y,etherValues) - Material.ratioOf(Material.Elements.Ether)))
+    public float getRatio(int x, int y){
+        return getRatio(x,y,sizeX,etherValues);
+    }
+    public static float getElement(int x, int y, int sizeX, FloatBuffer buffer){
+        return getRatio(x,y, sizeX, buffer);
+    }
+    public static Material.Elements getElementEnum(int x, int y, int sizeX, FloatBuffer buffer){
+        if(getUnit(x,y, sizeX, buffer) <= Material.ratioOf(Material.Elements.Fire)) return Material.Elements.Air;
+        else if(0 == Math.abs(getRatio(x,y,sizeX, buffer) - Material.ratioOf(Material.Elements.Ether)))
             return Material.Elements.Ether;
-        else if(getRatio(x,y,etherValues) <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))
+        else if(getRatio(x,y,sizeX, buffer) <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))
             return Material.Elements.Earth;
-        else if(getRatio(x,y,etherValues) <= ((Material.ratioOf(Material.Elements.Water) + Material.ratioOf(Material.Elements.Air))/2.0f))
+        else if(getRatio(x,y,sizeX, buffer) <= ((Material.ratioOf(Material.Elements.Water) + Material.ratioOf(Material.Elements.Air))/2.0f))
             return Material.Elements.Water;
-        else if(getRatio(x,y,etherValues) <= ((Material.ratioOf(Material.Elements.Air) + Material.ratioOf(Material.Elements.Fire))/2.0f))
+        else if(getRatio(x,y,sizeX, buffer) <= ((Material.ratioOf(Material.Elements.Air) + Material.ratioOf(Material.Elements.Fire))/2.0f))
             return Material.Elements.Air;
         else return Material.Elements.Fire;
     }
+    public Material.Elements elementAt(int x, int y){
+        return getElementEnum(x,y,sizeX,etherValues);
+    }
 
     public static void setAether(int x, int y, int sizeX, FloatBuffer buffer, float value){
-        BufferUtils.set(x, y, sizeX, Config.bufferCellSize,2, buffer, value);
+        BufferUtils.set(x,y, sizeX, Config.bufferCellSize,2, buffer, value);
     }
     public void addAetherTo(int x, int y, float value){
         addAetherTo(x,y, etherValues, Math.max(0.01f, aetherValueAt(x,y,etherValues) + value));

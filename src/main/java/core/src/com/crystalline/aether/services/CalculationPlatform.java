@@ -7,7 +7,7 @@ public interface CalculationPlatform<Program, Data> {
     /**
      * A calculation phase to do inside the GPU
      * @param phase the shader program to run
-     * @param outputSize the size of the output
+     * @param outputSize the size of the output, not in Bytes, but in number of elements
      * @return the index of the added calculation phase; it is to be used with @runPhase
      */
     int addPhase(Program phase, int outputSize);

@@ -3,14 +3,12 @@ package com.crystalline.aether.services.world;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector3;
-import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.models.spells.SpellAction;
 import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.services.utils.MiscUtils;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.Material;
 
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -159,7 +157,7 @@ public class World {
         BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
     private void addNetherTo(int x, int y, float value){
-        etherealPlane.addNetherTo(x,y,value);
+        etherealPlane.addNether(x,y,value);
         BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
     private void tryToEqualize(int x, int y, float aetherToUse, float netherToUse, Material.Elements target) {

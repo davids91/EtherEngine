@@ -50,6 +50,8 @@ public class ElementalAspect extends RealityAspect {
     private final int processTypesPhaseIndex;
     private final FloatBuffer[] processTypeUnitsPhaseInputs;
     private final int processTypeUnitsPhaseIndex;
+    private final int defineByEtherealPhaseIndex;
+    private final FloatBuffer[] defineByEtherealPhaseInputs;
 
     public ElementalAspect(Config conf_){
         super(conf_);
@@ -67,6 +69,8 @@ public class ElementalAspect extends RealityAspect {
         processTypesPhaseIndex = backend.addPhase(this::processTypesPhase, (Config.bufferCellSize * sizeX * sizeY));
         processTypeUnitsPhaseInputs = new FloatBuffer[]{elements,null};
         processTypeUnitsPhaseIndex = backend.addPhase(this::processTypeUnitsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        defineByEtherealPhaseInputs = new FloatBuffer[1];
+        defineByEtherealPhaseIndex = backend.addPhase(this::defineByEtherealPhase, (Config.bufferCellSize * sizeX * sizeY));
         reset();
     }
 
@@ -98,12 +102,19 @@ public class ElementalAspect extends RealityAspect {
         }
     }
 
-    public void defineBy(EtherealAspect plane){
+    private void defineByEtherealPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
-                setElement(x,y,plane.elementAt(x,y));
+                ElementalAspect.setElement(x,y, sizeX, output, EtherealAspect.getElementEnum(x,y, sizeX, inputs[0]));
             }
         }
+    }
+
+    public void defineBy(EtherealAspect plane){
+        plane.provideEtherTo(defineByEtherealPhaseInputs, 0);
+        backend.setInputs(defineByEtherealPhaseInputs);
+        backend.runPhase(defineByEtherealPhaseIndex);
+        BufferUtils.copy(backend.getOutput(defineByEtherealPhaseIndex), elements);
     }
 
     private float avgOfUnit(int x, int y, FloatBuffer elements, FloatBuffer scalars, Material.Elements type){
@@ -178,7 +189,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private void processTypesPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = sizeX - 1;x > 0; --x)for(int y = sizeY - 1 ; y > 0; --y) {
+        for(int x = sizeX - 1;x >= 0; --x)for(int y = sizeY - 1 ; y >= 0; --y) {
             Material.Elements currentElement = EtherealAspect.getElementEnum(x,y,sizeX,inputs[1]);
             float currentUnit = World.getUnit(x,y,sizeX, inputs[2]);
             if(Material.Elements.Water == currentElement){ /* TODO: This will be ill-defined in a multi-threaded environment */
@@ -225,7 +236,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private void processTypeUnitsPhase(FloatBuffer[] inputs, FloatBuffer output) {
-        for(int x = sizeX - 1;x > 0; --x) for(int y = sizeY - 1 ; y > 0; --y) {
+        for(int x = sizeX - 1;x >= 0; --x) for(int y = sizeY - 1 ; y >= 0; --y) {
             Material.Elements currentElement = getElementEnum(x,y,sizeX,inputs[0]);
             float currentUnit = World.getUnit(x,y,sizeX, inputs[1]);
             if(Material.Elements.Water == currentElement){
@@ -269,7 +280,6 @@ public class ElementalAspect extends RealityAspect {
 
         processTypeUnitsPhaseInputs[0] = elements;
         parent.provideScalarsTo(processTypeUnitsPhaseInputs,1);
-        processTypeUnitsPhaseInputs[0] = elements;
         backend.setInputs(processTypeUnitsPhaseInputs);
         backend.runPhase(processTypeUnitsPhaseIndex);
         parent.setScalars(backend.getOutput(processTypeUnitsPhaseIndex));
@@ -630,6 +640,10 @@ public class ElementalAspect extends RealityAspect {
         setElement(x-1,y, Material.Elements.Fire);
         setElement(x+1,y, Material.Elements.Fire);
         setElement(x,y+1, Material.Elements.Fire);
+    }
+
+    public void provideElementsTo(FloatBuffer[] inputs, int inputIndex){
+        inputs[inputIndex] = elements;
     }
 
     public static Material.Elements getElementEnum(int x, int y, int sizeX, FloatBuffer buffer){

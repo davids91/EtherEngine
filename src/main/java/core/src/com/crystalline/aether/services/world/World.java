@@ -87,7 +87,7 @@ public class World {
         /* ============= POST PROCESS ============= */
         etherealPlane.postProcess(this);
         elementalPlane.postProcess(this); /* Elemental takes over finalised type changes from Ethereal */
-        elementalPlane.debugPrint();
+        elementalPlane.debugPrint(this);
     }
 
     public void pushState(){

@@ -65,7 +65,7 @@ public class EtherealAspect extends RealityAspect {
         preProcessInputs = new FloatBuffer[]{backend.getOutput(finalizePhaseIndex)};
         sharingInputs = new FloatBuffer[]{backend.getOutput(preprocessPhaseIndex)};
         finalizeInputs = new FloatBuffer[]{etherValues, backend.getOutput(sharingPhaseIndex)};
-        processTypesPhaseInputs = new FloatBuffer[]{etherValues, null};
+        processTypesPhaseInputs = new FloatBuffer[]{etherValues, null, null};
         determineUnitsPhaseInputs = new FloatBuffer[]{etherValues};
         defineByElementalPhaseInputs = new FloatBuffer[]{null, null};
 
@@ -249,10 +249,12 @@ public class EtherealAspect extends RealityAspect {
             for(int y = 0; y < sizeY; ++y){
                 float oldRatio = getRatio(x,y, sizeX, inputs[0]);
                 float oldUnit = getUnit(x,y, sizeX, inputs[0]);
+                Material.Elements oldElement = getElementEnum(x,y,sizeX,inputs[0]);
+//                Material.Elements oldElement = ElementalAspect.getElementEnum(x,y,sizeX,inputs[1]);
                 float newAetherValue = (
                     (
                         aetherValueAt(x,y, sizeX, inputs[0])* aetherWeightInUnits + netherValueAt(x,y, sizeX, inputs[0]))
-                        * World.getUnit(x,y,sizeX,inputs[1])
+                        * World.getUnit(x,y,sizeX,inputs[2])
                     ) / (oldUnit * aetherWeightInUnits + oldUnit * oldRatio
                 );
                 setAether(x,y, sizeX, output, newAetherValue);
@@ -265,7 +267,8 @@ public class EtherealAspect extends RealityAspect {
     @Override
     public void processTypes(World parent){
         processTypesPhaseInputs[0] = etherValues;
-        parent.provideScalarsTo(processTypesPhaseInputs,1); /* TODO: This might be needed only once? */
+        parent.getElementalPlane().provideElementsTo(processTypesPhaseInputs, 1);
+        parent.provideScalarsTo(processTypesPhaseInputs,2); /* TODO: This might be needed only once? */
         backend.setInputs(processTypesPhaseInputs);
         backend.runPhase(processTypesPhaseIndex);
         BufferUtils.copy(backend.getOutput(processTypesPhaseIndex), etherValues);
@@ -345,8 +348,8 @@ public class EtherealAspect extends RealityAspect {
     }
     public static Material.Elements getElementEnum(int x, int y, int sizeX, FloatBuffer buffer){
         if(getUnit(x,y, sizeX, buffer) <= Material.ratioOf(Material.Elements.Fire)) return Material.Elements.Air;
-        else if(0 == Math.abs(getRatio(x,y,sizeX, buffer) - Material.ratioOf(Material.Elements.Ether)))
-            return Material.Elements.Ether;
+        else if(0.05f > Math.abs(getRatio(x,y,sizeX, buffer) - Material.ratioOf(Material.Elements.Ether)))
+            return Material.Elements.Ether; /*!Note: Setting the thresholds here will increase the chance of flickering crystals/vapor! */
         else if(getRatio(x,y,sizeX, buffer) <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))
             return Material.Elements.Earth;
         else if(getRatio(x,y,sizeX, buffer) <= ((Material.ratioOf(Material.Elements.Water) + Material.ratioOf(Material.Elements.Air))/2.0f))

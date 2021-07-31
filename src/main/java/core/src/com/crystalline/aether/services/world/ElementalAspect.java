@@ -26,7 +26,7 @@ public class ElementalAspect extends RealityAspect {
      * - R: block type --> Material.Elements
      * - G:
      * - B:
-     * - A:
+     * - A: priority --> A unique number to decide arbitration while switching cells
      */
     private FloatBuffer elements;
 
@@ -35,10 +35,19 @@ public class ElementalAspect extends RealityAspect {
      * A texture image representing the dynamism of a cell
      * - R: x of the force vector active on the block
      * - G: y of the force vector active on the block
-     * - B: the velocity tick of the cell ( 0 means the cell would move )
+     * - B:
      * - A: gravity correction amount ( helps to not add gravity in the intermediary steps of the mechanics evaluation )
      */
     private FloatBuffer dynamics;
+
+    /**
+     * A texture image representing each cells intention to switch to another cell
+     * - R: the offset code for the target, which is to be used in accordance with the coordinates of the source cell
+     * - G: A byte deciding whether or not to apply this change in the next round
+     * - B: the velocity tick of the cell ( 0 means the cell would move )
+     * - A:
+     */
+    private final FloatBuffer proposedChanges;
 
     private float[][] touchedByMechanics; /* Debug purposes */
     private float[][] unitDebugVariable; /* Debug purposes */
@@ -61,6 +70,7 @@ public class ElementalAspect extends RealityAspect {
         myMiscUtils = new MiscUtils();
         elements = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         dynamics = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
+        proposedChanges = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         touchedByMechanics = new float[sizeX][sizeY];
         unitDebugVariable = new float[sizeX][sizeY];
         backend = new CPUBackend();
@@ -72,6 +82,8 @@ public class ElementalAspect extends RealityAspect {
         processTypeUnitsPhaseIndex = backend.addPhase(this::processTypeUnitsPhase, (Config.bufferCellSize * sizeX * sizeY));
         defineByEtherealPhaseInputs = new FloatBuffer[1];
         defineByEtherealPhaseIndex = backend.addPhase(this::defineByEtherealPhase, (Config.bufferCellSize * sizeX * sizeY));
+
+        calculatePriority();
         reset();
     }
 
@@ -92,23 +104,45 @@ public class ElementalAspect extends RealityAspect {
     }
 
     public void reset(){
-        for(int x = 0;x < sizeX; ++x){
-            for(int y = 0; y < sizeY; ++y){
-                setElement(x,y,Material.Elements.Air);
-                setForce(x,y, sizeX, dynamics,0,0);
-                setGravityCorrection(x,y, sizeX, dynamics,0);
-                setVelocityTick(x,y, sizeX, dynamics,velocityMaxTicks);
-                touchedByMechanics[x][y] = 0;
-            }
-        }
+        for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            setElement(x,y,Material.Elements.Air);
+            setForce(x,y, sizeX, dynamics,0,0);
+            setGravityCorrection(x,y, sizeX, dynamics,0);
+            setVelocityTick(x,y, sizeX, proposedChanges, velocityMaxTicks);
+            touchedByMechanics[x][y] = 0;
+        } }
+    }
+
+    public static void setPriority(int x, int y, int sizeX, FloatBuffer buffer, float prio){
+        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,3, buffer, prio);
+    }
+
+    public static float getPriority(int x, int y, int sizeX, FloatBuffer elements){
+        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,3, elements);
+    }
+
+    public static boolean aWinsOverB(int ax, int ay, int bx, int by, int sizeX, FloatBuffer elements, FloatBuffer dynamics){
+        if(getForce(ax,ay,sizeX,dynamics).len() == getForce(bx,by,sizeX,dynamics).len()){
+            return (getPriority(ax,ay,sizeX,elements) > getPriority(bx,by,sizeX,elements));
+        }else return (getForce(ax,ay,sizeX,dynamics).len() > getForce(bx,by,sizeX,dynamics).len());
+    }
+
+    /**
+     * To tell that each cell shall have a priority calculated from the formulae:
+     *     y + x%4 + (y%4)*2 + (x%8)*2 + (y%8)*2 + (x%8)/2 + (y%8)/2
+     */
+    private void calculatePriority(){
+        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            setPriority(x,y,sizeX,elements,(float)(
+                (y + x%4 + (y%4)*2 + (x%8)*2 + (y%8)*2 + (x%8)/2 + (y%8)/2)
+            ));
+        } }
     }
 
     private void defineByEtherealPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0;x < sizeX; ++x){
-            for(int y = 0; y < sizeY; ++y){
-                ElementalAspect.setElement(x,y, sizeX, output, EtherealAspect.getElementEnum(x,y, sizeX, inputs[0]));
-            }
-        }
+        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            ElementalAspect.setElement(x,y, sizeX, output, EtherealAspect.getElementEnum(x,y, sizeX, inputs[0]));
+        } }
     }
 
     public void defineBy(EtherealAspect plane){
@@ -182,15 +216,13 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private void processUnitsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0;x < sizeX; ++x) { /* Calculate dilution */
-            for (int y = 0; y < sizeY; ++y) {
-                if(Material.movable(getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[1]))) {
-                    World.setUnit(x,y,sizeX, output, avgOfUnitsWithinDistance(x,y,inputs[0], inputs[1]));
-                }else{
-                    World.setUnit(x,y, sizeX, output, World.getUnit(x,y, sizeX, inputs[1]));
-                }
+        for(int x = 0;x < sizeX; ++x) { for (int y = 0; y < sizeY; ++y) { /* Calculate dilution */
+            if(Material.movable(getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[1]))) {
+                World.setUnit(x,y,sizeX, output, avgOfUnitsWithinDistance(x,y,inputs[0], inputs[1]));
+            }else{
+                World.setUnit(x,y, sizeX, output, World.getUnit(x,y, sizeX, inputs[1]));
             }
-        }
+        } }
     }
 
     @Override
@@ -298,8 +330,180 @@ public class ElementalAspect extends RealityAspect {
         );
     }
 
+    public static float getOffsetCode(int x, int y, int sizeX, FloatBuffer buffer){
+        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, buffer);
+    }
+
+    public static void setOffsetCode(int x, int y, int sizeX, FloatBuffer buffer, float value){
+        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, buffer, value);
+    }
+
+    public static int getXFromOffsetCode(int x, int code){
+        switch(code){
+            case 1: case 8: case 7: return (x-1);
+            case 2: case 0: case 6: return (x);
+            case 3: case 4: case 5: return (x+1);
+        }
+        return x;
+    }
+    public static int getYFromOffsetCode(int y, int code){
+        switch(code){
+            case 7: case 6: case 5: return (y+1);
+            case 8: case 0: case 4: return (y);
+            case 1: case 2: case 3: return (y-1);
+        }
+        return y;
+    }
+
+    public static int getOffsetCode(int ox, int oy){
+        if((ox < 0)&&(oy < 0)) return 1;
+        if((ox == 0)&&(oy < 0)) return 2;
+        if((ox > 0)&&(oy < 0)) return 3;
+        if((ox > 0)&&(oy == 0)) return 4;
+        if((ox > 0)/*&&(oy > 0)*/) return 5;
+        if((ox == 0)&&(oy > 0)) return 6;
+        if((ox < 0)&&(oy > 0)) return 7;
+        if((ox < 0)/*&&(oy == 0)*/) return 8;
+        return 0;
+    }
+
+    public static int getTargetX(int x, int y, int sizeX, FloatBuffer buffer){
+        return getXFromOffsetCode(x,(int)getOffsetCode(x,y,sizeX,buffer));
+    }
+
+    public static int getTargetY(int x, int y, int sizeX, FloatBuffer buffer){
+        return getYFromOffsetCode(y,(int)getOffsetCode(x,y,sizeX,buffer));
+    }
+
+    /**
+     * A function to calculate a target to switch to for each cell
+     * @param inputs: [0]: previously proposed changes; [1]: elements; [2]: dynamics; [3]: scalars
+     * @param output the resulting proposed changes, velocity tick values
+     */
+    private void proposeChangesFromForcesPhase(FloatBuffer[] inputs, FloatBuffer output){
+        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            int intendedX = (int)Math.min( 1.0f, Math.max(-1.0f, getForceX(x,y,sizeX,output)) );
+            int intendedY = (int)Math.min( 1.0f, Math.max(-1.0f, getForceY(x,y,sizeX,output)) );
+            float offsetCode = 0;
+            int newVelocityTick = getVelocityTick(x,y, sizeX, inputs[0]);
+            if(
+                !((x == intendedX) && (y == intendedY))
+                &&( /* In case both is discardable, then no operations shall commence */
+                    !Material.discardable(
+                        getElementEnum(x,y, sizeX, inputs[1]),
+                        World.getUnit(x,y, sizeX, inputs[3])
+                    )||!Material.discardable(
+                        getElementEnum(intendedX,intendedY, sizeX, inputs[1]),
+                        World.getUnit(intendedX,intendedY, sizeX, inputs[3])
+                    )
+                )
+                /* TODO: Handle if a movable material collides with a non-movable */
+//                &&(isMovable(x,y,sizeX,inputs[2],inputs[3]))
+//                &&(isMovable(intendedX,intendedY,sizeX,inputs[2],inputs[3]))
+            ){
+                if(velocityMaxTicks == getVelocityTick(x,y, sizeX, inputs[0]))
+                    offsetCode = getOffsetCode(intendedX,intendedY);
+                else increaseVelocityTick(x,y, sizeX, inputs[0]);
+            } /* Able to process mechanics on the 2 blocks */
+
+            setVelocityTick(x,y, sizeX, output,newVelocityTick);
+            setOffsetCode(x,y,sizeX,output,offsetCode);
+        } }
+    }
+
+    public static int getHighestPriorityNeighbourPointingToCell(
+        int x, int y, int sizeX, FloatBuffer previousChanges, FloatBuffer elements, FloatBuffer dynamics
+    ){
+        int nx = x, ny = y;
+        int currX, currY;
+        for(int i = 0; i < 9; ++i){
+            currX = getXFromOffsetCode(x,i);
+            currY = getYFromOffsetCode(y,i);
+            if( /* Each neighbour of c pointing to it shall be arbitrated based on priority */
+                (x == getTargetX(currX,currY,sizeX,previousChanges))
+                &&(y == getTargetY(currX,currY,sizeX,previousChanges))
+                &&( /* Either no previously neighbour points to c */
+                    ((nx == x)&&(ny == y)) /* or the current has higher priority */
+                    ||aWinsOverB(currX,currY,nx,ny,sizeX,elements,dynamics)
+                )
+            ){
+                nx = currX;
+                ny = currY;
+            }
+        }
+        return getOffsetCode((nx-x),(ny-y));
+    }
+
+    public static int getThreatCountForCellOrTarget(int x, int y, int sizeX, FloatBuffer previousChanges, FloatBuffer elements, FloatBuffer dynamics){
+        int threatCount = 0;
+        int targetX = getTargetX(x,y,sizeX,previousChanges);
+        int targetY = getTargetY(x,y,sizeX,previousChanges);
+        int ix,iy;
+        for(int i = 0; i < 9; ++i){ /* Count threats for cell from cell */
+            ix = getXFromOffsetCode(x,i);
+            iy = getYFromOffsetCode(y,i);
+            int targetOfTargetX = getTargetX(ix,iy,sizeX,previousChanges);
+            int targetOfTargetY = getTargetY(ix,iy,sizeX,previousChanges);
+            if(
+                ((ix != x) && (iy != y))
+                &&((targetX != x) && (targetY != y))
+                &&(
+                    ((targetOfTargetX == x) && (targetOfTargetY == y))
+                    ||((targetOfTargetX == targetX) && (targetOfTargetY == targetY))
+                )
+                &&(aWinsOverB(ix,iy,x,y,sizeX,elements,dynamics))
+            )++threatCount;
+        }
+        for(int i = 0; i < 9; ++i) { /* Count threats for target, compare to cell */
+            ix = getXFromOffsetCode(targetX,i);
+            iy = getYFromOffsetCode(targetY,i);
+            int targetOfTargetX = getTargetX(ix,iy,sizeX,previousChanges);
+            int targetOfTargetY = getTargetY(ix,iy,sizeX,previousChanges);
+            if(
+                    ((ix != x) && (iy != y))
+                    &&((targetX != x) && (targetY != y))
+                    &&(
+                        ((targetOfTargetX == x) && (targetOfTargetY == y))
+                        ||((targetOfTargetX == targetX) && (targetOfTargetY == targetY))
+                    )
+                    &&(aWinsOverB(ix,iy,x,y,sizeX,elements,dynamics))
+            )++threatCount;
+        }
+        return threatCount;
+    }
+
+    /**
+     * Decides which changes are to be applied, and which would not
+     * @param inputs [0]: previously proposed changes; [1]: elements; [2]: dynamics; [3]: scalars
+     * @param output the arbitrated changes, with the toApply part set
+     */
+    private void arbitrateChangesPhase(FloatBuffer[] inputs, FloatBuffer output){
+        for(int cx = 0; cx < sizeX; ++cx){ for(int cy = 0; cy < sizeY; ++cy) {
+            int tx = getTargetX(cx,cy,sizeX,inputs[0]);
+            int ty = getTargetY(cx,cy,sizeX,inputs[0]);
+            float applyBit = 0; /* only apply changes approved by the algorithm ( setting the apply bit there ) */
+            float offsetCodeForTarget = getOffsetCode(cx,cy,sizeX,inputs[0]);
+            if(!(tx == cx)&&(ty == cy)) { /* c has a target other, than itself */
+                /* count the number of cells targeting c or t; with higher priority */
+                /* if target wins over source and target of target */
+
+                if(0 == getThreatCountForCellOrTarget(cx,cy, sizeX, inputs[0], inputs[1], inputs[2])){
+                    applyBit = 1;
+                    /* if source wins over both target and target of target */
+                    /* then cell will be target */
+                    /* else if target of target is the source cell, cell will be target */
+                    /* TODO:  what will be in its place???? */
+                }
+            }
+            setOffsetCode(cx,cy,sizeX,output,applyBit);
+            setOffsetCode(cx,cy,sizeX,output,offsetCodeForTarget);
+        } }
+    }
+
     @Override
     public void processMechanics(World parent) {
+        /* Init Mechanics phase */
+        /* TODO: initialize previously left out proposals as well to 0 */
         HashMap<MiscUtils.MyCell, MiscUtils.MyCell> remaining_proposed_changes = new HashMap<>();
         for(int x = 1; x < sizeX-1; ++x){ /* Pre-process: Add gravity, and nullify forces on discardable objects; */
             for(int y = sizeY-2; y > 0; --y){
@@ -307,10 +511,21 @@ public class ElementalAspect extends RealityAspect {
             }
         }
 
+        /* Main Mechanic phase */
         for(int i = 0; i < velocityMaxTicks; ++i){
-            processMechanicsBackend(parent,remaining_proposed_changes);
+//            processMechanicsBackend(parent,remaining_proposed_changes);
+            /* Apply changes not applied, but arbitrated from the last loop */
+            //
+            /* Propose changes from forces */
+            /*!Note: Simply put: forces of the cell generate the target whom it wants to switch with */
+            //proposeChangesFromForces
+            /* Arbitrate changes */
+            //
+            /* Apply arbitrated changes */
+            //
         }
 
+        /* Mechanic post-process phase */
         for(Map.Entry<MiscUtils.MyCell, MiscUtils.MyCell> missedCells : remaining_proposed_changes.entrySet()){
             setGravityCorrection(
                 missedCells.getKey().getIX(), missedCells.getKey().getIY(), sizeX, dynamics,
@@ -335,12 +550,13 @@ public class ElementalAspect extends RealityAspect {
 
     /* TODO: Make movable objects, depending of the solidness "merge into one another", leaving vacuum behind, which are to resolved at the end of the mechanics round */
     public void processMechanicsBackend(World parent, HashMap<MiscUtils.MyCell, MiscUtils.MyCell> previouslyLeftOutProposals){
+        /* Adding forces phase */
         /* update forces based on context, calculate intended velocities based on them */
         for(int x = 1; x < sizeX-1; ++x){
             for(int y = 1; y < sizeY-1; ++y){
                 if(!Material.discardable(getElement(x,y), parent.getUnit(x,y))){
                     setGravityCorrection(x,y, sizeX, dynamics,getWeight(x,y,parent));
-                    setVelocityTick(x,y, sizeX, dynamics, velocityMaxTicks);
+                    setVelocityTick(x,y, sizeX, proposedChanges, velocityMaxTicks);
                 }else{
                     setForce(x,y, sizeX, dynamics,0,0);
                     setGravityCorrection(x,y, sizeX, dynamics,0);
@@ -409,6 +625,16 @@ public class ElementalAspect extends RealityAspect {
         HashMap<MiscUtils.MyCell, MiscUtils.MyCell> proposedChanges = new HashMap<>();
         HashSet<Integer> already_changed = new HashSet<>();
         HashMap<MiscUtils.MyCell, MiscUtils.MyCell> remaining = new HashMap<>();
+
+        /* Create raw proposals phase */
+        /*!Note: In this phase every cell proposes a neighbouring switch based on its forces */
+        /*!Note: This phase contains the previously left our proposals too, which may get overwritten by different forces,
+         * but in case there is no force or other interaction is present,
+         * the previously left out proposals should not be overwritten by 0(==no cell switch).
+         * */
+
+        /* Apply proposals phase */
+
 
         /* Take over proposals left out from the previous process loop */
         for(Map.Entry<MiscUtils.MyCell, MiscUtils.MyCell> currChange : previouslyLeftOutProposals.entrySet()){
@@ -585,13 +811,13 @@ public class ElementalAspect extends RealityAspect {
             &&(!alreadyChanged.contains(BufferUtils.map2DTo1D(x,y,sizeX)))
             &&(!alreadyChanged.contains(BufferUtils.map2DTo1D(intendedX,intendedY,sizeX)))
         ){
-            if(velocityMaxTicks == getVelocityTick(x,y, sizeX, dynamics)){
+            if(velocityMaxTicks == getVelocityTick(x,y, sizeX, proposedChanges)){
                 alreadyProposedChanges.put(new MiscUtils.MyCell(x,y,sizeX),new MiscUtils.MyCell(intendedX,intendedY,sizeX));
                 alreadyChanged.add(BufferUtils.map2DTo1D(x,y,sizeX));
                 alreadyChanged.add(BufferUtils.map2DTo1D(intendedX,intendedY,sizeX));
-                setVelocityTick(x,y, sizeX, dynamics,0);
+                setVelocityTick(x,y, sizeX, proposedChanges,0);
                 return true;
-            }else increaseVelocityTick(x,y, sizeX, dynamics);
+            }else increaseVelocityTick(x,y, sizeX, proposedChanges);
         } /* Able to process mechanics on the 2 blocks */
         return false;
     }
@@ -652,6 +878,10 @@ public class ElementalAspect extends RealityAspect {
 
     public void provideElementsTo(FloatBuffer[] inputs, int inputIndex){
         inputs[inputIndex] = elements;
+    }
+
+    public static boolean isMovable(int x, int y, int sizeX, FloatBuffer elements, FloatBuffer scalars){
+        return Material.movable(getElementEnum(x,y,sizeX,elements),World.getUnit(x,y,sizeX,scalars));
     }
 
     public static Material.Elements getElementEnum(int x, int y, int sizeX, FloatBuffer buffer){

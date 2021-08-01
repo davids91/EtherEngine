@@ -13,6 +13,10 @@ public class MiscUtils {
         return tmp_gravity;
     }
 
+    public static float distance(float ax, float ay, float bx, float by){
+        return (float)Math.sqrt(Math.pow((ax - bx),2.0f) + Math.pow((ay - by), 2.0f));
+    }
+
     public static int indexIn(float[] table, float value){
         int index = table.length-1;
         while((index > 0)&&(table[index] >= value))--index;

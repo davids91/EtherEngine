@@ -52,7 +52,7 @@ public class World {
 
         backend = new CPUBackend();
         switchScalarsPhaseIndex = backend.addPhase(this::switchScalarsPhase, (Config.bufferCellSize * sizeX * sizeY));
-        switchScalarsPhaseInputs = new FloatBuffer[]{null};
+        switchScalarsPhaseInputs = new FloatBuffer[2];
         reset();
     }
 
@@ -72,15 +72,15 @@ public class World {
 
     /**
      * Applies the changes proposed from the input proposal buffer
-     * @param inputs [0]: scalars
+     * @param inputs [0]: proposed changes; [1]: scalars
      * @param output elements buffer
      */
     private void switchScalarsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             if(0 != RealityAspect.getOffsetCode(x,y,sizeX, inputs[0])){
                 int targetX = RealityAspect.getTargetX(x,y,sizeX, inputs[0]);
                 int targetY = RealityAspect.getTargetY(x,y,sizeX, inputs[0]);
-                setUnit(x,y, sizeX, output, getUnit(targetX, targetY, sizeX, inputs[0]));
+                setUnit(x,y, sizeX, output, getUnit(targetX, targetY, sizeX, inputs[1]));
             }
         }}
     }
@@ -88,6 +88,9 @@ public class World {
     public void switchValues(FloatBuffer proposals){
         etherealPlane.switchValues(proposals);
         elementalPlane.switchValues(proposals);
+        switchScalarsPhaseInputs[0] = proposals;
+        switchScalarsPhaseInputs[1] = scalars;
+        backend.setInputs(switchScalarsPhaseInputs);
         backend.runPhase(switchScalarsPhaseIndex);
         BufferUtils.copy(backend.getOutput(switchScalarsPhaseIndex), scalars);
     }

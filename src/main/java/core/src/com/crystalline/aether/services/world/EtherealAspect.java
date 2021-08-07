@@ -71,7 +71,7 @@ public class EtherealAspect extends RealityAspect {
         processTypesPhaseInputs = new FloatBuffer[]{etherValues, null, null};
         determineUnitsPhaseInputs = new FloatBuffer[]{etherValues};
         defineByElementalPhaseInputs = new FloatBuffer[]{null, null};
-        switchEtherPhaseInputs = new FloatBuffer[]{null};
+        switchEtherPhaseInputs = new FloatBuffer[2];
 
         reset();
     }
@@ -122,16 +122,16 @@ public class EtherealAspect extends RealityAspect {
 
     /**
      * Applies the changes proposed from the input proposal buffer
-     * @param inputs [0]: scalars
+     * @param inputs [0]: proposed changes;[0]: scalars
      * @param output elements buffer
      */
     private void switchEtherPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             if(0 != RealityAspect.getOffsetCode(x,y,sizeX, inputs[0])){
                 int targetX = RealityAspect.getTargetX(x,y,sizeX, inputs[0]);
                 int targetY = RealityAspect.getTargetY(x,y,sizeX, inputs[0]);
-                setAether(x,y, sizeX, output, getAetherValue(targetX, targetY, sizeX, inputs[0]));
-                setNether(x,y, sizeX, output, getNetherValue(targetX, targetY, sizeX, inputs[0]));
+                setAether(x,y, sizeX, output, getAetherValue(targetX, targetY, sizeX, inputs[1]));
+                setNether(x,y, sizeX, output, getNetherValue(targetX, targetY, sizeX, inputs[1]));
             }
         }}
     }
@@ -139,6 +139,8 @@ public class EtherealAspect extends RealityAspect {
     @Override
     public void switchValues(FloatBuffer proposals) {
         switchEtherPhaseInputs[0] = proposals;
+        switchEtherPhaseInputs[1] = etherValues;
+        backend.setInputs(switchEtherPhaseInputs);
         backend.runPhase(switchEtherPhaseIndex);
         BufferUtils.copy(backend.getOutput(switchEtherPhaseIndex), etherValues);
     }

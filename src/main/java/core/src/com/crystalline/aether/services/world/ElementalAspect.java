@@ -157,7 +157,7 @@ public class ElementalAspect extends RealityAspect {
      *     y + x%4 + (y%4)*2 + (x%8)*2 + (y%8)*2 + (x%8)/2 + (y%8)/2
      */
     private void calculatePriority(){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             setPriority(x,y,sizeX,elements,(float)(
                 (y + x%4 + (y%4)*2 + (x%8)*2 + (y%8)*2 + (x%8)/2 + (y%8)/2)
             ));
@@ -165,7 +165,7 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private void defineByEtherealPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             ElementalAspect.setElement(x,y, sizeX, output, EtherealAspect.getElementEnum(x,y, sizeX, inputs[0]));
         } }
     }
@@ -236,7 +236,7 @@ public class ElementalAspect extends RealityAspect {
      * @param output elements buffer
      */
     private void switchElementsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             if(0 != getOffsetCode(x,y,sizeX, inputs[0])){
                 int targetX = getTargetX(x,y,sizeX, inputs[0]);
                 int targetY = getTargetY(x,y,sizeX, inputs[0]);
@@ -252,7 +252,7 @@ public class ElementalAspect extends RealityAspect {
      * @param output elements buffer
      */
     private void switchDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             if(0 != getOffsetCode(x,y,sizeX, inputs[0])){
                 int targetX = getTargetX(x,y,sizeX, inputs[0]);
                 int targetY = getTargetY(x,y,sizeX, inputs[0]);
@@ -272,7 +272,7 @@ public class ElementalAspect extends RealityAspect {
         BufferUtils.copy(backend.getOutput(switchElementsPhaseIndex), elements);
 
         switchDynamicsPhaseInputs[0] = proposals;
-        switchDynamicsPhaseInputs[0] = dynamics;
+        switchDynamicsPhaseInputs[1] = dynamics;
         backend.setInputs(switchDynamicsPhaseInputs);
         backend.runPhase(switchDynamicsPhaseIndex);
         BufferUtils.copy(backend.getOutput(switchDynamicsPhaseIndex), dynamics);
@@ -473,7 +473,7 @@ public class ElementalAspect extends RealityAspect {
      * @param output proposed switches, toApply set all 0
      */
     private void proposeChangesFromForcesPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             int newVelocityTick = getVelocityTick(x,y, sizeX, inputs[2]);
             int targetX = getTargetX(x,y, sizeX, inputs[0]);
             int targetY = getTargetY(x,y, sizeX, inputs[0]);
@@ -531,9 +531,10 @@ public class ElementalAspect extends RealityAspect {
      */
     private void arbitrateChangesPhase(FloatBuffer[] inputs, FloatBuffer output){
         final int index_radius = 2;
-        int[][] priority = new int[index_radius][index_radius];
-        int[][] changed = new int[index_radius][index_radius];
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        final int index_table_size = (index_radius * 2) + 1;
+        int[][] priority = new int[index_table_size][index_table_size];
+        int[][] changed = new int[index_table_size][index_table_size];
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             float offsetCode = ElementalAspect.getOffsetCode(x,y, sizeX, inputs[0]);
             float toApply = getToApply(x,y, sizeX, inputs[0]);
 
@@ -558,28 +559,53 @@ public class ElementalAspect extends RealityAspect {
             int highestTargetX;
             int highestTargetY;
 
-            while(true){ /* Go through all the high priority switch requests in the previously proposed changes */
+            while(true){ /* Until all requests with priority above are found  */
                 highestPrioX = -1;
                 highestPrioY = -1;
                 highestTargetX = -1;
                 highestTargetY = -1;
+                int localSourceX = -1; /* The highest priority change in the local vicinity.. */
+                int localSourceY = -1; /* ..corresponding to @highestPrio*, which is of global index scope */
+                int localTargetOfCX = -1;
+                int localTargetOfCY = -1;
+                int highestPrioLocalX = -1;
+                int highestPrioLocalY = -1;
+                int highestPrioTargetLocalX = -1;
+                int highestPrioTargetLocalY = -1;
                 for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
-                    int sx = ix - x + (index_radius);
-                    int sy = iy - y + (index_radius);
-                    int tx = getTargetX(x,y,sizeX,inputs[0]);
-                    int ty = getTargetY(x,y,sizeX,inputs[0]);
-                    if(
-                        ( /* where both the target and the source of the change are free.. */
-                            (0 == changed[sx][sy])&&(0 == changed[tx][ty])
-                        )&&( /* ..decide the highest priority swap request */
-                            ((-1 == highestPrioX)||(-1 == highestPrioY))
-                            ||(priority[highestPrioX][highestPrioY] < priority[sx][sy])
+                    localSourceX = ix - x + (index_radius);
+                    localSourceY = iy - y + (index_radius);
+                    int targetOfCX = getTargetX(x,y,sizeX,inputs[0]);
+                    int targetOfCY = getTargetY(x,y,sizeX,inputs[0]);
+                    localTargetOfCX = targetOfCX - x + index_radius;
+                    localTargetOfCY = targetOfCY - y + index_radius;
+//                    System.out.println("ix - x + index_radius --> " + ix + "-"+ x + "+" + index_radius + ": " + localSourceX);
+//                    System.out.println("iy - y + index_radius --> " + iy + "-"+ y + "+" + index_radius + ": " + localSourceY);
+//                    System.out.println("targetOfCX: " + targetOfCX);
+//                    System.out.println("targetOfCY: " + targetOfCY);
+//                    System.out.println("localTargetOfCX: " + localTargetOfCX);
+//                    System.out.println("localTargetOfCY: " + localTargetOfCY);
+//                    System.out.println("================================");
+                    if( /* The highest priority swap request is..  */
+                        ( /* the one which isn't changed yet (only higher priority changes occurred prior to this loop )  */
+                            (0 == changed[localSourceX][localSourceY])
+                            &&( /* And either the target is out of bounds.. */
+                                (localTargetOfCX < 0) ||(localTargetOfCX >= index_table_size)
+                                ||(0 == changed[localTargetOfCX][localTargetOfCY]) /* ..or not changed yet */
+                            )
+                        )&&( /* And of course the currently examined index has to has a higher target, then the previous highest one */
+                            ((-1 == highestPrioLocalX)||(-1 == highestPrioLocalY))
+                            ||(priority[highestPrioLocalX][highestPrioLocalY] < priority[localSourceX][localSourceY])
                         )
                     ){
-                        highestPrioX = sx;
-                        highestPrioY = sy;
-                        highestTargetX = tx;
-                        highestTargetY = ty;
+                        highestPrioX = ix;
+                        highestPrioY = iy;
+                        highestPrioLocalX = localSourceX;
+                        highestPrioLocalY = localSourceY;
+                        highestTargetX = targetOfCX;
+                        highestTargetY = targetOfCY;
+                        highestPrioTargetLocalX = localTargetOfCX;
+                        highestPrioTargetLocalY = localTargetOfCY;
                     }
                 }}
                 /* Simulate the highest priority change */
@@ -587,8 +613,13 @@ public class ElementalAspect extends RealityAspect {
                     ((-1 != highestPrioX)&&(-1 != highestPrioY))
                     &&((-1 != highestTargetX)&&(-1 != highestTargetY))
                 ){
-                    changed[highestPrioX][highestPrioY] = 1;
-                    changed[highestTargetX][highestTargetY] = 1;
+                    changed[highestPrioLocalX][highestPrioLocalX] = 1;
+                    if(
+                        (highestPrioTargetLocalX >= 0)&&(highestPrioTargetLocalX < index_table_size)
+                        &&(highestPrioTargetLocalY >= 0)&&(highestPrioTargetLocalY < index_table_size)
+                    ){
+                        changed[highestPrioTargetLocalX][highestPrioTargetLocalY] = 1;
+                    }
                 }
                 /* If c was reached; or no changes are proposed; break! */
                 if(
@@ -625,8 +656,8 @@ public class ElementalAspect extends RealityAspect {
      * @param inputs [0]: proposed changes; [1]: elements; [2]: dynamics; [3]: scalars
      * @param output dynamics buffer updated with proper forces
      */
-    private void applyChangesDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+    private void applyChangesDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){ /* TODO: Define edges as connection point to other chuks*/
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             if(0 != getOffsetCode(x,y,sizeX, inputs[0])){
                 int targetX = getTargetX(x,y,sizeX, inputs[0]);
                 int targetY = getTargetY(x,y,sizeX, inputs[0]);
@@ -680,7 +711,7 @@ public class ElementalAspect extends RealityAspect {
      * @param output the post-processed dynamics buffer
      */
     private void mechanicsPostProcessDynamicsPhase(FloatBuffer inputs[], FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
             float gravityCorrection = getGravityCorrection(x,y, sizeX, inputs[0]);
             float forceX = getForceX(x,y, sizeX, inputs[1]);
             float forceY = getForceY(x,y, sizeX, inputs[1]);
@@ -740,10 +771,9 @@ public class ElementalAspect extends RealityAspect {
             parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
             backend.setInputs(applyChangesDynamicsPhaseInputs);
             backend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
-
             BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), dynamics); /* TODO: maybe copies can be avoided here? */
 
-            parent.switchValues(proposedChanges);
+            parent.switchValues(backend.getOutput(arbitrateChangesPhaseIndex));
         }
 
         mechanicsPostProcessDynamicsPhaseInputs[0] = elements;

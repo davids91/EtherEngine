@@ -40,6 +40,7 @@ public class EtherealAspect extends RealityAspect {
     private final int processTypesPhaseIndex;
     private final int determineUnitsPhaseIndex;
     private final int defineByElementalPhaseIndex;
+    private final int switchEtherPhaseIndex;
 
     private final FloatBuffer[] finalizeInputs;
     private final FloatBuffer[] sharingInputs;
@@ -47,6 +48,7 @@ public class EtherealAspect extends RealityAspect {
     private final FloatBuffer[] processTypesPhaseInputs;
     private final FloatBuffer[] determineUnitsPhaseInputs;
     private final FloatBuffer[] defineByElementalPhaseInputs;
+    private final FloatBuffer[] switchEtherPhaseInputs;
 
     public EtherealAspect(Config conf_){
         super(conf_);
@@ -61,6 +63,7 @@ public class EtherealAspect extends RealityAspect {
         processTypesPhaseIndex = backend.addPhase(this::processTypesPhase, (Config.bufferCellSize * sizeX * sizeY));
         determineUnitsPhaseIndex = backend.addPhase(this::determineUnitsPhase, (Config.bufferCellSize * sizeX * sizeY));
         defineByElementalPhaseIndex = backend.addPhase(this::defineByElementalPhase, (Config.bufferCellSize * sizeX * sizeY));
+        switchEtherPhaseIndex = backend.addPhase(this::switchEtherPhase, (Config.bufferCellSize * sizeX * sizeY));
 
         preProcessInputs = new FloatBuffer[]{backend.getOutput(finalizePhaseIndex)};
         sharingInputs = new FloatBuffer[]{backend.getOutput(preprocessPhaseIndex)};
@@ -68,6 +71,7 @@ public class EtherealAspect extends RealityAspect {
         processTypesPhaseInputs = new FloatBuffer[]{etherValues, null, null};
         determineUnitsPhaseInputs = new FloatBuffer[]{etherValues};
         defineByElementalPhaseInputs = new FloatBuffer[]{null, null};
+        switchEtherPhaseInputs = new FloatBuffer[]{null};
 
         reset();
     }
@@ -116,15 +120,27 @@ public class EtherealAspect extends RealityAspect {
         BufferUtils.copy(backend.getOutput(defineByElementalPhaseIndex), etherValues);
     }
 
-    @Override
-    public void switchValues(int fromX, int fromY, int toX, int toY) {
-        float tmpVal = aetherValueAt(toX,toY);
-        setAether(toX, toY, aetherValueAt(fromX,fromY));
-        setAether(fromX, fromY, tmpVal);
+    /**
+     * Applies the changes proposed from the input proposal buffer
+     * @param inputs [0]: scalars
+     * @param output elements buffer
+     */
+    private void switchEtherPhase(FloatBuffer[] inputs, FloatBuffer output){
+        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            if(0 != RealityAspect.getOffsetCode(x,y,sizeX, inputs[0])){
+                int targetX = RealityAspect.getTargetX(x,y,sizeX, inputs[0]);
+                int targetY = RealityAspect.getTargetY(x,y,sizeX, inputs[0]);
+                setAether(x,y, sizeX, output, getAetherValue(targetX, targetY, sizeX, inputs[0]));
+                setNether(x,y, sizeX, output, getNetherValue(targetX, targetY, sizeX, inputs[0]));
+            }
+        }}
+    }
 
-        tmpVal = netherValueAt(toX,toY);
-        setNether(toX, toY, netherValueAt(fromX,fromY));
-        setNether(fromX, fromY, tmpVal);
+    @Override
+    public void switchValues(FloatBuffer proposals) {
+        switchEtherPhaseInputs[0] = proposals;
+        backend.runPhase(switchEtherPhaseIndex);
+        BufferUtils.copy(backend.getOutput(switchEtherPhaseIndex), etherValues);
     }
 
     private float avgOf(int x, int y, int cellOffset, FloatBuffer table){

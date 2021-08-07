@@ -12,7 +12,8 @@ import com.crystalline.aether.services.utils.MiscUtils;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Random;
 
 public class ElementalAspect extends RealityAspect {
     MiscUtils myMiscUtils;
@@ -57,11 +58,26 @@ public class ElementalAspect extends RealityAspect {
     private final int processTypesPhaseIndex;
     private final int processTypeUnitsPhaseIndex;
     private final int defineByEtherealPhaseIndex;
+    private final int switchElementsPhaseIndex;
+    private final int switchDynamicsPhaseIndex;
+    private final int initChangesPhaseIndex;
+    private final int proposeForcesPhaseIndex;
+    private final int proposeChangesFromForcesPhaseIndex;
+    private final int arbitrateChangesPhaseIndex;
+    private final int applyChangesDynamicsPhaseIndex;
+    private final int mechanicsPostProcessDynamicsPhaseIndex;
 
     private final FloatBuffer[] processUnitsPhaseInputs;
     private final FloatBuffer[] processTypesPhaseInputs;
     private final FloatBuffer[] processTypeUnitsPhaseInputs;
     private final FloatBuffer[] defineByEtherealPhaseInputs;
+    private final FloatBuffer[] switchElementsPhaseInputs;
+    private final FloatBuffer[] switchDynamicsPhaseInputs;
+    private final FloatBuffer[] proposeForcesPhaseInputs;
+    private final FloatBuffer[] proposeChangesFromForcesPhaseInputs;
+    private final FloatBuffer[] arbitrateChangesPhaseInputs;
+    private final FloatBuffer[] applyChangesDynamicsPhaseInputs;
+    private final FloatBuffer[] mechanicsPostProcessDynamicsPhaseInputs;
 
     public ElementalAspect(Config conf_){
         super(conf_);
@@ -82,6 +98,21 @@ public class ElementalAspect extends RealityAspect {
         processTypeUnitsPhaseIndex = backend.addPhase(this::processTypeUnitsPhase, (Config.bufferCellSize * sizeX * sizeY));
         defineByEtherealPhaseInputs = new FloatBuffer[1];
         defineByEtherealPhaseIndex = backend.addPhase(this::defineByEtherealPhase, (Config.bufferCellSize * sizeX * sizeY));
+        switchElementsPhaseIndex = backend.addPhase(this::switchElementsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        switchElementsPhaseInputs = new FloatBuffer[2];
+        switchDynamicsPhaseIndex = backend.addPhase(this::switchDynamicsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        switchDynamicsPhaseInputs = new FloatBuffer[2];
+        initChangesPhaseIndex = backend.addPhase(this::initChangesPhase, (Config.bufferCellSize * sizeX * sizeY));
+        proposeForcesPhaseIndex = backend.addPhase(this::proposeForcesPhase, (Config.bufferCellSize * sizeX * sizeY));
+        proposeForcesPhaseInputs = new FloatBuffer[4];
+        proposeChangesFromForcesPhaseIndex = backend.addPhase(this::proposeChangesFromForcesPhase, (Config.bufferCellSize * sizeX * sizeY));
+        proposeChangesFromForcesPhaseInputs = new FloatBuffer[4];
+        arbitrateChangesPhaseIndex = backend.addPhase(this::arbitrateChangesPhase, (Config.bufferCellSize * sizeX * sizeY));
+        arbitrateChangesPhaseInputs = new FloatBuffer[4];
+        applyChangesDynamicsPhaseIndex = backend.addPhase(this::applyChangesDynamicsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        applyChangesDynamicsPhaseInputs = new FloatBuffer[4];
+        mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(this::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        mechanicsPostProcessDynamicsPhaseInputs = new FloatBuffer[3];
 
         calculatePriority();
         reset();
@@ -199,14 +230,52 @@ public class ElementalAspect extends RealityAspect {
         return null; /* Don't modify anything */
     }
 
+    /**
+     * Applies the changes proposed from the input proposal buffer
+     * @param inputs [0]: proposed changes; [1]: elements
+     * @param output elements buffer
+     */
+    private void switchElementsPhase(FloatBuffer[] inputs, FloatBuffer output){
+        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            if(0 != getOffsetCode(x,y,sizeX, inputs[0])){
+                int targetX = getTargetX(x,y,sizeX, inputs[0]);
+                int targetY = getTargetY(x,y,sizeX, inputs[0]);
+                setElement(x,y, sizeX, output, getElementEnum(targetX,targetY,sizeX, inputs[1]));
+                setPriority(x,y, sizeX, output, getPriority(targetX,targetY,sizeX, inputs[1]));
+            }
+        }}
+    }
+
+    /**
+     * Applies the changes proposed from the input proposal buffer
+     * @param inputs [0]: proposed changes; [1]: dynamics
+     * @param output elements buffer
+     */
+    private void switchDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){
+        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            if(0 != getOffsetCode(x,y,sizeX, inputs[0])){
+                int targetX = getTargetX(x,y,sizeX, inputs[0]);
+                int targetY = getTargetY(x,y,sizeX, inputs[0]);
+                setForce(x,y, sizeX, output, getForce(targetX,targetY,sizeX, inputs[1]));
+                setVelocityTick(x,y, sizeX, output, getVelocityTick(targetX,targetY,sizeX, inputs[1]));
+                setGravityCorrection(x,y, sizeX, output, getGravityCorrection(targetX,targetY,sizeX, inputs[1]));
+            }
+        }}
+    }
+
     @Override
-    public void switchValues(int fromX, int fromY, int toX, int toY) {
-        Material.Elements tmpBloc = getElement(toX,toY);
-        setElement(toX,toY, getElement(fromX,fromY));
-        setElement(fromX,fromY,tmpBloc);
-        Vector2 tmpVec = getForce(toX,toY, sizeX, dynamics).cpy();
-        setForce(toX,toY, sizeX, dynamics,getForce(fromX,fromY, sizeX, dynamics));
-        setForce(fromX,fromY, sizeX, dynamics,tmpVec);
+    public void switchValues(FloatBuffer proposals) {
+        switchElementsPhaseInputs[0] = proposals;
+        switchElementsPhaseInputs[1] = elements;
+        backend.setInputs(switchElementsPhaseInputs);
+        backend.runPhase(switchElementsPhaseIndex);
+        BufferUtils.copy(backend.getOutput(switchElementsPhaseIndex), elements);
+
+        switchDynamicsPhaseInputs[0] = proposals;
+        switchDynamicsPhaseInputs[0] = dynamics;
+        backend.setInputs(switchDynamicsPhaseInputs);
+        backend.runPhase(switchDynamicsPhaseIndex);
+        BufferUtils.copy(backend.getOutput(switchDynamicsPhaseIndex), dynamics);
     }
 
     private void processUnitsPhase(FloatBuffer[] inputs, FloatBuffer output){
@@ -328,65 +397,18 @@ public class ElementalAspect extends RealityAspect {
         );
     }
 
-    public static float getOffsetCode(int x, int y, int sizeX, FloatBuffer buffer){
-        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, buffer);
-    }
-
-    public static void setOffsetCode(int x, int y, int sizeX, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, buffer, value);
-    }
-
-    public static float getToApply(int x, int y, int sizeX, FloatBuffer buffer){
-        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, buffer);
-    }
-
-    public static void setToApply(int x, int y, int sizeX, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, buffer, value);
-    }
-
-    public static int getXFromOffsetCode(int x, int code){
-        switch(code){
-            case 1: case 8: case 7: return (x-1);
-            case 2: case 0: case 6: return (x);
-            case 3: case 4: case 5: return (x+1);
-        }
-        return x;
-    }
-    public static int getYFromOffsetCode(int y, int code){
-        switch(code){
-            case 7: case 6: case 5: return (y+1);
-            case 8: case 0: case 4: return (y);
-            case 1: case 2: case 3: return (y-1);
-        }
-        return y;
-    }
-
     /**
-     * Returns a code for the hardcoded directions based on the arguments
-     * @param ox offset x -
-     * @param oy offset y - the direction to which the direction should point
-     * @return a code unique for any direction, generated by the given offsets
+     * A function to propose force updates based on material properties
+     * @param inputs: none
+     * @param output the initialized proposed changes
      */
-    public static int getOffsetCode(int ox, int oy){
-        if((ox < 0)&&(oy < 0)) return 1;
-        if((ox == 0)&&(oy < 0)) return 2;
-        if((ox > 0)&&(oy < 0)) return 3;
-        if((ox > 0)&&(oy == 0)) return 4;
-        if((ox > 0)/*&&(oy > 0)*/) return 5;
-        if((ox == 0)&&(oy > 0)) return 6;
-        if((ox < 0)&&(oy > 0)) return 7;
-        if((ox < 0)/*&&(oy == 0)*/) return 8;
-        return 0;
+    private void initChangesPhase(FloatBuffer[] inputs, FloatBuffer output){
+        for(int x = 1; x < sizeX; ++x){ for(int y = 1; y < sizeY; ++y){
+            setOffsetCode(x,y, sizeX, output, 0);
+            setVelocityTick(x,y, sizeX, output, 0);
+            setToApply(x,y, sizeX, output, 0);
+        }}
     }
-
-    public static int getTargetX(int x, int y, int sizeX, FloatBuffer buffer){
-        return getXFromOffsetCode(x,(int)getOffsetCode(x,y,sizeX,buffer));
-    }
-
-    public static int getTargetY(int x, int y, int sizeX, FloatBuffer buffer){
-        return getYFromOffsetCode(y,(int)getOffsetCode(x,y,sizeX,buffer));
-    }
-
 
     /**
      * A function to propose force updates based on material properties
@@ -426,13 +448,7 @@ public class ElementalAspect extends RealityAspect {
                 }
             }
 
-            if(
-                Material.MechaProperties.Fluid
-                == Material.getState(
-                    getElementEnum(x,y, sizeX, inputs[0]),
-                    World.getUnit(x,y, sizeX, inputs[2])
-                )
-            ){
+            if(Material.MechaProperties.Fluid == Material.getState(getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[2]))){
                 if(Material.isSameMat(
                     getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[2]),
                     getElementEnum(x,y-1, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[2])
@@ -605,9 +621,9 @@ public class ElementalAspect extends RealityAspect {
     }
 
     /**
-     * Applies the changes proposed from the input proposal buffer
+     * Applies the changes to forces proposed from the input proposal buffer
      * @param inputs [0]: proposed changes; [1]: elements; [2]: dynamics; [3]: scalars
-     * @param output dynamics buffer
+     * @param output dynamics buffer updated with proper forces
      */
     private void applyChangesDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
@@ -659,22 +675,6 @@ public class ElementalAspect extends RealityAspect {
     }
 
     /**
-     * Applies the changes proposed from the input proposal buffer
-     * @param inputs [0]: proposed changes; [1]: elements
-     * @param output elements buffer
-     */
-    private void applyChangesElementsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            if(0 != getOffsetCode(x,y,sizeX, inputs[0])){
-                int targetX = getTargetX(x,y,sizeX, inputs[0]);
-                int targetY = getTargetY(x,y,sizeX, inputs[0]);
-                setElement(x,y, sizeX, output, getElementEnum(targetX,targetY,sizeX, inputs[1]));
-                setPriority(x,y, sizeX, output, getPriority(targetX,targetY,sizeX, inputs[1]));
-            }
-        }}
-    }
-
-    /**
      * Post processing with the dynamics:basically corrects with the gravity based on GravityCorrection
      * @param inputs [0]: elements; [1]: dynamics; [2]: scalars
      * @param output the post-processed dynamics buffer
@@ -701,8 +701,10 @@ public class ElementalAspect extends RealityAspect {
     @Override
     public void processMechanics(World parent) {
         /* Init Mechanics phase */
-        /* TODO: initialize previously left out proposals as well to 0 */
-        for(int x = 1; x < sizeX-1; ++x){ /* Pre-process: Add gravity, and nullify forces on discardable objects; */
+        backend.runPhase(initChangesPhaseIndex);
+        BufferUtils.copy(backend.getOutput(initChangesPhaseIndex), proposedChanges);
+
+        for(int x = 1; x < sizeX-1; ++x){
             for(int y = sizeY-2; y > 0; --y){
                 touchedByMechanics[x][y] = 0;
             }
@@ -710,23 +712,46 @@ public class ElementalAspect extends RealityAspect {
 
         /* Main Mechanic phase */
         for(int i = 0; i < velocityMaxTicks; ++i){
-            /* Apply changes not applied, but arbitrated from the last loop */
-            //
-            /* Propose forces */
+            /* Propose forces, and apply changes not yet applied from the previous iteration */
             /* Propose changes from forces */
-            /*!Note: Simply put: forces of the cell generate the target whom it wants to switch with */
-            //proposeChangesFromForces
-            /* Arbitrate changes */
-            //
-            /* Apply arbitrated changes */
-            //dynamics
-            //elements
+            proposeForcesPhaseInputs[0] = elements;
+            proposeForcesPhaseInputs[1] = dynamics;
+            parent.provideScalarsTo(proposeForcesPhaseInputs, 2);
+            parent.getEtherealPlane().provideEtherTo(proposeForcesPhaseInputs, 3);
+            backend.setInputs(proposeForcesPhaseInputs);
+            backend.runPhase(proposeForcesPhaseIndex); /* output: dynamics */
 
-            /* Also apply swaps on scalars and Ether! */
+            proposeChangesFromForcesPhaseInputs[0] = proposedChanges;
+            proposeChangesFromForcesPhaseInputs[1] = elements;
+            proposeChangesFromForcesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+            backend.setInputs(proposeChangesFromForcesPhaseInputs);
+            backend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
+
+            arbitrateChangesPhaseInputs[0] = backend.getOutput(proposeChangesFromForcesPhaseIndex);
+            arbitrateChangesPhaseInputs[1] = elements;
+            arbitrateChangesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+            parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
+            backend.setInputs(arbitrateChangesPhaseInputs);
+            backend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
+
+            applyChangesDynamicsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
+            applyChangesDynamicsPhaseInputs[1] = elements;
+            applyChangesDynamicsPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+            parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
+            backend.setInputs(applyChangesDynamicsPhaseInputs);
+            backend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
+
+            BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), dynamics); /* TODO: maybe copies can be avoided here? */
+
+            parent.switchValues(proposedChanges);
         }
 
-        /* Mechanic post-process phase */
-        //postProcessMechanics
+        mechanicsPostProcessDynamicsPhaseInputs[0] = elements;
+        mechanicsPostProcessDynamicsPhaseInputs[1] = dynamics;
+        parent.provideScalarsTo(mechanicsPostProcessDynamicsPhaseInputs, 2);
+        backend.setInputs(mechanicsPostProcessDynamicsPhaseInputs);
+        backend.runPhase(mechanicsPostProcessDynamicsPhaseIndex);
+        BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), dynamics);
     }
 
     /* TODO: Make movable objects, depending of the solidness "merge into one another", leaving vacuum behind, which are to resolved at the end of the mechanics round */

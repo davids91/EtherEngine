@@ -3,7 +3,9 @@ package com.crystalline.aether.services.world;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector3;
+import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.models.spells.SpellAction;
+import com.crystalline.aether.services.CPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.services.utils.MiscUtils;
 import com.crystalline.aether.models.Config;
@@ -26,6 +28,10 @@ public class World {
     EtherealAspect etherealPlane;
     ElementalAspect elementalPlane;
 
+    private final CPUBackend backend;
+    private final int switchScalarsPhaseIndex;
+    private final FloatBuffer[] switchScalarsPhaseInputs;
+
     /**
      * A texture image representing the different scalars of reality
      * - R: units : determines mass
@@ -43,6 +49,10 @@ public class World {
         etherealPlane = new EtherealAspect(conf);
         elementalPlane = new ElementalAspect(conf);
         BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
+
+        backend = new CPUBackend();
+        switchScalarsPhaseIndex = backend.addPhase(this::switchScalarsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        switchScalarsPhaseInputs = new FloatBuffer[]{null};
         reset();
     }
 
@@ -56,21 +66,35 @@ public class World {
     public void pondWithGrill(){
         elementalPlane.pondWithGrill(this,(int)(sizeY/2.0f));
         /* elementalPlane.determineUnits(this); *//* Included in @pondWithGrill */
-
         etherealPlane.defineBy(elementalPlane, this);
         BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
 
-    public void switchElements(MiscUtils.MyCell from, MiscUtils.MyCell to){
-        etherealPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
-        elementalPlane.switchValues(from.getIX(),from.getIY(),to.getIX(),to.getIY());
-        float tmpVal = getUnit(to.getIX(),to.getIY());
-        setUnit(to.getIX(),to.getIY(), getUnit(from.getIX(),from.getIY()));
-        setUnit(from.getIX(),from.getIY(), tmpVal);
+    /**
+     * Applies the changes proposed from the input proposal buffer
+     * @param inputs [0]: scalars
+     * @param output elements buffer
+     */
+    private void switchScalarsPhase(FloatBuffer[] inputs, FloatBuffer output){
+        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            if(0 != RealityAspect.getOffsetCode(x,y,sizeX, inputs[0])){
+                int targetX = RealityAspect.getTargetX(x,y,sizeX, inputs[0]);
+                int targetY = RealityAspect.getTargetY(x,y,sizeX, inputs[0]);
+                setUnit(x,y, sizeX, output, getUnit(targetX, targetY, sizeX, inputs[0]));
+            }
+        }}
+    }
+
+    public void switchValues(FloatBuffer proposals){
+        etherealPlane.switchValues(proposals);
+        elementalPlane.switchValues(proposals);
+        backend.runPhase(switchScalarsPhaseIndex);
+        BufferUtils.copy(backend.getOutput(switchScalarsPhaseIndex), scalars);
     }
 
     public void mainLoop(float step){
         elementalPlane.debugMeasure(this);
+
         /* ============= PROCESS UNITS ============= */
         etherealPlane.processUnits(this);
         elementalPlane.processUnits(this);

@@ -56,11 +56,12 @@ public class Material {
     }
 
     public static final float[][] TYPE_UNIT_SELECTOR = {
-        {0.0f, 50.0f},
+        {0.0f, 50.0f}, /* Ether */
         {0.0f,10.0f,15f,70.0f,700.0f,1000.0f}, /* Earth */
         {0,50.0f,100.0f},  /* Water */
         {0.0f, 10.0f}, /* Air*/
         {10.0f,50.0f,100.0f}, /* Fire */
+        {0.0f} /* Nothing */
     };
 
     public static final Color[][] TYPE_COLORS = { /* TODO: Ether Vapor */
@@ -85,8 +86,7 @@ public class Material {
         {0.0f,0.0f}, /* Ether */
         {8.0f,16.0f,32.0f,64.0f,128.0f,256.0f}, /* Earth */ /* TODO: Glass */
         {2.5f,-0.6f,4.0f}, /* Water */ /* TODO: steam, foam and ice */
-        {-0.002f, -0.001f}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */
-        {-0.05f,2.0f,4.0f}, /* Fire */
+        {-0.002f, -0.001f}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */{-0.05f,2.0f,4.0f}, /* Fire */
         {0,0} /* Nothing */
     };
 

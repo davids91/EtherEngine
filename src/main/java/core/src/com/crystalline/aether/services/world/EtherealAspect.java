@@ -126,13 +126,25 @@ public class EtherealAspect extends RealityAspect {
      * @param output elements buffer
      */
     private void switchEtherPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 1; x < sizeX-1; ++x){ for(int y = 1; y < sizeY-1; ++y){
+        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            float aetherValue = getAetherValue(x, y, sizeX, inputs[1]);
+            float netherValue = getNetherValue(x, y, sizeX, inputs[1]);
             if(0 != RealityAspect.getOffsetCode(x,y,sizeX, inputs[0])){
                 int targetX = RealityAspect.getTargetX(x,y,sizeX, inputs[0]);
                 int targetY = RealityAspect.getTargetY(x,y,sizeX, inputs[0]);
-                setAether(x,y, sizeX, output, getAetherValue(targetX, targetY, sizeX, inputs[1]));
-                setNether(x,y, sizeX, output, getNetherValue(targetX, targetY, sizeX, inputs[1]));
+                int toApply = (int)RealityAspect.getToApply(x,y, sizeX, inputs[0]);
+                if(
+                    (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y)
+                    &&(0 < toApply)
+                    &&(targetX >= 0)&&(targetX < sizeX)
+                    &&(targetY >= 0)&&(targetY < sizeY)
+                ){
+                    aetherValue = getAetherValue(targetX, targetY, sizeX, inputs[1]);
+                    netherValue = getNetherValue(targetX, targetY, sizeX, inputs[1]);
+                }
             }
+            setAether(x,y, sizeX, output, aetherValue);
+            setNether(x,y, sizeX, output, netherValue);
         }}
     }
 

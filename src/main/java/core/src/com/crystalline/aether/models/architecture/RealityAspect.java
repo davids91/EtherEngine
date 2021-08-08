@@ -38,15 +38,15 @@ public abstract class RealityAspect {
     }
 
     public static void setOffsetCode(int x, int y, int sizeX, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, buffer, value);
+        BufferUtils.set(x,y, sizeX,Config.bufferCellSize,0, buffer, value);
     }
 
     public static float getToApply(int x, int y, int sizeX, FloatBuffer buffer){
-        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, buffer);
+        return BufferUtils.get(x,y, sizeX,Config.bufferCellSize,3, buffer);
     }
 
     public static void setToApply(int x, int y, int sizeX, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, buffer, value);
+        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,3, buffer, value);
     }
 
     public static int getXFromOffsetCode(int x, int code){

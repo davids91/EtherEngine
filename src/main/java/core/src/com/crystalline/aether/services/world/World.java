@@ -88,7 +88,6 @@ public class World {
                     &&(targetX >= 0)&&(targetX < sizeX)
                     &&(targetY >= 0)&&(targetY < sizeY)
                 ){
-
                     unit = getUnit(targetX,targetY, sizeX, inputs[1]);
                 }
             }
@@ -223,7 +222,7 @@ public class World {
         for(int x = 0;x < sizeX; ++x){
             for(int y = 0; y < sizeY; ++y){
                 Color finalColor;
-//                finalColor = elementalPlane.getColor(x,(sizeY - 1 - y),units);
+//                finalColor = elementalPlane.getColor(x,(sizeY - 1 - y),this);
                 finalColor = elementalPlane.getDebugColor(x,(sizeY - 1 - y), this);
                 worldImage.drawPixel(x,y, Color.rgba8888(finalColor));
             }

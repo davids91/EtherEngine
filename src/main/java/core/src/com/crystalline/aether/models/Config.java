@@ -3,7 +3,7 @@ package com.crystalline.aether.models;
 import com.badlogic.gdx.math.Vector3;
 
 public class Config {
-    public final int[] WORLD_BLOCK_NUMBER = {200,200};
+    public final int[] WORLD_BLOCK_NUMBER = {100,100};
     public final float WORLD_BLOCK_SIZE = 100.0f;
     public final float[] WORLD_SIZE = {
         WORLD_BLOCK_NUMBER[0] * WORLD_BLOCK_SIZE,

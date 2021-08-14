@@ -85,8 +85,9 @@ public class Material {
     public static final float[][] TYPE_SPECIFIC_GRAVITY = {
         {0.0f,0.0f}, /* Ether */
         {8.0f,16.0f,32.0f,64.0f,128.0f,256.0f}, /* Earth */ /* TODO: Glass */
-        {2.5f,-0.6f,4.0f}, /* Water */ /* TODO: steam, foam and ice */
-        {-0.002f, -0.001f}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */{-0.05f,2.0f,4.0f}, /* Fire */
+        {2.5f,-10f,4.0f}, /* Water */ /* TODO: steam, foam and ice */
+        {-0.002f, -0.001f}, /* Air */ /* TODO: Make sulfur, which is highly flammable */ /* TODO: Make compressed air, as a kind of slashing weapon maybe */
+        {-0.05f,80.0f,160.0f}, /* Fire */
         {0,0} /* Nothing */
     };
 

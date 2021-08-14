@@ -22,6 +22,7 @@ public class ElementalAspect extends RealityAspect {
     private final int velocityMaxTicks = 1;//3;
     private final Random rnd = new Random();
 
+    /* TODO: Maybe prio doesn't need to be kept... It can be just calculated from coordinates */
     /**
      * A texture image representing the elemental properties of reality
      * - R: block type --> Material.Elements
@@ -47,6 +48,7 @@ public class ElementalAspect extends RealityAspect {
      * - G:
      * - B: acquired velocity tick (to be used to correct it in dynamics buffer when taking over changes)
      * - A: toApply bit --> whether or not to apply this change, or to try again in the next iteration
+     *          0 - don't apply; 1 - a cell will switch with his cell; 2 - this cell will switch with another cell
      */
     private final FloatBuffer proposedChanges;
 
@@ -65,7 +67,7 @@ public class ElementalAspect extends RealityAspect {
     private final int arbitrateChangesPhaseIndex;
     private final int applyChangesDynamicsPhaseIndex;
     private final int mechanicsPostProcessDynamicsPhaseIndex;
-    private final int arbitrateSwitchesPhaseIndex;
+    private final int arbitrateInteractionsPhaseIndex;
 
     private final FloatBuffer[] processUnitsPhaseInputs;
     private final FloatBuffer[] processTypesPhaseInputs;
@@ -78,7 +80,7 @@ public class ElementalAspect extends RealityAspect {
     private final FloatBuffer[] arbitrateChangesPhaseInputs;
     private final FloatBuffer[] applyChangesDynamicsPhaseInputs;
     private final FloatBuffer[] mechanicsPostProcessDynamicsPhaseInputs;
-    private final FloatBuffer[] arbitrateSwitchesPhaseInputs;
+    private final FloatBuffer[] arbitrateInteractionsPhaseInputs;
 
     public ElementalAspect(Config conf_){
         super(conf_);
@@ -113,8 +115,9 @@ public class ElementalAspect extends RealityAspect {
         applyChangesDynamicsPhaseInputs = new FloatBuffer[4];
         mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(this::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * sizeX * sizeY));
         mechanicsPostProcessDynamicsPhaseInputs = new FloatBuffer[3];
-        arbitrateSwitchesPhaseIndex = backend.addPhase(this::arbitrateSwitchesPhase, (Config.bufferCellSize * sizeX * sizeY));
-        arbitrateSwitchesPhaseInputs = new FloatBuffer[3];
+        arbitrateInteractionsPhaseIndex = backend.addPhase(this::arbitrateInteractionsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        arbitrateInteractionsPhaseInputs = new FloatBuffer[3];
+
 
         reset();
     }
@@ -135,25 +138,61 @@ public class ElementalAspect extends RealityAspect {
         touchedByMechanics = (float[][]) state[2];
     }
 
-    public void addOneGrainOfSandForTestingPurposes(World parent){
-        setElement((sizeX/2), (sizeY/2), Material.Elements.Earth);
-        parent.setUnit((sizeX/2), (sizeY/2),10);
+    private void addWater(int ox, int oy, World parent){
+        setElement(ox, oy, Material.Elements.Water);
+        parent.setUnit(ox, oy,16);
     }
 
+    public void addOneGrainOfSandForTestingPurposes(World parent){
+        setElement((sizeX/2), (sizeY/2), Material.Elements.Earth);
+        parent.setUnit((sizeX/2), (sizeY/2),550);
+        addWater((sizeX/2), (sizeY/2)+1, parent);
+        addWater((sizeX/2), (sizeY/2)+2, parent);
+        addWater((sizeX/2), (sizeY/2)+3, parent);
+        addWater((sizeX/2)-1, (sizeY/2)+3, parent);
+        addWater((sizeX/2)+1, (sizeY/2)+3, parent);
+    }
+
+    private float maxPrio = 0;
+    private void calculatePrio(){
+        Random rnd = new Random();
+        for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            setPriority(x,y,sizeX,elements,rnd.nextFloat());
+        }}
+        while(true){
+            int similarities = 0;
+            for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+                int index_radius = 2;
+                int minIndexX = Math.max((x-index_radius), 0);
+                int maxIndexX = Math.min((x+index_radius), sizeX);
+                int minIndexY = Math.max((y-index_radius), 0);
+                int maxIndexY = Math.min((y+index_radius), sizeY);
+                for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
+                    if(
+                        ((x != ix)&&(y != iy))
+                        &&(500 > Math.abs(getPriority(x,y, sizeX, elements) - getPriority(ix,iy, sizeX, elements)))
+                    ){
+                        setPriority(x,y,sizeX,elements,rnd.nextFloat() * Float.MAX_VALUE);
+                        ++similarities;
+                    }
+                }}
+            }}
+            if(0 == similarities)break;
+        }
+        for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            if(maxPrio <  getPriority(x,y, sizeX, elements)){
+                maxPrio = getPriority(x,y, sizeX, elements);
+            }
+        }}
+    }
     public void reset(){
+        calculatePrio();
         for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
             setElement(x,y,Material.Elements.Air);
             setForce(x,y, sizeX, dynamics,0,0);
             setGravityCorrection(x,y, sizeX, dynamics,0);
             setVelocityTick(x,y, sizeX, proposedChanges, velocityMaxTicks);
             touchedByMechanics[x][y] = 0;
-
-            /*!Note: To tell that each cell shall have a priority calculated from the formulae:
-             *     y + x%4 + (y%4)*2 + (x%8)*2 + (y%8)*2 + (x%8)/2 + (y%8)/2
-             */
-            setPriority(x,y,sizeX,elements,(float)(
-                (y + x%4 + (y%4)*2 + (x%8)*2 + (y%8)*2 + (x%8)/2 + (y%8)/2)
-            ));
         }}
     }
 
@@ -246,7 +285,6 @@ public class ElementalAspect extends RealityAspect {
     private void switchElementsPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
             Material.Elements element = getElementEnum(x,y, sizeX, inputs[1]);
-            float priority = getPriority(x,y, sizeX, inputs[1]);
             if(0 != getOffsetCode(x,y,sizeX, inputs[0])){
                 int targetX = getTargetX(x,y,sizeX, inputs[0]);
                 int targetY = getTargetY(x,y,sizeX, inputs[0]);
@@ -258,11 +296,12 @@ public class ElementalAspect extends RealityAspect {
                     &&(targetY >= 0)&&(targetY < sizeY)
                 ){
                     element = getElementEnum(targetX,targetY, sizeX, inputs[1]);
-                    priority = getPriority(targetX,targetY, sizeX, inputs[1]);
                 }
             }
             setElement(x,y, sizeX, output, element);
-            setPriority(x,y, sizeX, output, priority);
+            setPriority(x,y, sizeX, output, getPriority(x,y, sizeX, inputs[1]));
+            /*!Note: Priorities serve as an arbitration measure based on coordinates, so they should not be switched
+             */
         }}
     }
 
@@ -394,12 +433,12 @@ public class ElementalAspect extends RealityAspect {
                     (Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit))
                     && (currentUnit < avgOfUnit(x,y,inputs[0],inputs[1], Material.Elements.Fire))
                 ){
-                    currentUnit -= currentUnit * 0.5f;
+                    currentUnit -= currentUnit * 0.1f;
                 }else
                 if(
                     (Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit))
                 ){
-                    currentUnit -= currentUnit * 0.3f;
+                    currentUnit -= currentUnit * 0.05f;
                 }
             }
 
@@ -493,7 +532,7 @@ public class ElementalAspect extends RealityAspect {
                     if(0.0f < forceX) forceX *= 4;
                     else{
                         forceX = rnd.nextInt(6) - 3;
-                        forceY = 1;
+                        forceY = 1.00f;
                     }
                 }
             }else if(Material.MechaProperties.Plasma == Material.getState(getElement(x,y), World.getUnit(x,y, sizeX, inputs[2]))){
@@ -590,9 +629,10 @@ public class ElementalAspect extends RealityAspect {
                 int sx = ix - x + (index_radius);
                 int sy = iy - y + (index_radius);
                 priority[sx][sy] = (int)( /* The priority of the given cell consist of..  */
-                    getPriority(ix,iy, sizeX, inputs[1]) /* ..the provided value.. */
-                    * getForce(ix,iy, sizeX, inputs[2]).len() /* ..the power of the force on it.. */
-                    * getWeight(ix,iy, sizeX, inputs[1], inputs[3]) /* .. and its weight */
+//                    getPriority(ix,iy, sizeX, inputs[1]) /* ..the provided value.. */
+//                    +
+                            getForce(ix,iy, sizeX, inputs[2]).len() /* ..the power of the force on it.. */
+                    + getWeight(ix,iy, sizeX, inputs[1], inputs[3]) /* .. and its weight */
                 );
                 changed[sx][sy] = 0;
             }}
@@ -601,6 +641,7 @@ public class ElementalAspect extends RealityAspect {
             int highestPrioY;
             int highestTargetX;
             int highestTargetY;
+            float highestPrio = 0;
             while(true){ /* Until all requests with priority above are found  */
                 highestPrioX = -2;
                 highestPrioY = -2;
@@ -631,7 +672,16 @@ public class ElementalAspect extends RealityAspect {
                             )
                         )&&( /* ..and of course the currently examined index has to has a higher target, then the previous highest one */
                             ((-2 == highestPrioLocalX)||(-2 == highestPrioLocalY))
-                            ||(priority[highestPrioLocalX][highestPrioLocalY] < priority[localSourceX][localSourceY])
+                            ||(
+                                (priority[highestPrioLocalX][highestPrioLocalY] < priority[localSourceX][localSourceY])
+                                ||(
+                                    (priority[highestPrioLocalX][highestPrioLocalY] == priority[localSourceX][localSourceY])
+                                    &&(
+                                        priority[highestPrioLocalX][highestPrioLocalY]
+                                            < (priority[localSourceX][localSourceY] + getPriority(ix, iy, sizeX, inputs[1]))
+                                    )
+                                )
+                            )
                         )
                     ){
                         highestPrioX = ix;
@@ -642,6 +692,7 @@ public class ElementalAspect extends RealityAspect {
                         highestTargetY = targetOfCY;
                         highestPrioTargetLocalX = localTargetOfCX;
                         highestPrioTargetLocalY = localTargetOfCY;
+                        highestPrio = priority[highestPrioLocalX][highestPrioLocalY];
                     }
                 }}
 
@@ -667,13 +718,17 @@ public class ElementalAspect extends RealityAspect {
                         ((x == highestPrioX)&&(y == highestPrioY))
                         ||((x == highestTargetX)&&(y == highestTargetY))
                     ){
-                        toApply = 1; /* Also set the toApply bit so the change would be actuated */
                         if((x == highestPrioX)&&(y == highestPrioY)){
+                            toApply = 2;
                             offsetCode = getOffsetCode((highestTargetX - x), (highestTargetY - y));
                         }else{ /* if((x == highestTargetX)&&(y == highestTargetY)){ /* This is always true here.. */
+                            toApply = 1;
                             offsetCode = getOffsetCode((highestPrioX - x), (highestPrioY - y));
                         }
                     }
+                    /*!Note: Only set the target if the current cell is actually the highest priority;
+                     * because the swap will be decided for the target(other cell) based on this information
+                     * */
                     break;
                 }
             }
@@ -691,35 +746,11 @@ public class ElementalAspect extends RealityAspect {
         return(
             Material.discardable(getElementEnum(bx, by, sizeX, elements), World.getUnit(bx, by, sizeX, scalars))
             ||(
-                (getWeight(ax,ay, sizeX, elements, scalars) > getWeight(bx, by, sizeX, elements, scalars))
+                (getWeight(ax,ay, sizeX, elements, scalars) >= getWeight(bx, by, sizeX, elements, scalars))
                 && Material.movable(getElementEnum(ax,ay, sizeX, elements), World.getUnit(ax,ay, sizeX, scalars))
                 && Material.movable(getElementEnum(bx,by, sizeX, elements), World.getUnit(bx,by, sizeX, scalars))
             )
         );
-    }
-
-    /**
-     * Decides whether the proposed changes are swaps or collisions
-     * @param inputs [0]: proposed changes; [1]: elements; [2]:  scalars
-     * @param output the proposed changes where toApply means swaps need to happen
-     */
-    private void arbitrateSwitchesPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            float toApply = getToApply(x,y, sizeX, inputs[0]);
-            int targetX = getTargetX(x,y,sizeX, inputs[0]);
-            int targetY = getTargetY(x,y,sizeX, inputs[0]);
-            if( /* Check for swaps */
-                (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y) /* ..when cell is inside bounds.. */
-                &&(0 < toApply)&&(0 != getOffsetCode(x,y,sizeX, inputs[0])) /* ..and it wants to switch..  */
-                &&((targetX >= 0)&&(targetX < sizeX)&&(targetY >= 0)&&(targetY < sizeY)) /* ..but only if the target is also inside the bounds of the chunk */
-            ){
-                if(!aCanMoveB(x,y,targetX,targetY, sizeX, inputs[1], inputs[2])){
-                    toApply = 0; /* Only collision will happen, not a switch */
-                }
-            }
-            setOffsetCode(x,y, sizeX, output, getOffsetCode(x,y, sizeX, inputs[0]));
-            setToApply(x,y, sizeX,output, toApply);
-        }}
     }
 
     /**
@@ -737,7 +768,6 @@ public class ElementalAspect extends RealityAspect {
             float weight = getWeight(x,y, sizeX, inputs[1], inputs[3]);
             float gravityCorrection = getWeight(x,y, sizeX, inputs[1], inputs[3]);
 
-            /* TODO: Handle chunk border interactions in the outer "ring" of pixels */
             if( /* Update the forces on a cell.. */
                 (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y) /* ..when it is inside bounds.. */
                 &&(0 < toApply)&&(0 != getOffsetCode(x,y,sizeX, inputs[0])) /* ..only if it wants to switch..  */
@@ -747,10 +777,12 @@ public class ElementalAspect extends RealityAspect {
                 if( aCanMoveB(x,y,targetX,targetY, sizeX, inputs[1], inputs[3]) ){ /* The cells swap, decreasing forces on both *//* TODO: Also decrease the force based on the targets weight */
                     forceX += -forceX * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceX))) );
                     forceY += -forceY * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceY))) );
-                }else{ /* The cells collide, updating forces, but no swapping */
-                    Vector2 u1 = getForce(x,y, sizeX, dynamics).cpy().nor();
+                    forceX += (myMiscUtils.getGravity(x,y).x * weight);
+                    forceY += (myMiscUtils.getGravity(x,y).y * weight);
+                }else if(aCanMoveB(targetX,targetY,x,y, sizeX, inputs[1], inputs[3])){ /* The cells collide, updating forces, but no swapping */
+                    Vector2 u1 = getForce(x,y, sizeX, inputs[2]).cpy().nor();
                     float m2 = getWeight(targetX, targetY, sizeX, inputs[1], inputs[3]);
-                    Vector2 u2 = getForce(targetX, targetY, sizeX, dynamics).cpy().nor();
+                    Vector2 u2 = getForce(targetX, targetY, sizeX, inputs[2]).cpy().nor();
                     Vector2 result_speed = new Vector2();
                     result_speed.set( /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
                         ((weight - m2)/(weight+m2)*u1.x) + (2*m2/(weight+m2))*u2.x,
@@ -760,14 +792,50 @@ public class ElementalAspect extends RealityAspect {
                     /* F = m*a --> `a` is the delta v, which is the change in the velocity */
                     forceX = (weight * (result_speed.x - u1.x));
                     forceY = (weight * (result_speed.y - u1.y));
+
+                    forceX += (myMiscUtils.getGravity(x,y).x * weight);
+                    forceY += (myMiscUtils.getGravity(x,y).y * weight);
                 }
-                forceX += (myMiscUtils.getGravity(x,y).x * weight);
-                forceY += (myMiscUtils.getGravity(x,y).y * weight);
             }
             setForceX(x,y, sizeX, output, forceX);
             setForceY(x,y, sizeX, output, forceY);
             setVelocityTick(x,y, sizeX, output, getVelocityTick(x,y, sizeX, inputs[0]));
             setGravityCorrection(x,y, sizeX, output, gravityCorrection);
+        }}
+    }
+
+    /**
+     * Decides whether the proposed changes are swaps or collisions
+     * @param inputs [0]: proposed changes; [1]: elements; [2]:  scalars
+     * @param output the proposed changes where toApply means swaps need to happen
+     */
+    private void arbitrateInteractionsPhase(FloatBuffer[] inputs, FloatBuffer output){
+        /* Note: At this point the switches are supposed to be mutual: If a <> b, then every time b <> a  */
+        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            float toApply = getToApply(x,y, sizeX, inputs[0]);
+            int targetX = getTargetX(x,y,sizeX, inputs[0]);
+            int targetY = getTargetY(x,y,sizeX, inputs[0]);
+            if( /* Check for swaps */
+                (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y) /* ..when cell is inside bounds.. */
+                &&(0 < toApply)&&(0 != getOffsetCode(x,y,sizeX, inputs[0])) /* ..and it wants to switch..  */
+                &&((targetX >= 0)&&(targetX < sizeX)&&(targetY >= 0)&&(targetY < sizeY)) /* ..but only if the target is also inside the bounds of the chunk */
+            ){
+                if( /* this cell can not move its target */
+                    ((2 == toApply)&&(!aCanMoveB(x,y,targetX,targetY, sizeX, inputs[1], inputs[2])))
+                    ||((1 == toApply)&&(!aCanMoveB(targetX,targetY, x,y, sizeX, inputs[1], inputs[2])))
+                    ||(
+                        (!aCanMoveB(x,y,targetX,targetY, sizeX, inputs[1], inputs[2]))
+                        &&(
+                            (x != getTargetX(targetX,targetY, sizeX, inputs[0]))
+                            ||(y != getTargetY(targetX,targetY, sizeX, inputs[0]))
+                        )
+                    )
+                ){
+                    toApply = 0;
+                }
+            }
+            setOffsetCode(x,y, sizeX, output, getOffsetCode(x,y, sizeX, inputs[0]));
+            setToApply(x,y, sizeX,output, toApply);
         }}
     }
 
@@ -840,14 +908,16 @@ public class ElementalAspect extends RealityAspect {
             backend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
             BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), dynamics); /* TODO: maybe copies can be avoided here? */
 
-            arbitrateSwitchesPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
-            arbitrateSwitchesPhaseInputs[1] = elements;
-            parent.provideScalarsTo(arbitrateSwitchesPhaseInputs, 2);
-            backend.setInputs(arbitrateSwitchesPhaseInputs);
-            backend.runPhase(arbitrateSwitchesPhaseIndex);
+            arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
+            arbitrateInteractionsPhaseInputs[1] = elements;
+            parent.provideScalarsTo(arbitrateInteractionsPhaseInputs, 2);
+            backend.setInputs(arbitrateInteractionsPhaseInputs);
+            backend.runPhase(arbitrateInteractionsPhaseIndex);
 
-            BufferUtils.copy(backend.getOutput(arbitrateSwitchesPhaseIndex), proposedChanges);
-            parent.switchValues(backend.getOutput(arbitrateSwitchesPhaseIndex));
+            parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
+            if(i == velocityMaxTicks-1){
+                BufferUtils.copy(backend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
+            }
         }
 
         mechanicsPostProcessDynamicsPhaseInputs[0] = elements;
@@ -1046,19 +1116,35 @@ public class ElementalAspect extends RealityAspect {
 //        if( Material.ratioOf(Material.Elements.Fire) > parent.getUnit(x,y))
         if( x == sizeX/2 &&  y == sizeY / 3)
             unitsDiff = 0.8f;
-            /* Red : x;Blue: y --> for the resulting offset */
-            float offsetR = (getTargetX(x,y, sizeX, proposedChanges) - x + 1) / 2.0f;
-            float offsetB = (getTargetY(x,y, sizeX, proposedChanges) - y + 1) / 2.0f;
-            Color debugColor = new Color(
-                    offsetR,
-//                netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
-                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
-//                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
-                    0f,//unitsDiff,
-//                aetherDebugVal(parent,x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
-                    offsetB,
-                1.0f
-            );
+            /* Red <-> Blue: left <-> right */
+            float offsetX = (getTargetX(x,y, sizeX, proposedChanges) - x + 1) / 2.0f;
+            float offsetY = (getTargetY(x,y, sizeX, proposedChanges) - y + 1) / 2.0f;
+
+        Color debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets */
+//        float prio = getPriority(x,y, sizeX, elements)/maxPrio;
+//        Color debugColor = new Color(prio, prio, prio, 1.0f);
+        int index_radius = 2;
+        int minIndexX = Math.max((x-index_radius), 0);
+        int maxIndexX = Math.min((x+index_radius), sizeX);
+        int minIndexY = Math.max((y-index_radius), 0);
+        int maxIndexY = Math.min((y+index_radius), sizeY);
+        for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
+            if(
+                ((x != ix)&&(y != iy))
+                &&(getPriority(x,y, sizeX, elements) == getPriority(ix,iy, sizeX, elements))
+            ){
+                debugColor.set(1,0,0,1);
+            }
+        }}
+//                    offsetR,
+////                netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
+//                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
+////                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
+//                    1f,//unitsDiff,
+////                aetherDebugVal(parent,x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
+//                    offsetB,
+//                1.0f
+//            );
             defColor.lerp(debugColor,debugViewPercent);
 //        }
         return defColor;

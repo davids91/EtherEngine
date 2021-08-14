@@ -62,6 +62,7 @@ public class World {
         elementalPlane.defineBy(etherealPlane);
         BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
         elementalPlane.addOneGrainOfSandForTestingPurposes(this);
+        etherealPlane.defineBy(elementalPlane, this);
     }
 
     public void pondWithGrill(){

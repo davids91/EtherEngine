@@ -6,6 +6,7 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
@@ -55,8 +56,16 @@ public class PlaygroundScene extends Scene {
             }
         });
         etherBrushPanel = new EtherBrushPanel(this, skin,100);
-
-        table.add(spell_editor_btn).align(Align.topLeft).row();
+        table.add(spell_editor_btn).align(Align.topLeft);
+        Slider.SliderStyle sldSytle = new Slider.SliderStyle();
+        sldSytle.background = skin.getDrawable("scrollbar-horizontal");
+        sldSytle.knob = skin.getDrawable("slider-knob-horizontal");
+        Slider sld = new Slider(0,1,0.1f,false, sldSytle);
+        sld.addListener(event -> {
+            worldCapsule.setDebugViewPercent(sld.getPercent());
+            return true;
+        });
+        table.add(sld).row();
         table.add(etherBrushPanel.getContainer()).align(Align.topLeft);
         stage.addActor(table);
 

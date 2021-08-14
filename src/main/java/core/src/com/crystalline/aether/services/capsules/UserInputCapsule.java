@@ -18,6 +18,9 @@ public class UserInputCapsule extends InputService implements InputProcessor {
         if(Input.Keys.BACKSPACE == keycode){
             signal("initialize");
         }
+        if(Input.Keys.SPACE == keycode){
+            signal("fill");
+        }
         if(Input.Keys.ENTER == keycode){
             signal("playPause");
         }

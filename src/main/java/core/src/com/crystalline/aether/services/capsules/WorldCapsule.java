@@ -163,6 +163,8 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     @Override
     public void acceptInput(String name, Object... parameters) {
         if(name.equals("initialize")&&(0 == parameters.length)){
+            world.reset();
+        }else if(name.equals("fill")&&(0 == parameters.length)){
             world.pondWithGrill();
         }else if(name.equals("step")){
             world.mainLoop(0.0f);
@@ -261,6 +263,9 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     }
     public void setDoSpell(boolean doSpell) {
         this.doSpell = doSpell;
+    }
+    public void setDebugViewPercent(float percent){
+        world.getElementalPlane().setDebugViewPercent(percent);
     }
 
     public boolean isBroadcastActions() {

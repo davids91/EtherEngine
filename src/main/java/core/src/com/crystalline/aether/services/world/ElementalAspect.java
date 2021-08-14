@@ -135,6 +135,11 @@ public class ElementalAspect extends RealityAspect {
         touchedByMechanics = (float[][]) state[2];
     }
 
+    public void addOneGrainOfSandForTestingPurposes(World parent){
+        setElement((sizeX/2), (sizeY/2), Material.Elements.Earth);
+        parent.setUnit((sizeX/2), (sizeY/2),10);
+    }
+
     public void reset(){
         for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
             setElement(x,y,Material.Elements.Air);
@@ -1022,6 +1027,11 @@ public class ElementalAspect extends RealityAspect {
 
     }
 
+    public void setDebugViewPercent(float percent){
+        debugViewPercent = percent;
+    }
+
+    float debugViewPercent = 0;
     float avgUnit = 0;
     float avgDivisor = 0;
     public Color getDebugColor(int x, int y, World parent){
@@ -1049,7 +1059,7 @@ public class ElementalAspect extends RealityAspect {
                     offsetB,
                 1.0f
             );
-            defColor.lerp(debugColor,0.9f);
+            defColor.lerp(debugColor,debugViewPercent);
 //        }
         return defColor;
     }

@@ -5,7 +5,7 @@ import com.badlogic.gdx.math.Vector3;
 
 public class MiscUtils {
     public static final Vector3 zeroVec = new Vector3(0,0, 0);
-    private static final Vector2 gravity = new Vector2(0f,-9.81f);
+    private static final Vector2 gravity = new Vector2(0f,-1.81f);
     private static final Vector2 tmp_gravity = new Vector2(gravity);
     public final Vector2 getGravity(int posX, int posY){
 //        if((conf.world_block_number[1]*0.9f) <= posY) tmp_gravity.y = -gravity.y;

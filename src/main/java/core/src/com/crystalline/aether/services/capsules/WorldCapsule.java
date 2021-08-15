@@ -264,6 +264,10 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     public void setDoSpell(boolean doSpell) {
         this.doSpell = doSpell;
     }
+
+    public void setShowForces(boolean show){
+        world.getElementalPlane().setShowForces(show);
+    }
     public void setDebugViewPercent(float percent){
         world.getElementalPlane().setDebugViewPercent(percent);
     }

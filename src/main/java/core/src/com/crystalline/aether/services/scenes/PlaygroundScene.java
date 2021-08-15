@@ -5,13 +5,11 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Slider;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
+import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.architecture.Scene;
 import com.crystalline.aether.services.capsules.UserInputCapsule;
@@ -65,7 +63,19 @@ public class PlaygroundScene extends Scene {
             worldCapsule.setDebugViewPercent(sld.getPercent());
             return true;
         });
-        table.add(sld).row();
+        table.add(sld);
+
+        CheckBox.CheckBoxStyle cbStyle = new CheckBox.CheckBoxStyle();
+        cbStyle.font = skin.getFont("default-font");
+        cbStyle.checkboxOff = skin.getDrawable("checkbox");
+        cbStyle.checkboxOn = skin.getDrawable("checkbox-checked");
+        CheckBox chb = new CheckBox("Show Forces instead of switches", cbStyle);
+        chb.addListener(event -> {
+            worldCapsule.setShowForces(chb.isChecked());
+            return true;
+        });
+        table.add(chb).row();
+
         table.add(etherBrushPanel.getContainer()).align(Align.topLeft);
         stage.addActor(table);
 

@@ -19,7 +19,7 @@ public class ElementalAspect extends RealityAspect {
     MiscUtils myMiscUtils;
     protected final int sizeX;
     protected final int sizeY;
-    private final int velocityMaxTicks = 1;//3;
+    private final int velocityMaxTicks = 3;
     private final Random rnd = new Random();
 
     /* TODO: Maybe prio doesn't need to be kept... It can be just calculated from coordinates */
@@ -32,7 +32,7 @@ public class ElementalAspect extends RealityAspect {
      */
     private FloatBuffer elements;
 
-    /* TODO: Make one slot free ( for force z ) */
+    /* TODO: GravityCorrection to be moved into proposed changes */
     /**
      * A texture image representing the dynamism of a cell
      * - R: x of the force vector active on the block
@@ -143,14 +143,27 @@ public class ElementalAspect extends RealityAspect {
         parent.setUnit(ox, oy,16);
     }
 
+    private void addRock(int ox, int oy, World parent){
+        setElement(ox, oy, Material.Elements.Earth);
+        parent.setUnit(ox, oy,550);
+    }
+
     public void addOneGrainOfSandForTestingPurposes(World parent){
-        setElement((sizeX/2), (sizeY/2), Material.Elements.Earth);
-        parent.setUnit((sizeX/2), (sizeY/2),550);
+        addRock((sizeX/2)-1, (sizeY/2)-1, parent);
+        addRock((sizeX/2), (sizeY/2)-1, parent);
+        addRock((sizeX/2)+1, (sizeY/2)-1, parent);
+        addRock((sizeX/2)+2, (sizeY/2), parent);
+        addRock((sizeX/2)-2, (sizeY/2), parent);
+        addRock((sizeX/2)+2, (sizeY/2)+1, parent);
+        addRock((sizeX/2)-2, (sizeY/2)+1, parent);
+
+        addWater((sizeX/2), (sizeY/2), parent);
         addWater((sizeX/2), (sizeY/2)+1, parent);
-        addWater((sizeX/2), (sizeY/2)+2, parent);
-        addWater((sizeX/2), (sizeY/2)+3, parent);
-        addWater((sizeX/2)-1, (sizeY/2)+3, parent);
-        addWater((sizeX/2)+1, (sizeY/2)+3, parent);
+        addWater((sizeX/2)+1, (sizeY/2), parent);
+        addWater((sizeX/2)+1, (sizeY/2)+1, parent);
+        addWater((sizeX/2)-1, (sizeY/2), parent);
+        addWater((sizeX/2)-1, (sizeY/2)+1, parent);
+
     }
 
     private float maxPrio = 0;
@@ -527,9 +540,9 @@ public class ElementalAspect extends RealityAspect {
                 if(Material.isSameMat(
                     getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[2]),
                     getElementEnum(x,y-1, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[2])
-                )){ /* TODO: decrease forces if there is a liquid next to it somehow ( so cells won't move as much underwater ? )  */
+                )){ /* TODO: define the water cell force behavior correctly: each water cell aims to be 1.5 cells from one another */
                     /* the cell is a liquid on top of another liquid, so it must move. */
-                    if(0.0f < forceX) forceX *= 4;
+                    if((0.0f < forceX)&&(6.0f > forceX))forceX *= 1.2f;
                     else{
                         forceX = rnd.nextInt(6) - 3;
                         forceY = 1.00f;
@@ -767,6 +780,7 @@ public class ElementalAspect extends RealityAspect {
             float forceY = getForceY(x,y, sizeX, inputs[2]);
             float weight = getWeight(x,y, sizeX, inputs[1], inputs[3]);
             float gravityCorrection = getWeight(x,y, sizeX, inputs[1], inputs[3]);
+            int EH = 0;
 
             if( /* Update the forces on a cell.. */
                 (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y) /* ..when it is inside bounds.. */
@@ -775,10 +789,11 @@ public class ElementalAspect extends RealityAspect {
             ){
                 gravityCorrection = 0; /* Gravity is being added at forces update, so no need to re-add it at the end of the loop */
                 if( aCanMoveB(x,y,targetX,targetY, sizeX, inputs[1], inputs[3]) ){ /* The cells swap, decreasing forces on both *//* TODO: Also decrease the force based on the targets weight */
-                    forceX += -forceX * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceX))) );
-                    forceY += -forceY * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceY))) );
+                    forceX += -forceX * 0.7f * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceX))) );
+                    forceY += -forceY * 0.7f * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceY))) );
                     forceX += (myMiscUtils.getGravity(x,y).x * weight);
                     forceY += (myMiscUtils.getGravity(x,y).y * weight);
+                    EH = 1;
                 }else if(aCanMoveB(targetX,targetY,x,y, sizeX, inputs[1], inputs[3])){ /* The cells collide, updating forces, but no swapping */
                     Vector2 u1 = getForce(x,y, sizeX, inputs[2]).cpy().nor();
                     float m2 = getWeight(targetX, targetY, sizeX, inputs[1], inputs[3]);
@@ -792,14 +807,14 @@ public class ElementalAspect extends RealityAspect {
                     /* F = m*a --> `a` is the delta v, which is the change in the velocity */
                     forceX = (weight * (result_speed.x - u1.x));
                     forceY = (weight * (result_speed.y - u1.y));
-
                     forceX += (myMiscUtils.getGravity(x,y).x * weight);
                     forceY += (myMiscUtils.getGravity(x,y).y * weight);
+                    EH = 2;
                 }
             }
             setForceX(x,y, sizeX, output, forceX);
             setForceY(x,y, sizeX, output, forceY);
-            setVelocityTick(x,y, sizeX, output, getVelocityTick(x,y, sizeX, inputs[0]));
+            setVelocityTick(x,y, sizeX, output, getVelocityTick(x,y, sizeX, inputs[2]));
             setGravityCorrection(x,y, sizeX, output, gravityCorrection);
         }}
     }
@@ -845,6 +860,7 @@ public class ElementalAspect extends RealityAspect {
      * @param output the post-processed dynamics buffer
      */
     private void mechanicsPostProcessDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){
+        maxForce = 0;
         for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
             float gravityCorrection = getGravityCorrection(x,y, sizeX, inputs[1]);
             float forceX = getForceX(x,y, sizeX, inputs[1]);
@@ -860,7 +876,14 @@ public class ElementalAspect extends RealityAspect {
             setForceY(x,y, sizeX, output, forceY);
             setVelocityTick(x,y, sizeX, output, getVelocityTick(x,y, sizeX, inputs[1]));
             setGravityCorrection(x,y, sizeX, output, 0);
+            if(maxForce < Math.abs(forceX)){
+                maxForce = Math.abs(forceX);
+            }
+            if(maxForce < Math.abs(forceY)){
+                maxForce = Math.abs(forceY);
+            }
         }}
+        if(maxForce == 0)maxForce = 0.001f;
     }
 
     @Override
@@ -1101,9 +1124,13 @@ public class ElementalAspect extends RealityAspect {
         debugViewPercent = percent;
     }
 
+    private boolean showForces = false;
+    private float maxForce = 0;
+    public void setShowForces(boolean show){
+        showForces = show;
+    }
+
     float debugViewPercent = 0;
-    float avgUnit = 0;
-    float avgDivisor = 0;
     public Color getDebugColor(int x, int y, World parent){
         Color defColor = getColor(x,y, parent).cpy(); /*  TODO: Use spellUtil getColorOf */
 //        if(0 < touchedByMechanics[x][y]){ /* it was modified.. */
@@ -1116,26 +1143,22 @@ public class ElementalAspect extends RealityAspect {
 //        if( Material.ratioOf(Material.Elements.Fire) > parent.getUnit(x,y))
         if( x == sizeX/2 &&  y == sizeY / 3)
             unitsDiff = 0.8f;
+
+        Color debugColor;
+        if(showForces){
+            /* Red <-> Blue: left <-> right */
+            float forceX = Math.min(-1.0f,Math.max(1.0f,getForceX(x,y, sizeX, dynamics) / maxForce))/2.0f + 0.5f;
+            float forceY = Math.min(-1.0f,Math.max(1.0f,getForceY(x,y, sizeX, dynamics) / maxForce))/2.0f + 0.5f;
+
+            debugColor = new Color(1.0f - forceX, forceY, forceX, 1.0f); /* <-- proposed offsets */
+        }else{
             /* Red <-> Blue: left <-> right */
             float offsetX = (getTargetX(x,y, sizeX, proposedChanges) - x + 1) / 2.0f;
             float offsetY = (getTargetY(x,y, sizeX, proposedChanges) - y + 1) / 2.0f;
-
-        Color debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets */
+            debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets */
+        }
 //        float prio = getPriority(x,y, sizeX, elements)/maxPrio;
 //        Color debugColor = new Color(prio, prio, prio, 1.0f);
-        int index_radius = 2;
-        int minIndexX = Math.max((x-index_radius), 0);
-        int maxIndexX = Math.min((x+index_radius), sizeX);
-        int minIndexY = Math.max((y-index_radius), 0);
-        int maxIndexY = Math.min((y+index_radius), sizeY);
-        for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
-            if(
-                ((x != ix)&&(y != iy))
-                &&(getPriority(x,y, sizeX, elements) == getPriority(ix,iy, sizeX, elements))
-            ){
-                debugColor.set(1,0,0,1);
-            }
-        }}
 //                    offsetR,
 ////                netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
 //                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,

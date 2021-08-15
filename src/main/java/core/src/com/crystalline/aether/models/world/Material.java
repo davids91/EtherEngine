@@ -43,7 +43,7 @@ public class Material {
     public static final float PHI = 1.6f;//1803398875f;
     public static final float [] netherRatios = {
         /* Ratio of sides of the golden rectangle */
-        1.0f, /* Ether *//*!Note: PHI^0 == 0.1*/
+        1.0f, /* Ether *//*!Note: PHI^0 == 1*/
         (PHI), /* Earth */
         (PHI * PHI), /* Water */
         (PHI * PHI * PHI), /* Air */

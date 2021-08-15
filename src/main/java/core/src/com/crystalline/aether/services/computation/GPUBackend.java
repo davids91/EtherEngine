@@ -52,8 +52,9 @@ public class GPUBackend extends CalculationBackend<String, FloatBuffer>{
         int phaseIndex = outputs.size();
         outputs.add(ByteBuffer.allocateDirect(Float.BYTES * outputSize).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer());
         ShaderProgram newPhase = new ShaderProgram(defaultVertexSource, phase);
-        if(!newPhase.isCompiled())
-            throw new Exception("Unable to compile Phase GPU Kernel");
+        if(!newPhase.isCompiled()){
+            throw new Exception("Unable to compile Phase GPU Kernel! \n Log: " + newPhase.getLog());
+        }
         phases.add(phase);
         shaders.add(newPhase);
         return phaseIndex;

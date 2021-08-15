@@ -5,6 +5,7 @@ import com.crystalline.aether.models.world.EtherealAspectStrategy;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.services.computation.CPUBackend;
+import com.crystalline.aether.services.computation.GPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
 
 import java.nio.ByteBuffer;
@@ -30,6 +31,7 @@ public class EtherealAspect extends RealityAspect {
     private FloatBuffer etherValues;
 
     private final CPUBackend backend;
+    private final GPUBackend gpuBackend;
     private final int preprocessPhaseIndex;
     private final int sharingPhaseIndex;
     private final int finalizePhaseIndex;
@@ -49,6 +51,7 @@ public class EtherealAspect extends RealityAspect {
     public EtherealAspect(Config conf_){
         super(conf_);
         backend = new CPUBackend();
+        gpuBackend = new GPUBackend(conf.getChunkBlockSize());
         etherValues = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         EtherealAspectStrategy strategy = new EtherealAspectStrategy(conf.getChunkBlockSize());
 
@@ -57,8 +60,16 @@ public class EtherealAspect extends RealityAspect {
         finalizePhaseIndex = backend.addPhase(strategy::finalizeCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         determineUnitsPhaseIndex = backend.addPhase(strategy::determineUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        defineByElementalPhaseIndex = backend.addPhase(strategy::defineByElementalPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+//        defineByElementalPhaseIndex = backend.addPhase(strategy::defineByElementalPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         switchEtherPhaseIndex = backend.addPhase(strategy::switchEtherPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+
+        int phaseIndex = 0;
+        try {
+            phaseIndex = gpuBackend.addPhase(EtherealAspectStrategy.defineByElementalPhaseKernel,(Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        defineByElementalPhaseIndex = phaseIndex;
 
         preProcessInputs = new FloatBuffer[]{backend.getOutput(finalizePhaseIndex)};
         sharingInputs = new FloatBuffer[]{backend.getOutput(preprocessPhaseIndex)};
@@ -92,9 +103,12 @@ public class EtherealAspect extends RealityAspect {
     public void defineBy(ElementalAspect plane, World parent){
         plane.provideElementsTo(defineByElementalPhaseInputs,0);
         parent.provideScalarsTo(defineByElementalPhaseInputs, 1);
-        backend.setInputs(defineByElementalPhaseInputs);
-        backend.runPhase(defineByElementalPhaseIndex);
-        BufferUtils.copy(backend.getOutput(defineByElementalPhaseIndex), etherValues);
+//        backend.setInputs(defineByElementalPhaseInputs);
+//        backend.runPhase(defineByElementalPhaseIndex);
+//        BufferUtils.copy(backend.getOutput(defineByElementalPhaseIndex), etherValues);
+        gpuBackend.setInputs(defineByElementalPhaseInputs);
+        gpuBackend.runPhase(defineByElementalPhaseIndex);
+        BufferUtils.copy(gpuBackend.getOutput(defineByElementalPhaseIndex), etherValues);
     }
 
     @Override

@@ -69,11 +69,11 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         for (int nx = Math.max(0, (x - 1)); nx < Math.min(chunkSize, x + 2); ++nx) {
             for (int ny = Math.max(0, (y - 1)); ny < Math.min(chunkSize, y + 2); ++ny) {
                 if(
-                        (x != nx) && (y != ny)
-                                &&Material.isSameMat(
-                                ElementalAspectStrategy.getElementEnum(x,y, chunkSize, elements), World.getUnit(x,y, chunkSize, scalars),
-                                ElementalAspectStrategy.getElementEnum(nx,ny, chunkSize, elements), World.getUnit(nx,ny, chunkSize, scalars)
-                        )
+                    (x != nx) && (y != ny)
+                    &&Material.isSameMat(
+                        ElementalAspectStrategy.getElementEnum(x,y, chunkSize, elements), World.getUnit(x,y, chunkSize, scalars),
+                        ElementalAspectStrategy.getElementEnum(nx,ny, chunkSize, elements), World.getUnit(nx,ny, chunkSize, scalars)
+                    )
                 ){
                     average_val += World.getUnit(nx,ny, chunkSize, scalars);
                     division += 1;
@@ -109,10 +109,10 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                 int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
                 int toApply = (int) RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]);
                 if(
-                        (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
-                                &&(0 < toApply)
-                                &&(targetX >= 0)&&(targetX < chunkSize)
-                                &&(targetY >= 0)&&(targetY < chunkSize)
+                    (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
+                    &&(0 < toApply)
+                    &&(targetX >= 0)&&(targetX < chunkSize)
+                    &&(targetY >= 0)&&(targetY < chunkSize)
                 ){
                     element = ElementalAspectStrategy.getElementEnum(targetX,targetY, chunkSize, inputs[1]);
                 }
@@ -139,10 +139,10 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             int velocityTick = ElementalAspectStrategy.getVelocityTick(x,y, chunkSize, inputs[1]);
             float gravityCorrection = ElementalAspectStrategy.getGravityCorrection(x,y, chunkSize, inputs[1]);
             if(
-                    (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
-                            &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0]))
-                            &&(targetX >= 0)&&(targetX < chunkSize)
-                            &&(targetY >= 0)&&(targetY < chunkSize)
+                (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
+                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0]))
+                &&(targetX >= 0)&&(targetX < chunkSize)
+                &&(targetY >= 0)&&(targetY < chunkSize)
             ){
                 forceX = ElementalAspectStrategy.getForceX(targetX,targetY, chunkSize, inputs[1]);
                 forceY = ElementalAspectStrategy.getForceY(targetX,targetY, chunkSize, inputs[1]);
@@ -183,8 +183,8 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
 
             if(Material.Elements.Air == currentElement) { /* TODO: make air catch fire! */
                 if(
-                        (numOfElements(x,y,inputs[0], Material.Elements.Air) < numOfElements(x,y,inputs[0], Material.Elements.Fire))
-                                &&(0 == avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Water))
+                    (numOfElements(x,y,inputs[0], Material.Elements.Air) < numOfElements(x,y,inputs[0], Material.Elements.Fire))
+                    &&(0 == avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Water))
                 ){
                     currentElement = Material.Elements.Fire;
                 }
@@ -203,8 +203,8 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                 /* TODO: Make Earth keep track of heat instead of units */
                 if((avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Earth) < avgOfUnit(x,y, inputs[0],inputs[2], Material.Elements.Fire))){
                     if( /* TODO: Make sand melt "into" glass */
-                            Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, currentUnit).ordinal()
-                                    || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, currentUnit).ordinal()
+                        Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, currentUnit).ordinal()
+                        || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, currentUnit).ordinal()
                     )currentElement = Material.Elements.Fire;
                 }
             }
@@ -225,13 +225,13 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
 
             if(Material.Elements.Fire == currentElement){
                 if(
-                        (Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit))
-                                && (currentUnit < avgOfUnit(x,y,inputs[0],inputs[1], Material.Elements.Fire))
+                    (Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit))
+                    && (currentUnit < avgOfUnit(x,y,inputs[0],inputs[1], Material.Elements.Fire))
                 ){
                     currentUnit -= currentUnit * 0.1f;
                 }else
                 if(
-                        (Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit))
+                    (Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit))
                 ){
                     currentUnit -= currentUnit * 0.05f;
                 }
@@ -326,8 +326,8 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             if((0 == toApply)||(x == targetX && y == targetY)){ /* if no switch was arbitrated in the previously proposed changes */
                 /* a target was not proposed previously for this cell, which would overwrite any switch proposed from forces */
                 if(
-                        !Material.discardable(ElementalAspectStrategy.getElementEnum(x,y, chunkSize, inputs[1]), World.getUnit(x,y, chunkSize, inputs[3]))
-                                && (1 <= ElementalAspectStrategy.getForce(x,y, chunkSize, inputs[2]).len())
+                    !Material.discardable(ElementalAspectStrategy.getElementEnum(x,y, chunkSize, inputs[1]), World.getUnit(x,y, chunkSize, inputs[3]))
+                    && (1 <= ElementalAspectStrategy.getForce(x,y, chunkSize, inputs[2]).len())
                 ){
                     /* propose to change to the direction of the force */
                     if(1 < Math.abs(ElementalAspectStrategy.getForceX(x,y, chunkSize, inputs[2])))targetX = (int)(x + Math.max(-1, Math.min(ElementalAspectStrategy.getForceX(x,y, chunkSize, inputs[2]),1)));
@@ -395,8 +395,8 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                 int sx = ix - x + (index_radius);
                 int sy = iy - y + (index_radius);
                 priority[sx][sy] = (int)( /* The priority of the given cell consist of..  */
-                        ElementalAspectStrategy.getForce(ix,iy, chunkSize, inputs[2]).len() /* ..the power of the force on it.. */
-                                + ElementalAspectStrategy.getWeight(ix,iy, chunkSize, inputs[1], inputs[3]) /* .. and its weight */
+                    ElementalAspectStrategy.getForce(ix,iy, chunkSize, inputs[2]).len() /* ..the power of the force on it.. */
+                    + ElementalAspectStrategy.getWeight(ix,iy, chunkSize, inputs[1], inputs[3]) /* .. and its weight */
                 );
                 changed[sx][sy] = 0;
             }}
@@ -426,26 +426,26 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                     localTargetOfCX = targetOfCX - x + index_radius;
                     localTargetOfCY = targetOfCY - y + index_radius;
                     if( /* The highest priority swap request is.. */
-                            ( /* ..the one which isn't changed yet (only higher priority changes occurred prior to this loop )  */
-                                    (0 == changed[localSourceX][localSourceY])
-                                            &&( /* And either the target is out of bounds.. */
-                                            (localTargetOfCX < 0)||(localTargetOfCX >= index_table_size)
-                                                    ||(localTargetOfCY < 0)||(localTargetOfCY >= index_table_size)
-                                                    ||(0 == changed[localTargetOfCX][localTargetOfCY]) /* ..or not changed yet */
-                                    )
-                            )&&( /* ..and of course the currently examined index has to has a higher target, then the previous highest one */
-                                    ((-2 == highestPrioLocalX)||(-2 == highestPrioLocalY))
-                                            ||(
-                                            (priority[highestPrioLocalX][highestPrioLocalY] < priority[localSourceX][localSourceY])
-                                                    ||(
-                                                    (priority[highestPrioLocalX][highestPrioLocalY] == priority[localSourceX][localSourceY])
-                                                            &&(
-                                                            priority[highestPrioLocalX][highestPrioLocalY]
-                                                                    < (priority[localSourceX][localSourceY] + ElementalAspectStrategy.getPriority(ix, iy, chunkSize, inputs[1]))
-                                                    )
-                                            )
-                                    )
+                        ( /* ..the one which isn't changed yet (only higher priority changes occurred prior to this loop )  */
+                            (0 == changed[localSourceX][localSourceY])
+                            &&( /* And either the target is out of bounds.. */
+                                (localTargetOfCX < 0)||(localTargetOfCX >= index_table_size)
+                                ||(localTargetOfCY < 0)||(localTargetOfCY >= index_table_size)
+                                ||(0 == changed[localTargetOfCX][localTargetOfCY]) /* ..or not changed yet */
                             )
+                        )&&( /* ..and of course the currently examined index has to has a higher target, then the previous highest one */
+                            ((-2 == highestPrioLocalX)||(-2 == highestPrioLocalY))
+                            ||(
+                                (priority[highestPrioLocalX][highestPrioLocalY] < priority[localSourceX][localSourceY])
+                                ||(
+                                    (priority[highestPrioLocalX][highestPrioLocalY] == priority[localSourceX][localSourceY])
+                                    &&(
+                                        priority[highestPrioLocalX][highestPrioLocalY]
+                                        < (priority[localSourceX][localSourceY] + ElementalAspectStrategy.getPriority(ix, iy, chunkSize, inputs[1]))
+                                    )
+                                )
+                            )
+                        )
                     ){
                         highestPrioX = ix;
                         highestPrioY = iy;
@@ -462,8 +462,8 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                 if((-2 != highestPrioX)&&(-2 != highestPrioY)){
                     changed[highestPrioLocalX][highestPrioLocalY] = 1;
                     if(
-                            (highestPrioTargetLocalX >= 0)&&(highestPrioTargetLocalX < index_table_size)
-                                    &&(highestPrioTargetLocalY >= 0)&&(highestPrioTargetLocalY < index_table_size)
+                        (highestPrioTargetLocalX >= 0)&&(highestPrioTargetLocalX < index_table_size)
+                        &&(highestPrioTargetLocalY >= 0)&&(highestPrioTargetLocalY < index_table_size)
                     ){
                         changed[highestPrioTargetLocalX][highestPrioTargetLocalY] = 1;
                     }
@@ -471,14 +471,14 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
 
                 /* If c was reached; or no changes are proposed; break! */
                 if(
-                        ((x == highestPrioX)&&(y == highestPrioY))
-                                ||((x == highestTargetX)&&(y == highestTargetY))
-                                ||((-2 == highestPrioX)&&(-2 == highestPrioY))
-                                ||((-2 == highestTargetX)&&(-2 == highestTargetY))
+                    ((x == highestPrioX)&&(y == highestPrioY))
+                    ||((x == highestTargetX)&&(y == highestTargetY))
+                    ||((-2 == highestPrioX)&&(-2 == highestPrioY))
+                    ||((-2 == highestTargetX)&&(-2 == highestTargetY))
                 ){
                     if(
-                            ((x == highestPrioX)&&(y == highestPrioY))
-                                    ||((x == highestTargetX)&&(y == highestTargetY))
+                        ((x == highestPrioX)&&(y == highestPrioY))
+                        ||((x == highestTargetX)&&(y == highestTargetY))
                     ){
                         if((x == highestPrioX)&&(y == highestPrioY)){
                             toApply = 2;
@@ -517,12 +517,11 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             float forceY = ElementalAspectStrategy.getForceY(x,y, chunkSize, inputs[2]);
             float weight = ElementalAspectStrategy.getWeight(x,y, chunkSize, inputs[1], inputs[3]);
             float gravityCorrection = ElementalAspectStrategy.getWeight(x,y, chunkSize, inputs[1], inputs[3]);
-            int EH = 0;
 
             if( /* Update the forces on a cell.. */
-                    (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when it is inside bounds.. */
-                            &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..only if it wants to switch..  */
-                            &&((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)) /* ..but only if the target is also inside the bounds of the chunk */
+                (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when it is inside bounds.. */
+                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..only if it wants to switch..  */
+                &&((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)) /* ..but only if the target is also inside the bounds of the chunk */
             ){
                 gravityCorrection = 0; /* Gravity is being added at forces update, so no need to re-add it at the end of the loop */
                 if( ElementalAspectStrategy.aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[3]) ){ /* The cells swap, decreasing forces on both *//* TODO: Also decrease the force based on the targets weight */
@@ -530,15 +529,14 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                     forceY += -forceY * 0.7f * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceY))) );
                     forceX += (myMiscUtils.getGravity(x,y).x * weight);
                     forceY += (myMiscUtils.getGravity(x,y).y * weight);
-                    EH = 1;
                 }else if(ElementalAspectStrategy.aCanMoveB(targetX,targetY,x,y, chunkSize, inputs[1], inputs[3])){ /* The cells collide, updating forces, but no swapping */
                     Vector2 u1 = ElementalAspectStrategy.getForce(x,y, chunkSize, inputs[2]).cpy().nor();
                     float m2 = ElementalAspectStrategy.getWeight(targetX, targetY, chunkSize, inputs[1], inputs[3]);
                     Vector2 u2 = ElementalAspectStrategy.getForce(targetX, targetY, chunkSize, inputs[2]).cpy().nor();
                     Vector2 result_speed = new Vector2();
                     result_speed.set( /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
-                            ((weight - m2)/(weight+m2)*u1.x) + (2*m2/(weight+m2))*u2.x,
-                            ((weight - m2)/(weight+m2)*u1.y) + (2*m2/(weight+m2))*u2.y
+                        ((weight - m2)/(weight+m2)*u1.x) + (2*m2/(weight+m2))*u2.x,
+                        ((weight - m2)/(weight+m2)*u1.y) + (2*m2/(weight+m2))*u2.y
                     );
 
                     /* F = m*a --> `a` is the delta v, which is the change in the velocity */
@@ -546,7 +544,6 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                     forceY = (weight * (result_speed.y - u1.y));
                     forceX += (myMiscUtils.getGravity(x,y).x * weight);
                     forceY += (myMiscUtils.getGravity(x,y).y * weight);
-                    EH = 2;
                 }
             }
             ElementalAspectStrategy.setForceX(x,y, chunkSize, output, forceX);
@@ -568,20 +565,20 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);
             int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
             if( /* Check for swaps */
-                    (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when cell is inside bounds.. */
-                            &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..and it wants to switch..  */
-                            &&((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)) /* ..but only if the target is also inside the bounds of the chunk */
+                (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when cell is inside bounds.. */
+                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..and it wants to switch..  */
+                &&((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)) /* ..but only if the target is also inside the bounds of the chunk */
             ){
                 if( /* this cell can not move its target */
-                        ((2 == toApply)&&(!ElementalAspectStrategy.aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[2])))
-                                ||((1 == toApply)&&(!ElementalAspectStrategy.aCanMoveB(targetX,targetY, x,y, chunkSize, inputs[1], inputs[2])))
-                                ||(
-                                (!ElementalAspectStrategy.aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[2]))
-                                        &&(
-                                        (x != RealityAspectStrategy.getTargetX(targetX,targetY, chunkSize, inputs[0]))
-                                                ||(y != RealityAspectStrategy.getTargetY(targetX,targetY, chunkSize, inputs[0]))
-                                )
+                    ((2 == toApply)&&(!ElementalAspectStrategy.aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[2])))
+                        ||((1 == toApply)&&(!ElementalAspectStrategy.aCanMoveB(targetX,targetY, x,y, chunkSize, inputs[1], inputs[2])))
+                        ||(
+                        (!ElementalAspectStrategy.aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[2]))
+                        &&(
+                            (x != RealityAspectStrategy.getTargetX(targetX,targetY, chunkSize, inputs[0]))
+                            ||(y != RealityAspectStrategy.getTargetY(targetX,targetY, chunkSize, inputs[0]))
                         )
+                    )
                 ){
                     toApply = 0;
                 }

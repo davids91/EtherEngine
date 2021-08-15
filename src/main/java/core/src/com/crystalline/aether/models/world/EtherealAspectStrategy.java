@@ -1,7 +1,10 @@
 package com.crystalline.aether.models.world;
 
+import com.badlogic.gdx.Gdx;
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.services.computation.Includer;
 import com.crystalline.aether.services.utils.BufferUtils;
+import com.crystalline.aether.services.utils.StringUtils;
 import com.crystalline.aether.services.world.World;
 
 import java.nio.FloatBuffer;
@@ -13,8 +16,21 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
     public final int chunkSize;
     public EtherealAspectStrategy(int chunkSize_){
         chunkSize = chunkSize_;
+        System.out.println("kernel: " + defineByElementalPhaseKernel + "\n >>>>>>>>>>>>>>> \n");
     }
 
+    protected static String buildKernel(String rawKernelCode, Includer includer){
+        return includer.process(rawKernelCode);
+    }
+
+    public static final String defineByElementalPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/ethDefineByElementalPhase.fshader")
+    ), new Includer(baseIncluder));
+    /**
+     * Provides the Ethereal plane adapted to fit into the given elemental plane
+     * @param inputs [0]: elements; [1]: scalars
+     * @param output etherValues buffer
+     */
     public void defineByElementalPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0;x < chunkSize; ++x){
             for(int y = 0; y < chunkSize; ++y){
@@ -35,7 +51,7 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
     /**
      * Applies the changes proposed from the input proposal buffer
      * @param inputs [0]: proposed changes;[0]: scalars
-     * @param output elements buffer
+     * @param output etherValues buffer
      */
     public void switchEtherPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y){

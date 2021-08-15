@@ -1,11 +1,21 @@
 package com.crystalline.aether.models.world;
 
+import com.badlogic.gdx.Gdx;
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.services.computation.Includer;
 import com.crystalline.aether.services.utils.BufferUtils;
+import com.crystalline.aether.services.utils.StringUtils;
 
 import java.nio.FloatBuffer;
 
 public class RealityAspectStrategy {
+    public static final String materialLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/materialLibrary.fshader"));
+    public static final String worldLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/worldLibrary.fshader"));
+    public static final String etherealLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/ethLibrary.fshader"));
+    public static final String elementalLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/elmLibrary.fshader"));
+    protected static final Includer baseIncluder = new Includer()
+            .addSource(materialLibrary).addSource(worldLibrary).addSource(etherealLibrary).addSource(elementalLibrary);
+
     public static void setPriority(int x, int y, int chunkSize, FloatBuffer buffer, float prio){
         BufferUtils.set(x,y,chunkSize, Config.bufferCellSize,3, buffer, prio);
     }

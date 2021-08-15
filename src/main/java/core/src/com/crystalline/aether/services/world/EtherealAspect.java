@@ -52,14 +52,15 @@ public class EtherealAspect extends RealityAspect {
         super(conf_);
         backend = new CPUBackend();
         etherValues = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
+        EtherealAspectStrategy strategy = new EtherealAspectStrategy(conf.getChunkBlockSize());
 
-        preprocessPhaseIndex = backend.addPhase(this::preProcessCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        sharingPhaseIndex = backend.addPhase(this::sharingCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        finalizePhaseIndex = backend.addPhase(this::finalizeCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        processTypesPhaseIndex = backend.addPhase(this::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        determineUnitsPhaseIndex = backend.addPhase(this::determineUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        defineByElementalPhaseIndex = backend.addPhase(this::defineByElementalPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        switchEtherPhaseIndex = backend.addPhase(this::switchEtherPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        preprocessPhaseIndex = backend.addPhase(strategy::preProcessCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        sharingPhaseIndex = backend.addPhase(strategy::sharingCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        finalizePhaseIndex = backend.addPhase(strategy::finalizeCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        determineUnitsPhaseIndex = backend.addPhase(strategy::determineUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        defineByElementalPhaseIndex = backend.addPhase(strategy::defineByElementalPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        switchEtherPhaseIndex = backend.addPhase(strategy::switchEtherPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
 
         preProcessInputs = new FloatBuffer[]{backend.getOutput(finalizePhaseIndex)};
         sharingInputs = new FloatBuffer[]{backend.getOutput(preprocessPhaseIndex)};
@@ -68,7 +69,6 @@ public class EtherealAspect extends RealityAspect {
         determineUnitsPhaseInputs = new FloatBuffer[]{etherValues};
         defineByElementalPhaseInputs = new FloatBuffer[]{null, null};
         switchEtherPhaseInputs = new FloatBuffer[2];
-
         reset();
     }
 
@@ -91,57 +91,12 @@ public class EtherealAspect extends RealityAspect {
         }
     }
 
-    private void defineByElementalPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0;x < conf.getChunkBlockSize(); ++x){
-            for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-                float currentUnits = World.getUnit(x,y, conf.getChunkBlockSize(), inputs[1]);
-                Material.Elements currentElement = ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[0]);
-                float newAether = ((2.0f * currentUnits) / (1.0f + Material.ratioOf(currentElement)));
-                if(0 < currentUnits) {
-                    EtherealAspectStrategy.setAether(x,y, conf.getChunkBlockSize(), output, newAether);
-                    EtherealAspectStrategy.setNether(x,y, conf.getChunkBlockSize(), output, ( newAether * Material.ratioOf(currentElement) ));
-                }else{
-                    EtherealAspectStrategy.setAether(x,y, conf.getChunkBlockSize(), output,1);
-                    EtherealAspectStrategy.setNether(x,y, conf.getChunkBlockSize(), output, Material.ratioOf(Material.Elements.Air));
-                }
-            }
-        }
-    }
-
     public void defineBy(ElementalAspect plane, World parent){
         plane.provideElementsTo(defineByElementalPhaseInputs,0);
         parent.provideScalarsTo(defineByElementalPhaseInputs, 1);
         backend.setInputs(defineByElementalPhaseInputs);
         backend.runPhase(defineByElementalPhaseIndex);
         BufferUtils.copy(backend.getOutput(defineByElementalPhaseIndex), etherValues);
-    }
-
-    /**
-     * Applies the changes proposed from the input proposal buffer
-     * @param inputs [0]: proposed changes;[0]: scalars
-     * @param output elements buffer
-     */
-    private void switchEtherPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-            float aetherValue = EtherealAspectStrategy.getAetherValue(x, y, conf.getChunkBlockSize(), inputs[1]);
-            float netherValue = EtherealAspectStrategy.getNetherValue(x, y, conf.getChunkBlockSize(), inputs[1]);
-            if(0 != RealityAspectStrategy.getOffsetCode(x,y,conf.getChunkBlockSize(), inputs[0])){
-                int targetX = RealityAspectStrategy.getTargetX(x,y,conf.getChunkBlockSize(), inputs[0]);
-                int targetY = RealityAspectStrategy.getTargetY(x,y,conf.getChunkBlockSize(), inputs[0]);
-                int toApply = (int) RealityAspectStrategy.getToApply(x,y, conf.getChunkBlockSize(), inputs[0]);
-                if(
-                    (0 < x)&&(conf.getChunkBlockSize()-1 > x)&&(0 < y)&&(conf.getChunkBlockSize()-1 > y)
-                    &&(0 < toApply)
-                    &&(targetX >= 0)&&(targetX < conf.getChunkBlockSize())
-                    &&(targetY >= 0)&&(targetY < conf.getChunkBlockSize())
-                ){
-                    aetherValue = EtherealAspectStrategy.getAetherValue(targetX, targetY, conf.getChunkBlockSize(), inputs[1]);
-                    netherValue = EtherealAspectStrategy.getNetherValue(targetX, targetY, conf.getChunkBlockSize(), inputs[1]);
-                }
-            }
-            EtherealAspectStrategy.setAether(x,y, conf.getChunkBlockSize(), output, aetherValue);
-            EtherealAspectStrategy.setNether(x,y, conf.getChunkBlockSize(), output, netherValue);
-        }}
     }
 
     @Override
@@ -153,95 +108,12 @@ public class EtherealAspect extends RealityAspect {
         BufferUtils.copy(backend.getOutput(switchEtherPhaseIndex), etherValues);
     }
 
-    private float avgOf(int x, int y, int cellOffset, FloatBuffer table){
-        float ret = 0.0f;
-        float divisor = 0.0f;
-        for (int nx = Math.max(0, (x - 1)); nx < Math.min(conf.getChunkBlockSize(), x + 2); ++nx) {
-            for (int ny = Math.max(0, (y - 1)); ny < Math.min(conf.getChunkBlockSize(), y + 2); ++ny) {
-                ret += BufferUtils.get(nx,ny, conf.getChunkBlockSize(), Config.bufferCellSize,cellOffset,table);
-                ++divisor;
-            }
-        }
-        return (ret / divisor);
-    }
-
     public float getMaxNether(int x, int y){
         return aetherValueAt(x,y) * Material.ratioOf(Material.Elements.Fire);
     }
 
     public float getMinAether(int x, int y){
         return netherValueAt(x,y) / Material.ratioOf(Material.Elements.Earth);
-    }
-
-
-    private void preProcessCalculationPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for (int x = 0; x < conf.getChunkBlockSize(); ++x) { /* Preprocess Ether */
-            for (int y = 0; y < conf.getChunkBlockSize(); ++y) {
-                EtherealAspectStrategy.setReleasedNether(x,y,conf.getChunkBlockSize(),output,0);
-                EtherealAspectStrategy.setAvgReleasedNether(x,y,conf.getChunkBlockSize(),output,0);
-                EtherealAspectStrategy.setReleasedAether(x,y,conf.getChunkBlockSize(),output,0);
-                EtherealAspectStrategy.setAvgReleasedAether(x,y,conf.getChunkBlockSize(),output,0);
-                float currentRatio = EtherealAspectStrategy.getRatio(x,y, conf.getChunkBlockSize(), inputs[0]);
-                if( 0.5 < Math.abs(currentRatio - Material.ratioOf(Material.Elements.Ether)) ){
-                    float aetherToRelease = (EtherealAspectStrategy.aetherValueAt(x,y, conf.getChunkBlockSize(), inputs[0]) - EtherealAspectStrategy.getMinAether(x,y, conf.getChunkBlockSize(), inputs[0]));
-                    float netherToRelease = (EtherealAspectStrategy.netherValueAt(x,y, conf.getChunkBlockSize(), inputs[0]) - EtherealAspectStrategy.getMaxNether(x,y, conf.getChunkBlockSize(), inputs[0]));
-                    if(
-                        ( EtherealAspectStrategy.netherValueAt(x,y, conf.getChunkBlockSize(), inputs[0]) >= (EtherealAspectStrategy.getMaxNether(x,y, conf.getChunkBlockSize(), inputs[0])) + (EtherealAspectStrategy.aetherValueAt(x,y, conf.getChunkBlockSize(), inputs[0]) * EtherealAspectStrategy.etherReleaseThreshold) )
-                        || ( EtherealAspectStrategy.aetherValueAt(x,y, conf.getChunkBlockSize(), inputs[0]) >= (EtherealAspectStrategy.getMinAether(x,y, conf.getChunkBlockSize(), inputs[0]) + (EtherealAspectStrategy.netherValueAt(x,y,conf.getChunkBlockSize(), inputs[0]) * EtherealAspectStrategy.etherReleaseThreshold)) )
-                    ){
-                        if(netherToRelease >= aetherToRelease){
-                            EtherealAspectStrategy.setReleasedNether(x,y, conf.getChunkBlockSize(), output,netherToRelease / 9.0f);
-                        }else{
-                            EtherealAspectStrategy.setReleasedAether(x,y, conf.getChunkBlockSize(), output, aetherToRelease / 9.0f);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private void sharingCalculationPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for (int x = 0; x < conf.getChunkBlockSize(); ++x) { /* Sharing released ether */
-            for (int y = 0; y < conf.getChunkBlockSize(); ++y) {
-                /* save released ether from the previous phase */
-                EtherealAspectStrategy.setReleasedNether(x,y, conf.getChunkBlockSize(), output, EtherealAspectStrategy.getReleasedNether(x, y, conf.getChunkBlockSize(), inputs[0]));
-                EtherealAspectStrategy.setReleasedAether(x,y, conf.getChunkBlockSize(), output, EtherealAspectStrategy.getReleasedAether(x, y, conf.getChunkBlockSize(), inputs[0]));
-
-                /* calculate shared ether from released ether */
-                EtherealAspectStrategy.setAvgReleasedAether(x,y, conf.getChunkBlockSize(), output, avgOf(x, y, 2,inputs[0]));
-                EtherealAspectStrategy.setAvgReleasedNether(x,y, conf.getChunkBlockSize(), output, avgOf(x, y, 0,inputs[0]));
-            }
-        }
-    }
-    /* which is not declared explicitly as it is part of the backend, and never used outside the calculation phases
-     * - R: Released Nether : etReleasedNether
-     * - G: Average Released Nether in context : etAvgReleasedNether
-     * - B: Released Aether : etReleasedAether
-     * - A: Released Aether in context : etAvgReleasedAether
-     * */
-    private void finalizeCalculationPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for (int x = 0; x < conf.getChunkBlockSize(); ++x) { /* finalizing Ether */
-            for (int y = 0; y < conf.getChunkBlockSize(); ++y) {
-
-                /* Subtract the released Ether, and add the shared */
-                /* TODO: The more units there is, the more ether is absorbed */
-                float newAetherValue = Math.max( 0.01f, /* Update values with safety cut */
-                    EtherealAspectStrategy.aetherValueAt(x,y, conf.getChunkBlockSize(), inputs[0]) - EtherealAspectStrategy.getReleasedAether(x,y, conf.getChunkBlockSize(), inputs[1])
-                    + (EtherealAspectStrategy.getAvgReleasedAether(x,y, conf.getChunkBlockSize(), inputs[1]) * 0.9f)// / parent.getUnits(x,y));
-                );
-                float newNetherValue = Math.max( 0.01f,
-                    EtherealAspectStrategy.netherValueAt(x,y, conf.getChunkBlockSize(), inputs[0]) - EtherealAspectStrategy.getReleasedNether(x,y, conf.getChunkBlockSize(), inputs[1])
-                    + (EtherealAspectStrategy.getAvgReleasedNether(x,y, conf.getChunkBlockSize(), inputs[1]) * 0.9f)// / parent.getUnits(x,y));
-                );
-
-                /* TODO: Surplus Nether to goes into other effects?? */
-                /* TODO: Implement heat */
-                /* TODO: Surplus Aether to go into para-effects also */
-                /* TODO: Make Earth not share Aether so easily ( decide if this is even needed )  */
-                EtherealAspectStrategy.setAether(x,y, conf.getChunkBlockSize(), output, newAetherValue);
-                EtherealAspectStrategy.setNether(x,y, conf.getChunkBlockSize(), output, newNetherValue);
-            }
-        }
     }
 
     private void processEther() {
@@ -266,31 +138,6 @@ public class EtherealAspect extends RealityAspect {
         parent.setScalars(determineUnits(parent));
     }
 
-    /**
-     * Provides a refined step of the ethereal aspect buffer after processing the ratio differences
-     * @param inputs [0]: etherValues; [1]: elements; [2]: scalars
-     * @param output etherValues
-     */
-    private void processTypesPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0;x < conf.getChunkBlockSize(); ++x){ /* Take over unit changes from Elemental plane */
-            for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-                float oldRatio = EtherealAspectStrategy.getRatio(x,y, conf.getChunkBlockSize(), inputs[0]);
-                float oldUnit = EtherealAspectStrategy.getUnit(x,y, conf.getChunkBlockSize(), inputs[0]);
-                Material.Elements oldElement = EtherealAspectStrategy.getElementEnum(x,y,conf.getChunkBlockSize(),inputs[0]);
-//                Material.Elements oldElement = ElementalAspect.getElementEnum(x,y,conf.getChunkBlockSize(),inputs[1]);
-                float newAetherValue = (
-                    (
-                        EtherealAspectStrategy.aetherValueAt(x,y, conf.getChunkBlockSize(), inputs[0])* EtherealAspectStrategy.aetherWeightInUnits + EtherealAspectStrategy.netherValueAt(x,y, conf.getChunkBlockSize(), inputs[0]))
-                        * World.getUnit(x,y,conf.getChunkBlockSize(),inputs[2])
-                    ) / (oldUnit * EtherealAspectStrategy.aetherWeightInUnits + oldUnit * oldRatio
-                );
-                EtherealAspectStrategy.setAether(x,y, conf.getChunkBlockSize(), output, newAetherValue);
-                EtherealAspectStrategy.setNether(x,y, conf.getChunkBlockSize(), output, (newAetherValue * oldRatio));
-            }
-        }
-    }
-
-
     @Override
     public void processTypes(World parent){
         processTypesPhaseInputs[0] = etherValues;
@@ -303,14 +150,6 @@ public class EtherealAspect extends RealityAspect {
 
     private float getUnit(int x, int y){
         return EtherealAspectStrategy.getUnit(x,y,conf.getChunkBlockSize(), etherValues);
-    }
-
-    private void determineUnitsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0;x < conf.getChunkBlockSize(); ++x){
-            for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-                World.setUnit(x,y,conf.getChunkBlockSize(),output,EtherealAspectStrategy.getUnit(x,y, conf.getChunkBlockSize(), inputs[0]));
-            }
-        }
     }
 
     @Override
@@ -365,7 +204,6 @@ public class EtherealAspect extends RealityAspect {
     public void addNether(int x, int y, float value){
         setNether(x,y, Math.max(0.01f, netherValueAt(x,y) + value));
     }
-
     public void setNether(int x, int y, float value){
         EtherealAspectStrategy.setNether(x,y, conf.getChunkBlockSize(), etherValues, Math.max(0.01f, value));
     }

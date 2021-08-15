@@ -3,11 +3,10 @@ package com.crystalline.aether.services.world;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector3;
-import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.models.spells.SpellAction;
+import com.crystalline.aether.models.world.RealityAspectStrategy;
 import com.crystalline.aether.services.CPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
-import com.crystalline.aether.services.utils.MiscUtils;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.Material;
 
@@ -80,10 +79,10 @@ public class World {
     private void switchScalarsPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
             float unit = getUnit(x,y, sizeX, inputs[1]);
-            if(0 != RealityAspect.getOffsetCode(x,y,sizeX, inputs[0])){
-                int targetX = RealityAspect.getTargetX(x,y, sizeX, inputs[0]);
-                int targetY = RealityAspect.getTargetY(x,y, sizeX, inputs[0]);
-                int toApply = (int)RealityAspect.getToApply(x,y, sizeX, inputs[0]);
+            if(0 != RealityAspectStrategy.getOffsetCode(x,y,sizeX, inputs[0])){
+                int targetX = RealityAspectStrategy.getTargetX(x,y, sizeX, inputs[0]);
+                int targetY = RealityAspectStrategy.getTargetY(x,y, sizeX, inputs[0]);
+                int toApply = (int) RealityAspectStrategy.getToApply(x,y, sizeX, inputs[0]);
                 if(
                     (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y)
                     &&(0 < toApply)

@@ -9,11 +9,11 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector3;
 import com.crystalline.aether.models.spells.Spell;
+import com.crystalline.aether.models.world.EtherealAspectStrategy;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.services.utils.SpellUtil;
 import com.crystalline.aether.models.spells.SpellAction;
 import com.crystalline.aether.services.utils.MiscUtils;
-import com.crystalline.aether.services.world.EtherealAspect;
 import com.crystalline.aether.models.architecture.CapsuleService;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.architecture.DisplayService;
@@ -117,13 +117,13 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
                     if(netherActive)spellAction.usedNether -= manaToUse;
                     else spellAction.usedNether = 0;
                 }else if(SpellUtil.SpellEtherTendency.EQUALIZE == tendency){
-                    spellAction.usedAether = EtherealAspect.getAetherDeltaToTargetRatio(
+                    spellAction.usedAether = EtherealAspectStrategy.getAetherDeltaToTargetRatio(
                             manaToUse,
                             world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
                             world.getEtherealPlane().netherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
                             Material.ratioOf(spellAction.targetElement)
                     );
-                    spellAction.usedNether = EtherealAspect.getNetherDeltaToTargetRatio(
+                    spellAction.usedNether = EtherealAspectStrategy.getNetherDeltaToTargetRatio(
                             manaToUse,
                             world.getEtherealPlane().aetherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),
                             world.getEtherealPlane().netherValueAt((int)spellAction.pos.x, (int)spellAction.pos.y),

@@ -7,6 +7,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.crystalline.aether.models.Config;
+import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.services.utils.StringUtils;
 
 import java.nio.ByteBuffer;
@@ -18,8 +20,8 @@ public class GPUBackend extends CalculationBackend<String, FloatBuffer>{
     private final SpriteBatch batch; /* libgdx rendering */
     private final TextureRegion placeHolder;
     private final int chunkSize;
-    private ArrayList<ShaderProgram> shaders;
-    private ArrayList<Integer> textureHandles;
+    private final ArrayList<ShaderProgram> shaders;
+    private final ArrayList<Integer> textureHandles;
     private final int framebufferHandle; /* TODO: Try out Renderbuffers */
     private final int outputTextureHandle;
 
@@ -34,8 +36,21 @@ public class GPUBackend extends CalculationBackend<String, FloatBuffer>{
         shaders = new ArrayList<>();
         textureHandles = new ArrayList<>();
         framebufferHandle = Gdx.gl.glGenFramebuffer();
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, framebufferHandle);
         outputTextureHandle = createTexture();
-        placeHolder  = new TextureRegion(new Texture(Gdx.files.internal("ether.png")), chunkSize, chunkSize);
+        Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
+        Gdx.gl.glBindTexture(GL20.GL_TEXTURE_2D, outputTextureHandle);
+        Gdx.gl.glTexImage2D(
+            GL20.GL_TEXTURE_2D, 0, GL30.GL_RGBA32F,
+            chunkSize, chunkSize, 0, GL20.GL_RGBA, GL20.GL_FLOAT, null
+        );
+        Gdx.gl.glFramebufferTexture2D( /* Attach the output texture to the FrameBuffer */
+            GL20.GL_FRAMEBUFFER, GL20.GL_COLOR_ATTACHMENT0,
+            GL20.GL_TEXTURE_2D, outputTextureHandle, 0
+        );
+        bindBackDefaultFBO();
+        placeHolder  = new TextureRegion(new Texture(Gdx.files.internal("fire.png")), chunkSize, chunkSize);
+        ShaderProgram.pedantic = false;
     }
 
     private int createTexture(){
@@ -55,6 +70,7 @@ public class GPUBackend extends CalculationBackend<String, FloatBuffer>{
         if(!newPhase.isCompiled()){
             throw new Exception("Unable to compile Phase GPU Kernel! \n Log: " + newPhase.getLog());
         }
+        newPhase.setUniformi("chunkSize", chunkSize);
         phases.add(phase);
         shaders.add(newPhase);
         return phaseIndex;
@@ -62,17 +78,14 @@ public class GPUBackend extends CalculationBackend<String, FloatBuffer>{
 
     @Override
     public void runPhase(int index) {
-        /* Generate the textures for the inputs if needed */
-        while(inputs.length > textureHandles.size()){
+        while(inputs.length > textureHandles.size()){ /* Generate the textures for the inputs if needed */
             textureHandles.add(createTexture());
         }
-        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, framebufferHandle);
         batch.setShader(shaders.get(index));
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, framebufferHandle);
         batch.begin();
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        for(int t = 0; t < inputs.length; ++t){
-            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE1 + t);
-            /*!Note: Let's pray nobody will want more, than 30  input textures ?! */
+        for(int t = 0; t < inputs.length; ++t){ /* Set the inputs */
+            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE1 + t); /*!Note: Let's pray nobody will want more, than 30  input textures ?! */
             Gdx.gl.glBindTexture(GL20.GL_TEXTURE_2D, textureHandles.get(t));
             inputs[t].position(0);
             Gdx.gl.glTexImage2D( /* Upload the inputs into the textures */
@@ -81,24 +94,23 @@ public class GPUBackend extends CalculationBackend<String, FloatBuffer>{
             );
             batch.getShader().setUniformi("inputs"+(1+t), (1+t));
         }
-        /* Attach the output texture to the Framebuffer */
-        Gdx.gl.glFramebufferTexture2D(
-            GL20.GL_FRAMEBUFFER, GL20.GL_COLOR_ATTACHMENT0,
-            GL20.GL_TEXTURE_2D, outputTextureHandle, 0
-        );
-
-        /* Render the output to the texture */
-        Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0); /* bind texture 0 again, so it would be bound for the placeholder */
+        Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
+        /* Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT); Don't know if this is necessary... */
         batch.draw(placeHolder, 0,0, chunkSize, chunkSize);
+        System.out.println("(draw)error: " + String.format("0x%08X", Gdx.gl.glGetError()));
+        System.out.println("(draw)fbo state: " + String.format("0x%08X", Gdx.gl.glCheckFramebufferStatus(GL20.GL_FRAMEBUFFER)));
         batch.end();
-        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER,0); /* on IOS default FBO is under glGetIntegerv(GL_FRAMEBUFFER_BINDING_OES, &defaultFBO); */
 
         /* Load the texture into the buffer */
-        Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
-        Gdx.gl.glBindTexture(GL20.GL_TEXTURE_2D, outputTextureHandle);
         outputs.get(index).position(0);
-        Gdx.gl30.glReadPixels(0,0,chunkSize, chunkSize, GL20.GL_RGBA, GL20.GL_FLOAT, outputs.get(index));
+        Gdx.gl.glReadPixels(0,0,chunkSize, chunkSize, GL20.GL_RGBA, GL20.GL_FLOAT, outputs.get(index));
+        /* Bind back the default FrameBuffer */
+        System.out.println("(run)error: " + String.format("0x%08X", Gdx.gl.glGetError()));
+        System.out.println("(run)fbo state: " + String.format("0x%08X", Gdx.gl.glCheckFramebufferStatus(GL20.GL_FRAMEBUFFER)));
+        bindBackDefaultFBO();
     }
-
+    private static void bindBackDefaultFBO(){
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER,0); /* on IOS default FBO is under glGetIntegerv(GL_FRAMEBUFFER_BINDING_OES, &defaultFBO); */
+    }
 }
 

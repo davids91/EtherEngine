@@ -48,6 +48,8 @@ public class EtherealAspect extends RealityAspect {
     private final FloatBuffer[] defineByElementalPhaseInputs;
     private final FloatBuffer[] switchEtherPhaseInputs;
 
+    private final boolean useGPU = false;
+
     public EtherealAspect(Config conf_){
         super(conf_);
         backend = new CPUBackend();
@@ -60,16 +62,19 @@ public class EtherealAspect extends RealityAspect {
         finalizePhaseIndex = backend.addPhase(strategy::finalizeCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         determineUnitsPhaseIndex = backend.addPhase(strategy::determineUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-//        defineByElementalPhaseIndex = backend.addPhase(strategy::defineByElementalPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        switchEtherPhaseIndex = backend.addPhase(strategy::switchEtherPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-
-        int phaseIndex = 0;
-        try {
-            phaseIndex = gpuBackend.addPhase(EtherealAspectStrategy.defineByElementalPhaseKernel,(Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        } catch (Exception e) {
-            e.printStackTrace();
+        if(!useGPU){
+            defineByElementalPhaseIndex = backend.addPhase(strategy::defineByElementalPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        }else
+        {
+            int phaseIndex = 0;
+            try {
+                phaseIndex = gpuBackend.addPhase(EtherealAspectStrategy.defineByElementalPhaseKernel,(Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            defineByElementalPhaseIndex = phaseIndex;
         }
-        defineByElementalPhaseIndex = phaseIndex;
+        switchEtherPhaseIndex = backend.addPhase(strategy::switchEtherPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
 
         preProcessInputs = new FloatBuffer[]{backend.getOutput(finalizePhaseIndex)};
         sharingInputs = new FloatBuffer[]{backend.getOutput(preprocessPhaseIndex)};
@@ -101,14 +106,26 @@ public class EtherealAspect extends RealityAspect {
     }
 
     public void defineBy(ElementalAspect plane, World parent){
+        int x = conf.getChunkBlockSize()/2;
+        System.out.println("-0>unit: " + parent.getUnit(x,x) + "; Ae: " + getAetherValue(x,x) + "; Ne: " + getNetherValue(x,x));
         plane.provideElementsTo(defineByElementalPhaseInputs,0);
         parent.provideScalarsTo(defineByElementalPhaseInputs, 1);
-//        backend.setInputs(defineByElementalPhaseInputs);
-//        backend.runPhase(defineByElementalPhaseIndex);
-//        BufferUtils.copy(backend.getOutput(defineByElementalPhaseIndex), etherValues);
-        gpuBackend.setInputs(defineByElementalPhaseInputs);
-        gpuBackend.runPhase(defineByElementalPhaseIndex);
-        BufferUtils.copy(gpuBackend.getOutput(defineByElementalPhaseIndex), etherValues);
+        if(useGPU){
+            gpuBackend.setInputs(defineByElementalPhaseInputs);
+            gpuBackend.runPhase(defineByElementalPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(defineByElementalPhaseIndex), etherValues);
+//            System.out.println("-1>unit: " + getUnit(x,x) + "; Ae: " + getAetherValue(x,x) + "; Ne: " + getNetherValue(x,x));
+            System.out.println(""
+//            "r: " + BufferUtils.get(x, x, conf.getChunkBlockSize(), Config.bufferCellSize,0, etherValues)
+                            +";g: " + BufferUtils.get(1,1, conf.getChunkBlockSize(), Config.bufferCellSize,1, etherValues) /* Supposed to be unit from the previous run! */
+//            +";b: " + BufferUtils.get(x, x, conf.getChunkBlockSize(), Config.bufferCellSize,2, etherValues)
+//            +";a: " + BufferUtils.get(x, x, conf.getChunkBlockSize(), Config.bufferCellSize,3, etherValues)
+            );
+        }else{
+            backend.setInputs(defineByElementalPhaseInputs);
+            backend.runPhase(defineByElementalPhaseIndex);
+            BufferUtils.copy(backend.getOutput(defineByElementalPhaseIndex), etherValues);
+        }
     }
 
     @Override
@@ -162,6 +179,13 @@ public class EtherealAspect extends RealityAspect {
 
     private float getUnit(int x, int y){
         return EtherealAspectStrategy.getUnit(x,y,conf.getChunkBlockSize(), etherValues);
+    }
+
+    private float getAetherValue(int x, int y){
+        return EtherealAspectStrategy.getAetherValue(x,y,conf.getChunkBlockSize(), etherValues);
+    }
+    private float getNetherValue(int x, int y){
+        return EtherealAspectStrategy.getNetherValue(x,y,conf.getChunkBlockSize(), etherValues);
     }
 
     @Override

@@ -4,8 +4,8 @@
   varying vec2 v_texCoords;
 
   uniform float chunkSize;
-  layout(binding=1)uniform sampler2D elements;
-  layout(binding=2)uniform sampler2D scalars;
+  layout(binding=1)uniform sampler2D inputs1; /* elements */
+  layout(binding=2)uniform sampler2D inputs2; /* scalars */
 
   <MATERIAL_LIBRARY>
   <WORLD_LIBRARY>
@@ -14,12 +14,12 @@
 
   void main(void){
     vec3 currentPosition = vec3(gl_FragCoord.x/chunkSize, gl_FragCoord.y/chunkSize, gl_FragCoord.z/chunkSize);
-    gl_FragColor.r = 0;
+    /*gl_FragColor.r = 0;
     gl_FragColor.g = 0;
     gl_FragColor.b = 0;
     gl_FragColor.a = 0;
-    float currentUnits = world_getUnit(currentPosition.xy, scalars);
-    float currentElement = elm_getElement(currentPosition.xy, elements);
+    float currentUnits = world_getUnit(currentPosition.xy, inputs2);
+    float currentElement = elm_getElement(currentPosition.xy, inputs1);
     float newAether = (2.0 * currentUnits) / (1.0 + world_RatioOf(currentElement));
     if(0 < currentUnits){
       eth_SetAether(gl_FragColor, newAether );
@@ -27,5 +27,7 @@
     }else{
       eth_SetAether(gl_FragColor, 1);
       eth_SetNether(gl_FragColor, world_ratioAir);
-    }
+    }*/
+    gl_FragColor.g = world_getUnit(currentPosition.xy, inputs2);
+    gl_FragColor.a = 1;
   }

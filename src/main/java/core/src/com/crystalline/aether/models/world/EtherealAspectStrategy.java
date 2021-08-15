@@ -16,7 +16,6 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
     public final int chunkSize;
     public EtherealAspectStrategy(int chunkSize_){
         chunkSize = chunkSize_;
-        System.out.println("kernel: " + defineByElementalPhaseKernel + "\n >>>>>>>>>>>>>>> \n");
     }
 
     protected static String buildKernel(String rawKernelCode, Includer includer){
@@ -32,20 +31,18 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
      * @param output etherValues buffer
      */
     public void defineByElementalPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0;x < chunkSize; ++x){
-            for(int y = 0; y < chunkSize; ++y){
-                float currentUnits = World.getUnit(x,y, chunkSize, inputs[1]);
-                Material.Elements currentElement = ElementalAspectStrategy.getElementEnum(x,y, chunkSize, inputs[0]);
-                float newAether = ((2.0f * currentUnits) / (1.0f + Material.ratioOf(currentElement)));
-                if(0 < currentUnits) {
-                    EtherealAspectStrategy.setAether(x,y, chunkSize, output, newAether);
-                    EtherealAspectStrategy.setNether(x,y, chunkSize, output, ( newAether * Material.ratioOf(currentElement) ));
-                }else{
-                    EtherealAspectStrategy.setAether(x,y, chunkSize, output,1);
-                    EtherealAspectStrategy.setNether(x,y, chunkSize, output, Material.ratioOf(Material.Elements.Air));
-                }
+        for(int x = 0;x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y){
+            float currentUnits = World.getUnit(x,y, chunkSize, inputs[1]);
+            Material.Elements currentElement = ElementalAspectStrategy.getElementEnum(x,y, chunkSize, inputs[0]);
+            float newAether = ((2.0f * currentUnits) / (1.0f + Material.ratioOf(currentElement)));
+            if(0 < currentUnits) {
+                EtherealAspectStrategy.setAether(x,y, chunkSize, output, newAether);
+                EtherealAspectStrategy.setNether(x,y, chunkSize, output, ( newAether * Material.ratioOf(currentElement) ));
+            }else{
+                EtherealAspectStrategy.setAether(x,y, chunkSize, output,1);
+                EtherealAspectStrategy.setNether(x,y, chunkSize, output, Material.ratioOf(Material.Elements.Air));
             }
-        }
+        } }
     }
 
     /**
@@ -171,10 +168,10 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
                 Material.Elements oldElement = EtherealAspectStrategy.getElementEnum(x,y,chunkSize,inputs[0]);
 //                Material.Elements oldElement = ElementalAspect.getElementEnum(x,y,chunkSize,inputs[1]);
                 float newAetherValue = (
-                        (
-                                EtherealAspectStrategy.aetherValueAt(x,y, chunkSize, inputs[0])* EtherealAspectStrategy.aetherWeightInUnits + EtherealAspectStrategy.netherValueAt(x,y, chunkSize, inputs[0]))
-                                * World.getUnit(x,y,chunkSize,inputs[2])
-                ) / (oldUnit * EtherealAspectStrategy.aetherWeightInUnits + oldUnit * oldRatio
+                    (
+                        EtherealAspectStrategy.aetherValueAt(x,y, chunkSize, inputs[0])* EtherealAspectStrategy.aetherWeightInUnits + EtherealAspectStrategy.netherValueAt(x,y, chunkSize, inputs[0]))
+                        * World.getUnit(x,y,chunkSize,inputs[2])
+                    ) / (oldUnit * EtherealAspectStrategy.aetherWeightInUnits + oldUnit * oldRatio
                 );
                 EtherealAspectStrategy.setAether(x,y, chunkSize, output, newAetherValue);
                 EtherealAspectStrategy.setNether(x,y, chunkSize, output, (newAetherValue * oldRatio));

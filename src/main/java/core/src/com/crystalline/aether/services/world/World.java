@@ -21,8 +21,6 @@ import java.nio.FloatBuffer;
  */
 public class World {
     Config conf;
-    protected final int sizeX;
-    protected final int sizeY;
 
     EtherealAspect etherealPlane;
     ElementalAspect elementalPlane;
@@ -42,15 +40,13 @@ public class World {
 
     public World(Config conf_){
         conf = conf_;
-        sizeX = conf.WORLD_BLOCK_NUMBER[0];
-        sizeY = conf.WORLD_BLOCK_NUMBER[1];
-        scalars = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
+        scalars = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         etherealPlane = new EtherealAspect(conf);
         elementalPlane = new ElementalAspect(conf);
         BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
 
         backend = new CPUBackend();
-        switchScalarsPhaseIndex = backend.addPhase(this::switchScalarsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        switchScalarsPhaseIndex = backend.addPhase(this::switchScalarsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         switchScalarsPhaseInputs = new FloatBuffer[2];
         reset();
     }
@@ -65,7 +61,7 @@ public class World {
     }
 
     public void pondWithGrill(){
-        elementalPlane.pondWithGrill(this,(int)(sizeY/2.0f));
+        elementalPlane.pondWithGrill(this,(int)(conf.getChunkBlockSize()/2.0f));
         /* elementalPlane.determineUnits(this); *//* Included in @pondWithGrill */
         etherealPlane.defineBy(elementalPlane, this);
         BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
@@ -77,22 +73,22 @@ public class World {
      * @param output elements buffer
      */
     private void switchScalarsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            float unit = getUnit(x,y, sizeX, inputs[1]);
-            if(0 != RealityAspectStrategy.getOffsetCode(x,y,sizeX, inputs[0])){
-                int targetX = RealityAspectStrategy.getTargetX(x,y, sizeX, inputs[0]);
-                int targetY = RealityAspectStrategy.getTargetY(x,y, sizeX, inputs[0]);
-                int toApply = (int) RealityAspectStrategy.getToApply(x,y, sizeX, inputs[0]);
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            float unit = getUnit(x,y, conf.getChunkBlockSize(), inputs[1]);
+            if(0 != RealityAspectStrategy.getOffsetCode(x,y, conf.getChunkBlockSize(), inputs[0])){
+                int targetX = RealityAspectStrategy.getTargetX(x,y, conf.getChunkBlockSize(), inputs[0]);
+                int targetY = RealityAspectStrategy.getTargetY(x,y, conf.getChunkBlockSize(), inputs[0]);
+                int toApply = (int) RealityAspectStrategy.getToApply(x,y, conf.getChunkBlockSize(), inputs[0]);
                 if(
-                    (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y)
+                    (0 < x)&&(conf.getChunkBlockSize() -1 > x)&&(0 < y)&&(conf.getChunkBlockSize()-1 > y)
                     &&(0 < toApply)
-                    &&(targetX >= 0)&&(targetX < sizeX)
-                    &&(targetY >= 0)&&(targetY < sizeY)
+                    &&(targetX >= 0)&&(targetX < conf.getChunkBlockSize())
+                    &&(targetY >= 0)&&(targetY < conf.getChunkBlockSize())
                 ){
-                    unit = getUnit(targetX,targetY, sizeX, inputs[1]);
+                    unit = getUnit(targetX,targetY, conf.getChunkBlockSize(), inputs[1]);
                 }
             }
-            setUnit(x,y, sizeX, output, unit);
+            setUnit(x,y, conf.getChunkBlockSize(), output, unit);
         }}
     }
 
@@ -176,20 +172,20 @@ public class World {
     public void setScalars(FloatBuffer value){
         BufferUtils.copy(value, scalars);
     }
-    public static float getUnit(int x,int y, int sizeX, FloatBuffer buffer){
-        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, buffer);
+    public static float getUnit(int x,int y, int chunkSize, FloatBuffer buffer){
+        return BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,0, buffer);
     }
     public float getUnit(int x, int y) {
-        return getUnit(x,y,sizeX,scalars);
+        return getUnit(x,y, conf.getChunkBlockSize(),scalars);
     }
-    public static void setUnit(int x,int y, int sizeX, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, buffer, value);
+    public static void setUnit(int x,int y, int chunkSize, FloatBuffer buffer, float value){
+        BufferUtils.set(x,y,chunkSize,Config.bufferCellSize,0, buffer, value);
     }
     public void setUnit(int x, int y, float value){
-        setUnit(x,y,sizeX,scalars,value);
+        setUnit(x,y, conf.getChunkBlockSize(),scalars,value);
     }
     public void offsetUnit(int x, int y, float value){
-        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,0, scalars, (value + getUnit(x,y)));
+        BufferUtils.set(x,y, conf.getChunkBlockSize(),Config.bufferCellSize,0, scalars, (value + getUnit(x,y)));
     }
     private void addAetherTo(int x, int y, float value){
         etherealPlane.addAetherTo(x,y,value);
@@ -205,30 +201,26 @@ public class World {
         BufferUtils.copy(etherealPlane.determineUnits(this), scalars);
     }
 
-    public int getSizeX() {
-        return sizeX;
-    }
-
-    public int getSizeY() {
-        return sizeY;
-    }
-
     public EtherealAspect getEtherealPlane(){
         return etherealPlane;
     }
     public ElementalAspect getElementalPlane(){ return elementalPlane; }
 
     public Pixmap getWorldImage(){
-        Pixmap worldImage = new Pixmap(sizeX,sizeY, Pixmap.Format.RGB888);
-        for(int x = 0;x < sizeX; ++x){
-            for(int y = 0; y < sizeY; ++y){
+        Pixmap worldImage = new Pixmap(conf.getChunkBlockSize(),conf.getChunkBlockSize(), Pixmap.Format.RGB888);
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){
+            for(int y = 0; y < conf.getChunkBlockSize(); ++y){
                 Color finalColor;
-//                finalColor = elementalPlane.getColor(x,(sizeY - 1 - y),this);
-                finalColor = elementalPlane.getDebugColor(x,(sizeY - 1 - y), this);
+//                finalColor = elementalPlane.getColor(x,(conf.getChunkBlockSize() - 1 - y),this);
+                finalColor = elementalPlane.getDebugColor(x,(conf.getChunkBlockSize() - 1 - y), this);
                 worldImage.drawPixel(x,y, Color.rgba8888(finalColor));
             }
         }
         return worldImage;
+    }
+
+    public Config getConf() {
+        return conf;
     }
 
 }

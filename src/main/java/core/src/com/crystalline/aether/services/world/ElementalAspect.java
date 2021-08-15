@@ -20,8 +20,6 @@ import java.util.Random;
 
 public class ElementalAspect extends RealityAspect {
     MiscUtils myMiscUtils;
-    protected final int sizeX;
-    protected final int sizeY;
     private final int velocityMaxTicks = 3;
     private final Random rnd = new Random();
 
@@ -87,38 +85,36 @@ public class ElementalAspect extends RealityAspect {
 
     public ElementalAspect(Config conf_){
         super(conf_);
-        sizeX = conf.WORLD_BLOCK_NUMBER[0];
-        sizeY = conf.WORLD_BLOCK_NUMBER[1];
         myMiscUtils = new MiscUtils();
-        elements = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
-        dynamics = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
-        proposedChanges = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * sizeX * sizeY).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
-        touchedByMechanics = new float[sizeX][sizeY];
+        elements = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
+        dynamics = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
+        proposedChanges = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
+        touchedByMechanics = new float[conf.getChunkBlockSize()][conf.getChunkBlockSize()];
         backend = new CPUBackend();
         processUnitsPhaseInputs = new FloatBuffer[]{elements, null};
-        processUnitsPhaseIndex = backend.addPhase(this::processUnitsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        processUnitsPhaseIndex = backend.addPhase(this::processUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         processTypesPhaseInputs = new FloatBuffer[]{elements,null,null};
-        processTypesPhaseIndex = backend.addPhase(this::processTypesPhase, (Config.bufferCellSize * sizeX * sizeY));
+        processTypesPhaseIndex = backend.addPhase(this::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         processTypeUnitsPhaseInputs = new FloatBuffer[]{elements,null};
-        processTypeUnitsPhaseIndex = backend.addPhase(this::processTypeUnitsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        processTypeUnitsPhaseIndex = backend.addPhase(this::processTypeUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         defineByEtherealPhaseInputs = new FloatBuffer[2];
-        defineByEtherealPhaseIndex = backend.addPhase(this::defineByEtherealPhase, (Config.bufferCellSize * sizeX * sizeY));
-        switchElementsPhaseIndex = backend.addPhase(this::switchElementsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        defineByEtherealPhaseIndex = backend.addPhase(this::defineByEtherealPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        switchElementsPhaseIndex = backend.addPhase(this::switchElementsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         switchElementsPhaseInputs = new FloatBuffer[2];
-        switchDynamicsPhaseIndex = backend.addPhase(this::switchDynamicsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        switchDynamicsPhaseIndex = backend.addPhase(this::switchDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         switchDynamicsPhaseInputs = new FloatBuffer[2];
-        initChangesPhaseIndex = backend.addPhase(this::initChangesPhase, (Config.bufferCellSize * sizeX * sizeY));
-        proposeForcesPhaseIndex = backend.addPhase(this::proposeForcesPhase, (Config.bufferCellSize * sizeX * sizeY));
+        initChangesPhaseIndex = backend.addPhase(this::initChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        proposeForcesPhaseIndex = backend.addPhase(this::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         proposeForcesPhaseInputs = new FloatBuffer[4];
-        proposeChangesFromForcesPhaseIndex = backend.addPhase(this::proposeChangesFromForcesPhase, (Config.bufferCellSize * sizeX * sizeY));
+        proposeChangesFromForcesPhaseIndex = backend.addPhase(this::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         proposeChangesFromForcesPhaseInputs = new FloatBuffer[4];
-        arbitrateChangesPhaseIndex = backend.addPhase(this::arbitrateChangesPhase, (Config.bufferCellSize * sizeX * sizeY));
+        arbitrateChangesPhaseIndex = backend.addPhase(this::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         arbitrateChangesPhaseInputs = new FloatBuffer[4];
-        applyChangesDynamicsPhaseIndex = backend.addPhase(this::applyChangesDynamicsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        applyChangesDynamicsPhaseIndex = backend.addPhase(this::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         applyChangesDynamicsPhaseInputs = new FloatBuffer[4];
-        mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(this::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(this::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         mechanicsPostProcessDynamicsPhaseInputs = new FloatBuffer[3];
-        arbitrateInteractionsPhaseIndex = backend.addPhase(this::arbitrateInteractionsPhase, (Config.bufferCellSize * sizeX * sizeY));
+        arbitrateInteractionsPhaseIndex = backend.addPhase(this::arbitrateInteractionsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         arbitrateInteractionsPhaseInputs = new FloatBuffer[3];
 
         reset();
@@ -151,62 +147,62 @@ public class ElementalAspect extends RealityAspect {
     }
 
     public void addOneGrainOfSandForTestingPurposes(World parent){
-        addRock((sizeX/2)-1, (sizeY/2)-1, parent);
-        addRock((sizeX/2), (sizeY/2)-1, parent);
-        addRock((sizeX/2)+1, (sizeY/2)-1, parent);
-        addRock((sizeX/2)+2, (sizeY/2), parent);
-        addRock((sizeX/2)-2, (sizeY/2), parent);
-        addRock((sizeX/2)+2, (sizeY/2)+1, parent);
-        addRock((sizeX/2)-2, (sizeY/2)+1, parent);
+        addRock((conf.getChunkBlockSize()/2)-1, (conf.getChunkBlockSize()/2)-1, parent);
+        addRock((conf.getChunkBlockSize()/2), (conf.getChunkBlockSize()/2)-1, parent);
+        addRock((conf.getChunkBlockSize()/2)+1, (conf.getChunkBlockSize()/2)-1, parent);
+        addRock((conf.getChunkBlockSize()/2)+2, (conf.getChunkBlockSize()/2), parent);
+        addRock((conf.getChunkBlockSize()/2)-2, (conf.getChunkBlockSize()/2), parent);
+        addRock((conf.getChunkBlockSize()/2)+2, (conf.getChunkBlockSize()/2)+1, parent);
+        addRock((conf.getChunkBlockSize()/2)-2, (conf.getChunkBlockSize()/2)+1, parent);
 
-        addWater((sizeX/2), (sizeY/2), parent);
-        addWater((sizeX/2), (sizeY/2)+1, parent);
-        addWater((sizeX/2)+1, (sizeY/2), parent);
-        addWater((sizeX/2)+1, (sizeY/2)+1, parent);
-        addWater((sizeX/2)-1, (sizeY/2), parent);
-        addWater((sizeX/2)-1, (sizeY/2)+1, parent);
+        addWater((conf.getChunkBlockSize()/2), (conf.getChunkBlockSize()/2), parent);
+        addWater((conf.getChunkBlockSize()/2), (conf.getChunkBlockSize()/2)+1, parent);
+        addWater((conf.getChunkBlockSize()/2)+1, (conf.getChunkBlockSize()/2), parent);
+        addWater((conf.getChunkBlockSize()/2)+1, (conf.getChunkBlockSize()/2)+1, parent);
+        addWater((conf.getChunkBlockSize()/2)-1, (conf.getChunkBlockSize()/2), parent);
+        addWater((conf.getChunkBlockSize()/2)-1, (conf.getChunkBlockSize()/2)+1, parent);
 
     }
 
     private float maxPrio = 0;
     private void calculatePrio(){
         Random rnd = new Random();
-        for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            RealityAspectStrategy.setPriority(x,y,sizeX,elements,rnd.nextFloat());
+        for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            RealityAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat());
         }}
         while(true){
             int similarities = 0;
-            for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+            for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
                 int index_radius = 2;
                 int minIndexX = Math.max((x-index_radius), 0);
-                int maxIndexX = Math.min((x+index_radius), sizeX);
+                int maxIndexX = Math.min((x+index_radius), conf.getChunkBlockSize());
                 int minIndexY = Math.max((y-index_radius), 0);
-                int maxIndexY = Math.min((y+index_radius), sizeY);
+                int maxIndexY = Math.min((y+index_radius), conf.getChunkBlockSize());
                 for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
                     if(
                         ((x != ix)&&(y != iy))
-                        &&(500 > Math.abs(RealityAspectStrategy.getPriority(x,y, sizeX, elements) - RealityAspectStrategy.getPriority(ix,iy, sizeX, elements)))
+                        &&(500 > Math.abs(RealityAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements) - RealityAspectStrategy.getPriority(ix,iy, conf.getChunkBlockSize(), elements)))
                     ){
-                        RealityAspectStrategy.setPriority(x,y,sizeX,elements,rnd.nextFloat() * Float.MAX_VALUE);
+                        RealityAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * Float.MAX_VALUE);
                         ++similarities;
                     }
                 }}
             }}
             if(0 == similarities)break;
         }
-        for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            if(maxPrio <  RealityAspectStrategy.getPriority(x,y, sizeX, elements)){
-                maxPrio = RealityAspectStrategy.getPriority(x,y, sizeX, elements);
+        for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            if(maxPrio <  RealityAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements)){
+                maxPrio = RealityAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements);
             }
         }}
     }
     public void reset(){
         calculatePrio();
-        for(int x = 0;x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
             setElement(x,y,Material.Elements.Air);
-            ElementalAspectStrategy.setForce(x,y, sizeX, dynamics,0,0);
-            ElementalAspectStrategy.setGravityCorrection(x,y, sizeX, dynamics,0);
-            ElementalAspectStrategy.setVelocityTick(x,y, sizeX, proposedChanges, velocityMaxTicks);
+            ElementalAspectStrategy.setForce(x,y, conf.getChunkBlockSize(), dynamics,0,0);
+            ElementalAspectStrategy.setGravityCorrection(x,y, conf.getChunkBlockSize(), dynamics,0);
+            ElementalAspectStrategy.setVelocityTick(x,y, conf.getChunkBlockSize(), proposedChanges, velocityMaxTicks);
             touchedByMechanics[x][y] = 0;
         }}
     }
@@ -219,9 +215,9 @@ public class ElementalAspect extends RealityAspect {
      * @param output the re-written elemental plane
      */
     private void defineByEtherealPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            ElementalAspectStrategy.setElement(x,y, sizeX, output, EtherealAspectStrategy.getElementEnum(x,y, sizeX, inputs[1]));
-            RealityAspectStrategy.setPriority(x,y, sizeX, output, RealityAspectStrategy.getPriority(x,y, sizeX, inputs[0]));
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            ElementalAspectStrategy.setElement(x,y, conf.getChunkBlockSize(), output, EtherealAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[1]));
+            RealityAspectStrategy.setPriority(x,y, conf.getChunkBlockSize(), output, RealityAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), inputs[0]));
         } }
     }
 
@@ -236,10 +232,10 @@ public class ElementalAspect extends RealityAspect {
     private float avgOfUnit(int x, int y, FloatBuffer elements, FloatBuffer scalars, Material.Elements type){
         float average_val = 0;
         float division = 0;
-        for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
-            for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
-                if(ElementalAspectStrategy.getElementEnum(nx,ny, sizeX, elements) == type){
-                    average_val += World.getUnit(nx,ny,sizeX,scalars);
+        for (int nx = Math.max(0, (x - 1)); nx < Math.min(conf.getChunkBlockSize(), x + 2); ++nx) {
+            for (int ny = Math.max(0, (y - 1)); ny < Math.min(conf.getChunkBlockSize(), y + 2); ++ny) {
+                if(ElementalAspectStrategy.getElementEnum(nx,ny, conf.getChunkBlockSize(), elements) == type){
+                    average_val += World.getUnit(nx,ny,conf.getChunkBlockSize(),scalars);
                     division += 1;
                 }
             }
@@ -250,9 +246,9 @@ public class ElementalAspect extends RealityAspect {
 
     private int numOfElements(int x, int y, FloatBuffer elements, Material.Elements type){
         int num = 0;
-        for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
-            for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
-                if(ElementalAspectStrategy.getElementEnum(nx,ny, sizeX, elements) == type){
+        for (int nx = Math.max(0, (x - 1)); nx < Math.min(conf.getChunkBlockSize(), x + 2); ++nx) {
+            for (int ny = Math.max(0, (y - 1)); ny < Math.min(conf.getChunkBlockSize(), y + 2); ++ny) {
+                if(ElementalAspectStrategy.getElementEnum(nx,ny, conf.getChunkBlockSize(), elements) == type){
                     ++num;
                 }
             }
@@ -261,18 +257,18 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private float avgOfUnitsWithinDistance(int x, int y, FloatBuffer elements, FloatBuffer scalars){
-        float average_val = World.getUnit(x,y, sizeX, scalars);
+        float average_val = World.getUnit(x,y, conf.getChunkBlockSize(), scalars);
         float division = 1;
-        for (int nx = Math.max(0, (x - 1)); nx < Math.min(sizeX, x + 2); ++nx) {
-            for (int ny = Math.max(0, (y - 1)); ny < Math.min(sizeY, y + 2); ++ny) {
+        for (int nx = Math.max(0, (x - 1)); nx < Math.min(conf.getChunkBlockSize(), x + 2); ++nx) {
+            for (int ny = Math.max(0, (y - 1)); ny < Math.min(conf.getChunkBlockSize(), y + 2); ++ny) {
                 if(
                     (x != nx) && (y != ny)
                     &&Material.isSameMat(
-                        ElementalAspectStrategy.getElementEnum(x,y, sizeX, elements), World.getUnit(x,y, sizeX, scalars),
-                        ElementalAspectStrategy.getElementEnum(nx,ny, sizeX, elements), World.getUnit(nx,ny, sizeX, scalars)
+                        ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), elements), World.getUnit(x,y, conf.getChunkBlockSize(), scalars),
+                        ElementalAspectStrategy.getElementEnum(nx,ny, conf.getChunkBlockSize(), elements), World.getUnit(nx,ny, conf.getChunkBlockSize(), scalars)
                     )
                 ){
-                    average_val += World.getUnit(nx,ny, sizeX, scalars);
+                    average_val += World.getUnit(nx,ny, conf.getChunkBlockSize(), scalars);
                     division += 1;
                 }
             }
@@ -292,23 +288,23 @@ public class ElementalAspect extends RealityAspect {
      * @param output elements buffer
      */
     private void switchElementsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            Material.Elements element = ElementalAspectStrategy.getElementEnum(x,y, sizeX, inputs[1]);
-            if(0 != RealityAspectStrategy.getOffsetCode(x,y,sizeX, inputs[0])){
-                int targetX = RealityAspectStrategy.getTargetX(x,y,sizeX, inputs[0]);
-                int targetY = RealityAspectStrategy.getTargetY(x,y,sizeX, inputs[0]);
-                int toApply = (int) RealityAspectStrategy.getToApply(x,y, sizeX, inputs[0]);
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            Material.Elements element = ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[1]);
+            if(0 != RealityAspectStrategy.getOffsetCode(x,y,conf.getChunkBlockSize(), inputs[0])){
+                int targetX = RealityAspectStrategy.getTargetX(x,y,conf.getChunkBlockSize(), inputs[0]);
+                int targetY = RealityAspectStrategy.getTargetY(x,y,conf.getChunkBlockSize(), inputs[0]);
+                int toApply = (int) RealityAspectStrategy.getToApply(x,y, conf.getChunkBlockSize(), inputs[0]);
                 if(
-                    (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y)
+                    (0 < x)&&(conf.getChunkBlockSize()-1 > x)&&(0 < y)&&(conf.getChunkBlockSize()-1 > y)
                     &&(0 < toApply)
-                    &&(targetX >= 0)&&(targetX < sizeX)
-                    &&(targetY >= 0)&&(targetY < sizeY)
+                    &&(targetX >= 0)&&(targetX < conf.getChunkBlockSize())
+                    &&(targetY >= 0)&&(targetY < conf.getChunkBlockSize())
                 ){
-                    element = ElementalAspectStrategy.getElementEnum(targetX,targetY, sizeX, inputs[1]);
+                    element = ElementalAspectStrategy.getElementEnum(targetX,targetY, conf.getChunkBlockSize(), inputs[1]);
                 }
             }
-            ElementalAspectStrategy.setElement(x,y, sizeX, output, element);
-            RealityAspectStrategy.setPriority(x,y, sizeX, output, ElementalAspectStrategy.getPriority(x,y, sizeX, inputs[1]));
+            ElementalAspectStrategy.setElement(x,y, conf.getChunkBlockSize(), output, element);
+            RealityAspectStrategy.setPriority(x,y, conf.getChunkBlockSize(), output, ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), inputs[1]));
             /*!Note: Priorities serve as an arbitration measure based on coordinates, so they should not be switched
              */
         }}
@@ -320,29 +316,29 @@ public class ElementalAspect extends RealityAspect {
      * @param output dynamics buffer
      */
     private void switchDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            int targetX = RealityAspectStrategy.getTargetX(x,y,sizeX, inputs[0]);
-            int targetY = RealityAspectStrategy.getTargetY(x,y,sizeX, inputs[0]);
-            int toApply = (int) RealityAspectStrategy.getToApply(x,y, sizeX, inputs[0]);
-            float forceX = ElementalAspectStrategy.getForceX(x,y, sizeX, inputs[1]);
-            float forceY = ElementalAspectStrategy.getForceY(x,y, sizeX, inputs[1]);
-            int velocityTick = ElementalAspectStrategy.getVelocityTick(x,y, sizeX, inputs[1]);
-            float gravityCorrection = ElementalAspectStrategy.getGravityCorrection(x,y, sizeX, inputs[1]);
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            int targetX = RealityAspectStrategy.getTargetX(x,y,conf.getChunkBlockSize(), inputs[0]);
+            int targetY = RealityAspectStrategy.getTargetY(x,y,conf.getChunkBlockSize(), inputs[0]);
+            int toApply = (int) RealityAspectStrategy.getToApply(x,y, conf.getChunkBlockSize(), inputs[0]);
+            float forceX = ElementalAspectStrategy.getForceX(x,y, conf.getChunkBlockSize(), inputs[1]);
+            float forceY = ElementalAspectStrategy.getForceY(x,y, conf.getChunkBlockSize(), inputs[1]);
+            int velocityTick = ElementalAspectStrategy.getVelocityTick(x,y, conf.getChunkBlockSize(), inputs[1]);
+            float gravityCorrection = ElementalAspectStrategy.getGravityCorrection(x,y, conf.getChunkBlockSize(), inputs[1]);
             if(
-                (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y)
-                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,sizeX, inputs[0]))
-                &&(targetX >= 0)&&(targetX < sizeX)
-                &&(targetY >= 0)&&(targetY < sizeY)
+                (0 < x)&&(conf.getChunkBlockSize()-1 > x)&&(0 < y)&&(conf.getChunkBlockSize()-1 > y)
+                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,conf.getChunkBlockSize(), inputs[0]))
+                &&(targetX >= 0)&&(targetX < conf.getChunkBlockSize())
+                &&(targetY >= 0)&&(targetY < conf.getChunkBlockSize())
             ){
-                forceX = ElementalAspectStrategy.getForceX(targetX,targetY, sizeX, inputs[1]);
-                forceY = ElementalAspectStrategy.getForceY(targetX,targetY, sizeX, inputs[1]);
-                gravityCorrection = ElementalAspectStrategy.getGravityCorrection(targetX,targetY, sizeX, inputs[1]);;
-                velocityTick = ElementalAspectStrategy.getVelocityTick(targetX,targetY, sizeX, inputs[1]);
+                forceX = ElementalAspectStrategy.getForceX(targetX,targetY, conf.getChunkBlockSize(), inputs[1]);
+                forceY = ElementalAspectStrategy.getForceY(targetX,targetY, conf.getChunkBlockSize(), inputs[1]);
+                gravityCorrection = ElementalAspectStrategy.getGravityCorrection(targetX,targetY, conf.getChunkBlockSize(), inputs[1]);;
+                velocityTick = ElementalAspectStrategy.getVelocityTick(targetX,targetY, conf.getChunkBlockSize(), inputs[1]);
             }
-            ElementalAspectStrategy.setForceX(x,y, sizeX, output, forceX);
-            ElementalAspectStrategy.setForceY(x,y, sizeX, output, forceY);
-            ElementalAspectStrategy.setVelocityTick(x,y, sizeX, output, velocityTick);
-            ElementalAspectStrategy.setGravityCorrection(x,y, sizeX, output, gravityCorrection);
+            ElementalAspectStrategy.setForceX(x,y, conf.getChunkBlockSize(), output, forceX);
+            ElementalAspectStrategy.setForceY(x,y, conf.getChunkBlockSize(), output, forceY);
+            ElementalAspectStrategy.setVelocityTick(x,y, conf.getChunkBlockSize(), output, velocityTick);
+            ElementalAspectStrategy.setGravityCorrection(x,y, conf.getChunkBlockSize(), output, gravityCorrection);
         }}
     }
 
@@ -362,11 +358,11 @@ public class ElementalAspect extends RealityAspect {
     }
 
     private void processUnitsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0;x < sizeX; ++x) { for (int y = 0; y < sizeY; ++y) { /* Calculate dilution */
-            if(Material.movable(ElementalAspectStrategy.getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[1]))) {
-                World.setUnit(x,y,sizeX, output, avgOfUnitsWithinDistance(x,y,inputs[0], inputs[1]));
+        for(int x = 0;x < conf.getChunkBlockSize(); ++x) { for (int y = 0; y < conf.getChunkBlockSize(); ++y) { /* Calculate dilution */
+            if(Material.movable(ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[0]), World.getUnit(x,y, conf.getChunkBlockSize(), inputs[1]))) {
+                World.setUnit(x,y,conf.getChunkBlockSize(), output, avgOfUnitsWithinDistance(x,y,inputs[0], inputs[1]));
             }else{
-                World.setUnit(x,y, sizeX, output, World.getUnit(x,y, sizeX, inputs[1]));
+                World.setUnit(x,y, conf.getChunkBlockSize(), output, World.getUnit(x,y, conf.getChunkBlockSize(), inputs[1]));
             }
         } }
     }
@@ -386,9 +382,9 @@ public class ElementalAspect extends RealityAspect {
      * @param output elements
      */
     private void processTypesPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = sizeX - 1;x >= 0; --x)for(int y = sizeY - 1 ; y >= 0; --y) {
-            Material.Elements currentElement = EtherealAspectStrategy.getElementEnum(x,y,sizeX,inputs[1]);
-            float currentUnit = World.getUnit(x,y,sizeX, inputs[2]);
+        for(int x = conf.getChunkBlockSize() - 1;x >= 0; --x)for(int y = conf.getChunkBlockSize() - 1 ; y >= 0; --y) {
+            Material.Elements currentElement = EtherealAspectStrategy.getElementEnum(x,y,conf.getChunkBlockSize(),inputs[1]);
+            float currentUnit = World.getUnit(x,y,conf.getChunkBlockSize(), inputs[2]);
             if(Material.Elements.Water == currentElement){ /* TODO: This will be ill-defined in a multi-threaded environment */
                 if(avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Water) < avgOfUnit(x,y, inputs[0],inputs[2], Material.Elements.Fire)){
                     currentElement = Material.Elements.Air;
@@ -422,17 +418,17 @@ public class ElementalAspect extends RealityAspect {
                     )currentElement = Material.Elements.Fire;
                 }
             }
-            ElementalAspectStrategy.setElement(x,y,sizeX,output,currentElement);
-            RealityAspectStrategy.setPriority(x,y, sizeX, output, ElementalAspectStrategy.getPriority(x,y, sizeX, inputs[0]));
+            ElementalAspectStrategy.setElement(x,y,conf.getChunkBlockSize(),output,currentElement);
+            RealityAspectStrategy.setPriority(x,y, conf.getChunkBlockSize(), output, ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), inputs[0]));
         }
     }
 
     private void processTypeUnitsPhase(FloatBuffer[] inputs, FloatBuffer output) {
-        for(int x = sizeX - 1;x >= 0; --x) for(int y = sizeY - 1 ; y >= 0; --y) {
-            Material.Elements currentElement = ElementalAspectStrategy.getElementEnum(x,y,sizeX,inputs[0]);
-            float currentUnit = World.getUnit(x,y,sizeX, inputs[1]);
+        for(int x = conf.getChunkBlockSize() - 1;x >= 0; --x) for(int y = conf.getChunkBlockSize() - 1 ; y >= 0; --y) {
+            Material.Elements currentElement = ElementalAspectStrategy.getElementEnum(x,y,conf.getChunkBlockSize(),inputs[0]);
+            float currentUnit = World.getUnit(x,y,conf.getChunkBlockSize(), inputs[1]);
             if(Material.Elements.Water == currentElement){
-                if(y > (sizeY * 0.9)){
+                if(y > (conf.getChunkBlockSize() * 0.9)){
                     currentUnit -= currentUnit * 0.02f;
                 }
             }
@@ -453,7 +449,7 @@ public class ElementalAspect extends RealityAspect {
 
             /* TODO: Make nearby fire consume compatible Earth */
             currentUnit = Math.max(0.1f,currentUnit);
-            World.setUnit(x,y,sizeX,output,currentUnit);
+            World.setUnit(x,y,conf.getChunkBlockSize(),output,currentUnit);
         }
     }
 
@@ -481,10 +477,10 @@ public class ElementalAspect extends RealityAspect {
      * @param output the initialized proposed changes
      */
     private void initChangesPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 1; x < sizeX; ++x){ for(int y = 1; y < sizeY; ++y){
-            ElementalAspectStrategy.setOffsetCode(x,y, sizeX, output, 0);
-            ElementalAspectStrategy.setVelocityTick(x,y, sizeX, output, 0);
-            ElementalAspectStrategy.setToApply(x,y, sizeX, output, 0);
+        for(int x = 1; x < conf.getChunkBlockSize(); ++x){ for(int y = 1; y < conf.getChunkBlockSize(); ++y){
+            ElementalAspectStrategy.setOffsetCode(x,y, conf.getChunkBlockSize(), output, 0);
+            ElementalAspectStrategy.setVelocityTick(x,y, conf.getChunkBlockSize(), output, 0);
+            ElementalAspectStrategy.setToApply(x,y, conf.getChunkBlockSize(), output, 0);
         }}
     }
 
@@ -494,26 +490,26 @@ public class ElementalAspect extends RealityAspect {
      * @param output the resulting updated dynamics
      */
     private void proposeForcesPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 1; x < sizeX; ++x){ for(int y = 1; y < sizeY; ++y){
+        for(int x = 1; x < conf.getChunkBlockSize(); ++x){ for(int y = 1; y < conf.getChunkBlockSize(); ++y){
             float forceX = 0.0f;
             float forceY = 0.0f;
 
             /*!Note: Adding gravity is handled in the post-process phase, not here, to handle collisions correctly */
-            if(!Material.discardable(ElementalAspectStrategy.getElementEnum(x,y, sizeX, inputs[0]),World.getUnit(x,y, sizeX, inputs[2]))){
-                forceX = ElementalAspectStrategy.getForceX(x,y, sizeX, inputs[1]);
-                forceY = ElementalAspectStrategy.getForceY(x,y, sizeX, inputs[1]);
+            if(!Material.discardable(ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[0]),World.getUnit(x,y, conf.getChunkBlockSize(), inputs[2]))){
+                forceX = ElementalAspectStrategy.getForceX(x,y, conf.getChunkBlockSize(), inputs[1]);
+                forceY = ElementalAspectStrategy.getForceY(x,y, conf.getChunkBlockSize(), inputs[1]);
             }
 
-            if(Material.Elements.Ether == ElementalAspectStrategy.getElementEnum(x,y, sizeX, inputs[0])){
+            if(Material.Elements.Ether == ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[0])){
                 for (int nx = (x - 2); nx < (x + 3); ++nx) for (int ny = (y - 2); ny < (y + 3); ++ny) {
                     if ( /* in the bounds of the chunk.. */
-                        (0 <= nx)&&(sizeX > nx)&&(0 <= ny)&&(sizeY > ny)
+                        (0 <= nx)&&(conf.getChunkBlockSize() > nx)&&(0 <= ny)&&(conf.getChunkBlockSize() > ny)
                         &&( 1 < (Math.abs(x - nx) + Math.abs(y - ny)) ) /* ..after the not immediate neighbourhood.. */
-                        &&(World.getUnit(x,y, sizeX, inputs[2]) <= World.getUnit(x,y, sizeX, inputs[2]))
-                        &&(Material.Elements.Ether == ElementalAspectStrategy.getElementEnum(nx,ny, sizeX, inputs[0]))
+                        &&(World.getUnit(x,y, conf.getChunkBlockSize(), inputs[2]) <= World.getUnit(x,y, conf.getChunkBlockSize(), inputs[2]))
+                        &&(Material.Elements.Ether == ElementalAspectStrategy.getElementEnum(nx,ny, conf.getChunkBlockSize(), inputs[0]))
                     ){ /* ..Calculate forces from surplus ethers */
                         float aether_diff = Math.max(-10.5f, Math.min(10.5f,
-                            ( EtherealAspectStrategy.aetherValueAt(x,y, sizeX, inputs[3]) - EtherealAspectStrategy.aetherValueAt(nx,ny, sizeX, inputs[3]))
+                            ( EtherealAspectStrategy.aetherValueAt(x,y, conf.getChunkBlockSize(), inputs[3]) - EtherealAspectStrategy.aetherValueAt(nx,ny, conf.getChunkBlockSize(), inputs[3]))
                         ));
                         forceX += ((nx - x) * aether_diff);
                         forceY += ((ny - y) * aether_diff);
@@ -521,10 +517,10 @@ public class ElementalAspect extends RealityAspect {
                 }
             }
 
-            if(Material.MechaProperties.Fluid == Material.getState(ElementalAspectStrategy.getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[2]))){
+            if(Material.MechaProperties.Fluid == Material.getState(ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[0]), World.getUnit(x,y, conf.getChunkBlockSize(), inputs[2]))){
                 if(Material.isSameMat(
-                    ElementalAspectStrategy.getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[2]),
-                    ElementalAspectStrategy.getElementEnum(x,y-1, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[2])
+                    ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[0]), World.getUnit(x,y, conf.getChunkBlockSize(), inputs[2]),
+                    ElementalAspectStrategy.getElementEnum(x,y-1, conf.getChunkBlockSize(), inputs[0]), World.getUnit(x,y, conf.getChunkBlockSize(), inputs[2])
                 )){ /* TODO: define the water cell force behavior correctly: each water cell aims to be 1.5 cells from one another */
                     /* the cell is a liquid on top of another liquid, so it must move. */
                     if((0.0f < forceX)&&(6.0f > forceX))forceX *= 1.2f;
@@ -533,13 +529,13 @@ public class ElementalAspect extends RealityAspect {
                         forceY = 1.00f;
                     }
                 }
-            }else if(Material.MechaProperties.Plasma == Material.getState(getElement(x,y), World.getUnit(x,y, sizeX, inputs[2]))){
+            }else if(Material.MechaProperties.Plasma == Material.getState(getElement(x,y), World.getUnit(x,y, conf.getChunkBlockSize(), inputs[2]))){
                 forceX += rnd.nextInt(4) - 2;
             }/* TODO: Make gases loom, instead of staying still ( move about a bit maybe? )  */
 
-            ElementalAspectStrategy.setForce(x,y, sizeX, output,forceX,forceY);
-            ElementalAspectStrategy.setGravityCorrection(x,y, sizeX, output, 0); /* Gravity correction is not part of this phase */
-            ElementalAspectStrategy.setVelocityTick(x,y, sizeX, output, velocityMaxTicks);
+            ElementalAspectStrategy.setForce(x,y, conf.getChunkBlockSize(), output,forceX,forceY);
+            ElementalAspectStrategy.setGravityCorrection(x,y, conf.getChunkBlockSize(), output, 0); /* Gravity correction is not part of this phase */
+            ElementalAspectStrategy.setVelocityTick(x,y, conf.getChunkBlockSize(), output, velocityMaxTicks);
         } }
     }
 
@@ -549,39 +545,39 @@ public class ElementalAspect extends RealityAspect {
      * @param output proposed switches, toApply set all 0
      */
     private void proposeChangesFromForcesPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            int newVelocityTick = ElementalAspectStrategy.getVelocityTick(x,y, sizeX, inputs[2]);
-            int targetX = RealityAspectStrategy.getTargetX(x,y, sizeX, inputs[0]);
-            int targetY = RealityAspectStrategy.getTargetY(x,y, sizeX, inputs[0]);
-            int toApply = (int) RealityAspectStrategy.getToApply(x,y, sizeX, inputs[0]); /* a previously proposed change would overwrite a current loop change */
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            int newVelocityTick = ElementalAspectStrategy.getVelocityTick(x,y, conf.getChunkBlockSize(), inputs[2]);
+            int targetX = RealityAspectStrategy.getTargetX(x,y, conf.getChunkBlockSize(), inputs[0]);
+            int targetY = RealityAspectStrategy.getTargetY(x,y, conf.getChunkBlockSize(), inputs[0]);
+            int toApply = (int) RealityAspectStrategy.getToApply(x,y, conf.getChunkBlockSize(), inputs[0]); /* a previously proposed change would overwrite a current loop change */
 
             if((0 == toApply)||(x == targetX && y == targetY)){ /* if no switch was arbitrated in the previously proposed changes */
                 /* a target was not proposed previously for this cell, which would overwrite any switch proposed from forces */
                 if(
-                    !Material.discardable(ElementalAspectStrategy.getElementEnum(x,y, sizeX, inputs[1]), World.getUnit(x,y, sizeX, inputs[3]))
-                    && (1 <= ElementalAspectStrategy.getForce(x,y, sizeX, inputs[2]).len())
+                    !Material.discardable(ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[1]), World.getUnit(x,y, conf.getChunkBlockSize(), inputs[3]))
+                    && (1 <= ElementalAspectStrategy.getForce(x,y, conf.getChunkBlockSize(), inputs[2]).len())
                 ){
                     /* propose to change to the direction of the force */
-                    if(1 < Math.abs(ElementalAspectStrategy.getForceX(x,y, sizeX, inputs[2])))targetX = (int)(x + Math.max(-1, Math.min(ElementalAspectStrategy.getForceX(x,y, sizeX, inputs[2]),1)));
-                    if(1 < Math.abs(ElementalAspectStrategy.getForceY(x,y, sizeX, inputs[2])))targetY = (int)(y + Math.max(-1, Math.min(ElementalAspectStrategy.getForceY(x,y, sizeX, inputs[2]),1)));
-                    targetX = Math.max(0, Math.min(sizeX-1, targetX));
-                    targetY = Math.max(0, Math.min(sizeY-1, targetY));
+                    if(1 < Math.abs(ElementalAspectStrategy.getForceX(x,y, conf.getChunkBlockSize(), inputs[2])))targetX = (int)(x + Math.max(-1, Math.min(ElementalAspectStrategy.getForceX(x,y, conf.getChunkBlockSize(), inputs[2]),1)));
+                    if(1 < Math.abs(ElementalAspectStrategy.getForceY(x,y, conf.getChunkBlockSize(), inputs[2])))targetY = (int)(y + Math.max(-1, Math.min(ElementalAspectStrategy.getForceY(x,y, conf.getChunkBlockSize(), inputs[2]),1)));
+                    targetX = Math.max(0, Math.min(conf.getChunkBlockSize()-1, targetX));
+                    targetY = Math.max(0, Math.min(conf.getChunkBlockSize()-1, targetY));
 
                     /* calculate the final position of the intended target cell */
                     int targetFinalPosX = targetX;
                     int targetFinalPosY = targetY;
-                    if(1 < Math.abs(ElementalAspectStrategy.getForceX(targetX,targetY, sizeX, inputs[2])))
-                        targetFinalPosX = (int)(targetX + Math.max(-1.1f, Math.min(ElementalAspectStrategy.getForceX(targetX, targetY, sizeX, inputs[2]),1.1f)));
-                    if(1 < Math.abs(ElementalAspectStrategy.getForceY(targetX,targetY, sizeX, inputs[2])))
-                        targetFinalPosY = (int)(targetY + Math.max(-1.1f, Math.min(ElementalAspectStrategy.getForceY(targetX,targetY, sizeX, inputs[2]),1.1f)));
+                    if(1 < Math.abs(ElementalAspectStrategy.getForceX(targetX,targetY, conf.getChunkBlockSize(), inputs[2])))
+                        targetFinalPosX = (int)(targetX + Math.max(-1.1f, Math.min(ElementalAspectStrategy.getForceX(targetX, targetY, conf.getChunkBlockSize(), inputs[2]),1.1f)));
+                    if(1 < Math.abs(ElementalAspectStrategy.getForceY(targetX,targetY, conf.getChunkBlockSize(), inputs[2])))
+                        targetFinalPosY = (int)(targetY + Math.max(-1.1f, Math.min(ElementalAspectStrategy.getForceY(targetX,targetY, conf.getChunkBlockSize(), inputs[2]),1.1f)));
 
                     /* see if the two cells still intersect with forces included */
                     if(2 > MiscUtils.distance(x,y,targetFinalPosX,targetFinalPosY)){
                        if(
                             !((x == targetX) && (y == targetY))
                             &&( /* In case both is discardable, then no operations shall commence */
-                                Material.discardable(getElement(x,y),World.getUnit(x,y, sizeX, inputs[3]))
-                                &&Material.discardable(getElement(targetX,targetY),World.getUnit(targetX,targetY, sizeX, inputs[3]))
+                                Material.discardable(getElement(x,y),World.getUnit(x,y, conf.getChunkBlockSize(), inputs[3]))
+                                &&Material.discardable(getElement(targetX,targetY),World.getUnit(targetX,targetY, conf.getChunkBlockSize(), inputs[3]))
                             )
                         ){ /* both cells are discardable, so don't switch */
                             targetX = x;
@@ -597,10 +593,10 @@ public class ElementalAspect extends RealityAspect {
                     }
                 }
             }
-            ElementalAspectStrategy.setVelocityTick(x,y, sizeX, output, newVelocityTick);
+            ElementalAspectStrategy.setVelocityTick(x,y, conf.getChunkBlockSize(), output, newVelocityTick);
             /* TODO: Try to have everything go TOP RIGHT direction: Bottom left corner will duplicate cells somehow... */
-            ElementalAspectStrategy.setOffsetCode(x,y,sizeX,output, RealityAspectStrategy.getOffsetCode((targetX - x), (targetY - y)));
-            ElementalAspectStrategy.setToApply(x,y, sizeX,output, 0);
+            ElementalAspectStrategy.setOffsetCode(x,y,conf.getChunkBlockSize(),output, RealityAspectStrategy.getOffsetCode((targetX - x), (targetY - y)));
+            ElementalAspectStrategy.setToApply(x,y, conf.getChunkBlockSize(),output, 0);
         }}
     }
 
@@ -614,21 +610,21 @@ public class ElementalAspect extends RealityAspect {
         final int index_table_size = (index_radius * 2) + 1;
         int[][] priority = new int[index_table_size][index_table_size];
         int[][] changed = new int[index_table_size][index_table_size];
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
             float offsetCode = 0;
             float toApply = 0;
 
             /* Initialize local data */
             int minIndexX = Math.max((x-index_radius), 0);
-            int maxIndexX = Math.min((x+index_radius), sizeX);
+            int maxIndexX = Math.min((x+index_radius), conf.getChunkBlockSize());
             int minIndexY = Math.max((y-index_radius), 0);
-            int maxIndexY = Math.min((y+index_radius), sizeY);
+            int maxIndexY = Math.min((y+index_radius), conf.getChunkBlockSize());
             for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
                 int sx = ix - x + (index_radius);
                 int sy = iy - y + (index_radius);
                 priority[sx][sy] = (int)( /* The priority of the given cell consist of..  */
-                    ElementalAspectStrategy.getForce(ix,iy, sizeX, inputs[2]).len() /* ..the power of the force on it.. */
-                    + ElementalAspectStrategy.getWeight(ix,iy, sizeX, inputs[1], inputs[3]) /* .. and its weight */
+                    ElementalAspectStrategy.getForce(ix,iy, conf.getChunkBlockSize(), inputs[2]).len() /* ..the power of the force on it.. */
+                    + ElementalAspectStrategy.getWeight(ix,iy, conf.getChunkBlockSize(), inputs[1], inputs[3]) /* .. and its weight */
                 );
                 changed[sx][sy] = 0;
             }}
@@ -651,8 +647,8 @@ public class ElementalAspect extends RealityAspect {
                 int highestPrioTargetLocalX = -2;
                 int highestPrioTargetLocalY = -2;
                 for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
-                    int targetOfCX = RealityAspectStrategy.getTargetX(ix,iy,sizeX,inputs[0]);
-                    int targetOfCY = RealityAspectStrategy.getTargetY(ix,iy,sizeX,inputs[0]);
+                    int targetOfCX = RealityAspectStrategy.getTargetX(ix,iy,conf.getChunkBlockSize(),inputs[0]);
+                    int targetOfCY = RealityAspectStrategy.getTargetY(ix,iy,conf.getChunkBlockSize(),inputs[0]);
                     localSourceX = ix - x + index_radius;
                     localSourceY = iy - y + index_radius;
                     localTargetOfCX = targetOfCX - x + index_radius;
@@ -673,7 +669,7 @@ public class ElementalAspect extends RealityAspect {
                                     (priority[highestPrioLocalX][highestPrioLocalY] == priority[localSourceX][localSourceY])
                                     &&(
                                         priority[highestPrioLocalX][highestPrioLocalY]
-                                            < (priority[localSourceX][localSourceY] + ElementalAspectStrategy.getPriority(ix, iy, sizeX, inputs[1]))
+                                            < (priority[localSourceX][localSourceY] + ElementalAspectStrategy.getPriority(ix, iy, conf.getChunkBlockSize(), inputs[1]))
                                     )
                                 )
                             )
@@ -730,21 +726,9 @@ public class ElementalAspect extends RealityAspect {
             /*!Note: At this point highestPrio* and highestTarget*
              * should contain either -2 or the highest priority switch request involving c
              * */
-            RealityAspectStrategy.setOffsetCode(x,y, sizeX, output, offsetCode);
-            RealityAspectStrategy.setToApply(x,y, sizeX,output, toApply);
+            RealityAspectStrategy.setOffsetCode(x,y, conf.getChunkBlockSize(), output, offsetCode);
+            RealityAspectStrategy.setToApply(x,y, conf.getChunkBlockSize(),output, toApply);
         }}
-    }
-
-    /*TODO: include forces into the logic ( e.g. a big force can force a switch ) */
-    private static boolean aCanMoveB(int ax, int ay, int bx, int by, int sizeX, FloatBuffer elements, FloatBuffer scalars){
-        return(
-            Material.discardable(ElementalAspectStrategy.getElementEnum(bx, by, sizeX, elements), World.getUnit(bx, by, sizeX, scalars))
-            ||(
-                (ElementalAspectStrategy.getWeight(ax,ay, sizeX, elements, scalars) >= ElementalAspectStrategy.getWeight(bx, by, sizeX, elements, scalars))
-                && Material.movable(ElementalAspectStrategy.getElementEnum(ax,ay, sizeX, elements), World.getUnit(ax,ay, sizeX, scalars))
-                && Material.movable(ElementalAspectStrategy.getElementEnum(bx,by, sizeX, elements), World.getUnit(bx,by, sizeX, scalars))
-            )
-        );
     }
 
     /**
@@ -753,32 +737,32 @@ public class ElementalAspect extends RealityAspect {
      * @param output dynamics buffer updated with proper forces
      */
     private void applyChangesDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){ /* TODO: Define edges as connection point to other chunks */
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            int toApply = (int) RealityAspectStrategy.getToApply(x,y, sizeX, inputs[0]);
-            int targetX = ElementalAspectStrategy.getTargetX(x,y,sizeX, inputs[0]);
-            int targetY = ElementalAspectStrategy.getTargetY(x,y,sizeX, inputs[0]);
-            float forceX = ElementalAspectStrategy.getForceX(x,y, sizeX, inputs[2]);
-            float forceY = ElementalAspectStrategy.getForceY(x,y, sizeX, inputs[2]);
-            float weight = ElementalAspectStrategy.getWeight(x,y, sizeX, inputs[1], inputs[3]);
-            float gravityCorrection = ElementalAspectStrategy.getWeight(x,y, sizeX, inputs[1], inputs[3]);
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            int toApply = (int) RealityAspectStrategy.getToApply(x,y, conf.getChunkBlockSize(), inputs[0]);
+            int targetX = ElementalAspectStrategy.getTargetX(x,y,conf.getChunkBlockSize(), inputs[0]);
+            int targetY = ElementalAspectStrategy.getTargetY(x,y,conf.getChunkBlockSize(), inputs[0]);
+            float forceX = ElementalAspectStrategy.getForceX(x,y, conf.getChunkBlockSize(), inputs[2]);
+            float forceY = ElementalAspectStrategy.getForceY(x,y, conf.getChunkBlockSize(), inputs[2]);
+            float weight = ElementalAspectStrategy.getWeight(x,y, conf.getChunkBlockSize(), inputs[1], inputs[3]);
+            float gravityCorrection = ElementalAspectStrategy.getWeight(x,y, conf.getChunkBlockSize(), inputs[1], inputs[3]);
             int EH = 0;
 
             if( /* Update the forces on a cell.. */
-                (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y) /* ..when it is inside bounds.. */
-                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,sizeX, inputs[0])) /* ..only if it wants to switch..  */
-                &&((targetX >= 0)&&(targetX < sizeX)&&(targetY >= 0)&&(targetY < sizeY)) /* ..but only if the target is also inside the bounds of the chunk */
+                (0 < x)&&(conf.getChunkBlockSize()-1 > x)&&(0 < y)&&(conf.getChunkBlockSize()-1 > y) /* ..when it is inside bounds.. */
+                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,conf.getChunkBlockSize(), inputs[0])) /* ..only if it wants to switch..  */
+                &&((targetX >= 0)&&(targetX < conf.getChunkBlockSize())&&(targetY >= 0)&&(targetY < conf.getChunkBlockSize())) /* ..but only if the target is also inside the bounds of the chunk */
             ){
                 gravityCorrection = 0; /* Gravity is being added at forces update, so no need to re-add it at the end of the loop */
-                if( aCanMoveB(x,y,targetX,targetY, sizeX, inputs[1], inputs[3]) ){ /* The cells swap, decreasing forces on both *//* TODO: Also decrease the force based on the targets weight */
+                if( ElementalAspectStrategy.aCanMoveB(x,y,targetX,targetY, conf.getChunkBlockSize(), inputs[1], inputs[3]) ){ /* The cells swap, decreasing forces on both *//* TODO: Also decrease the force based on the targets weight */
                     forceX += -forceX * 0.7f * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceX))) );
                     forceY += -forceY * 0.7f * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceY))) );
                     forceX += (myMiscUtils.getGravity(x,y).x * weight);
                     forceY += (myMiscUtils.getGravity(x,y).y * weight);
                     EH = 1;
-                }else if(aCanMoveB(targetX,targetY,x,y, sizeX, inputs[1], inputs[3])){ /* The cells collide, updating forces, but no swapping */
-                    Vector2 u1 = ElementalAspectStrategy.getForce(x,y, sizeX, inputs[2]).cpy().nor();
-                    float m2 = ElementalAspectStrategy.getWeight(targetX, targetY, sizeX, inputs[1], inputs[3]);
-                    Vector2 u2 = ElementalAspectStrategy.getForce(targetX, targetY, sizeX, inputs[2]).cpy().nor();
+                }else if(ElementalAspectStrategy.aCanMoveB(targetX,targetY,x,y, conf.getChunkBlockSize(), inputs[1], inputs[3])){ /* The cells collide, updating forces, but no swapping */
+                    Vector2 u1 = ElementalAspectStrategy.getForce(x,y, conf.getChunkBlockSize(), inputs[2]).cpy().nor();
+                    float m2 = ElementalAspectStrategy.getWeight(targetX, targetY, conf.getChunkBlockSize(), inputs[1], inputs[3]);
+                    Vector2 u2 = ElementalAspectStrategy.getForce(targetX, targetY, conf.getChunkBlockSize(), inputs[2]).cpy().nor();
                     Vector2 result_speed = new Vector2();
                     result_speed.set( /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
                         ((weight - m2)/(weight+m2)*u1.x) + (2*m2/(weight+m2))*u2.x,
@@ -793,10 +777,10 @@ public class ElementalAspect extends RealityAspect {
                     EH = 2;
                 }
             }
-            ElementalAspectStrategy.setForceX(x,y, sizeX, output, forceX);
-            ElementalAspectStrategy.setForceY(x,y, sizeX, output, forceY);
-            ElementalAspectStrategy.setVelocityTick(x,y, sizeX, output, ElementalAspectStrategy.getVelocityTick(x,y, sizeX, inputs[2]));
-            ElementalAspectStrategy.setGravityCorrection(x,y, sizeX, output, gravityCorrection);
+            ElementalAspectStrategy.setForceX(x,y, conf.getChunkBlockSize(), output, forceX);
+            ElementalAspectStrategy.setForceY(x,y, conf.getChunkBlockSize(), output, forceY);
+            ElementalAspectStrategy.setVelocityTick(x,y, conf.getChunkBlockSize(), output, ElementalAspectStrategy.getVelocityTick(x,y, conf.getChunkBlockSize(), inputs[2]));
+            ElementalAspectStrategy.setGravityCorrection(x,y, conf.getChunkBlockSize(), output, gravityCorrection);
         }}
     }
 
@@ -807,31 +791,31 @@ public class ElementalAspect extends RealityAspect {
      */
     private void arbitrateInteractionsPhase(FloatBuffer[] inputs, FloatBuffer output){
         /* Note: At this point the switches are supposed to be mutual: If a <> b, then every time b <> a  */
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            float toApply = RealityAspectStrategy.getToApply(x,y, sizeX, inputs[0]);
-            int targetX = RealityAspectStrategy.getTargetX(x,y,sizeX, inputs[0]);
-            int targetY = RealityAspectStrategy.getTargetY(x,y,sizeX, inputs[0]);
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            float toApply = RealityAspectStrategy.getToApply(x,y, conf.getChunkBlockSize(), inputs[0]);
+            int targetX = RealityAspectStrategy.getTargetX(x,y,conf.getChunkBlockSize(), inputs[0]);
+            int targetY = RealityAspectStrategy.getTargetY(x,y,conf.getChunkBlockSize(), inputs[0]);
             if( /* Check for swaps */
-                (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y) /* ..when cell is inside bounds.. */
-                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,sizeX, inputs[0])) /* ..and it wants to switch..  */
-                &&((targetX >= 0)&&(targetX < sizeX)&&(targetY >= 0)&&(targetY < sizeY)) /* ..but only if the target is also inside the bounds of the chunk */
+                (0 < x)&&(conf.getChunkBlockSize()-1 > x)&&(0 < y)&&(conf.getChunkBlockSize()-1 > y) /* ..when cell is inside bounds.. */
+                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,conf.getChunkBlockSize(), inputs[0])) /* ..and it wants to switch..  */
+                &&((targetX >= 0)&&(targetX < conf.getChunkBlockSize())&&(targetY >= 0)&&(targetY < conf.getChunkBlockSize())) /* ..but only if the target is also inside the bounds of the chunk */
             ){
                 if( /* this cell can not move its target */
-                    ((2 == toApply)&&(!aCanMoveB(x,y,targetX,targetY, sizeX, inputs[1], inputs[2])))
-                    ||((1 == toApply)&&(!aCanMoveB(targetX,targetY, x,y, sizeX, inputs[1], inputs[2])))
+                    ((2 == toApply)&&(!ElementalAspectStrategy.aCanMoveB(x,y,targetX,targetY, conf.getChunkBlockSize(), inputs[1], inputs[2])))
+                    ||((1 == toApply)&&(!ElementalAspectStrategy.aCanMoveB(targetX,targetY, x,y, conf.getChunkBlockSize(), inputs[1], inputs[2])))
                     ||(
-                        (!aCanMoveB(x,y,targetX,targetY, sizeX, inputs[1], inputs[2]))
+                        (!ElementalAspectStrategy.aCanMoveB(x,y,targetX,targetY, conf.getChunkBlockSize(), inputs[1], inputs[2]))
                         &&(
-                            (x != RealityAspectStrategy.getTargetX(targetX,targetY, sizeX, inputs[0]))
-                            ||(y != RealityAspectStrategy.getTargetY(targetX,targetY, sizeX, inputs[0]))
+                            (x != RealityAspectStrategy.getTargetX(targetX,targetY, conf.getChunkBlockSize(), inputs[0]))
+                            ||(y != RealityAspectStrategy.getTargetY(targetX,targetY, conf.getChunkBlockSize(), inputs[0]))
                         )
                     )
                 ){
                     toApply = 0;
                 }
             }
-            RealityAspectStrategy.setOffsetCode(x,y, sizeX, output, RealityAspectStrategy.getOffsetCode(x,y, sizeX, inputs[0]));
-            RealityAspectStrategy.setToApply(x,y, sizeX,output, toApply);
+            RealityAspectStrategy.setOffsetCode(x,y, conf.getChunkBlockSize(), output, RealityAspectStrategy.getOffsetCode(x,y, conf.getChunkBlockSize(), inputs[0]));
+            RealityAspectStrategy.setToApply(x,y, conf.getChunkBlockSize(),output, toApply);
         }}
     }
 
@@ -841,21 +825,21 @@ public class ElementalAspect extends RealityAspect {
      * @param output the post-processed dynamics buffer
      */
     private void mechanicsPostProcessDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 0; x < sizeX; ++x){ for(int y = 0; y < sizeY; ++y){
-            float gravityCorrection = ElementalAspectStrategy.getGravityCorrection(x,y, sizeX, inputs[1]);
-            float forceX = ElementalAspectStrategy.getForceX(x,y, sizeX, inputs[1]);
-            float forceY = ElementalAspectStrategy.getForceY(x,y, sizeX, inputs[1]);
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            float gravityCorrection = ElementalAspectStrategy.getGravityCorrection(x,y, conf.getChunkBlockSize(), inputs[1]);
+            float forceX = ElementalAspectStrategy.getForceX(x,y, conf.getChunkBlockSize(), inputs[1]);
+            float forceY = ElementalAspectStrategy.getForceY(x,y, conf.getChunkBlockSize(), inputs[1]);
             if(
-                (0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y)
-                &&(0 < gravityCorrection)&&Material.movable(ElementalAspectStrategy.getElementEnum(x,y, sizeX, inputs[0]), World.getUnit(x,y, sizeX, inputs[2]))
+                (0 < x)&&(conf.getChunkBlockSize()-1 > x)&&(0 < y)&&(conf.getChunkBlockSize()-1 > y)
+                &&(0 < gravityCorrection)&&Material.movable(ElementalAspectStrategy.getElementEnum(x,y, conf.getChunkBlockSize(), inputs[0]), World.getUnit(x,y, conf.getChunkBlockSize(), inputs[2]))
             ){
                 forceX += gravityCorrection * myMiscUtils.getGravity(x,y).x;
                 forceY += gravityCorrection * myMiscUtils.getGravity(x,y).y;
             }
-            ElementalAspectStrategy.setForceX(x,y, sizeX, output, forceX);
-            ElementalAspectStrategy.setForceY(x,y, sizeX, output, forceY);
-            ElementalAspectStrategy.setVelocityTick(x,y, sizeX, output, ElementalAspectStrategy.getVelocityTick(x,y, sizeX, inputs[1]));
-            ElementalAspectStrategy.setGravityCorrection(x,y, sizeX, output, 0);
+            ElementalAspectStrategy.setForceX(x,y, conf.getChunkBlockSize(), output, forceX);
+            ElementalAspectStrategy.setForceY(x,y, conf.getChunkBlockSize(), output, forceY);
+            ElementalAspectStrategy.setVelocityTick(x,y, conf.getChunkBlockSize(), output, ElementalAspectStrategy.getVelocityTick(x,y, conf.getChunkBlockSize(), inputs[1]));
+            ElementalAspectStrategy.setGravityCorrection(x,y, conf.getChunkBlockSize(), output, 0);
         }}
     }
 
@@ -865,8 +849,8 @@ public class ElementalAspect extends RealityAspect {
         backend.runPhase(initChangesPhaseIndex);
         BufferUtils.copy(backend.getOutput(initChangesPhaseIndex), proposedChanges);
 
-        for(int x = 1; x < sizeX-1; ++x){
-            for(int y = sizeY-2; y > 0; --y){
+        for(int x = 1; x < conf.getChunkBlockSize()-1; ++x){
+            for(int y = conf.getChunkBlockSize()-2; y > 0; --y){
                 touchedByMechanics[x][y] = 0;
             }
         }
@@ -927,8 +911,8 @@ public class ElementalAspect extends RealityAspect {
     /* TODO: Make movable objects, depending of the solidness "merge into one another", leaving vacuum behind, which are to resolved at the end of the mechanics round */
     @Override
     public void postProcess(World parent) {
-        for(int x = 0;x < sizeX; ++x){
-            for(int y = 0; y < sizeY; ++y){
+        for(int x = 0;x < conf.getChunkBlockSize(); ++x){
+            for(int y = 0; y < conf.getChunkBlockSize(); ++y){
                 setElement(x,y, parent.etherealPlane.elementAt(x,y));/* TODO: keep priority should buffered backend be used */
             }
         }
@@ -939,12 +923,12 @@ public class ElementalAspect extends RealityAspect {
      * @param floorHeight - the height of the ground floor
      */
     public void pondWithGrill(World parent, int floorHeight){
-        for(int x = 0;x < sizeX; ++x){ /* create the ground floor */
-            for(int y = 0; y < sizeY; ++y){
-                ElementalAspectStrategy.setForce(x,y, sizeX, dynamics,0,0);
+        for(int x = 0;x < conf.getChunkBlockSize(); ++x){ /* create the ground floor */
+            for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+                ElementalAspectStrategy.setForce(x,y, conf.getChunkBlockSize(), dynamics,0,0);
                 if(
                     (y <= floorHeight)
-                    &&(0 < x)&&(sizeX-1 > x)&&(0 < y)&&(sizeY-1 > y)
+                    &&(0 < x)&&(conf.getChunkBlockSize()-1 > x)&&(0 < y)&&(conf.getChunkBlockSize()-1 > y)
                 ){
                     setElement(x,y, Material.Elements.Earth);
                     if(y <= (floorHeight/2)) parent.setUnit(x,y, Math.min(100,rnd.nextInt(500)));
@@ -962,10 +946,10 @@ public class ElementalAspect extends RealityAspect {
         int x; int y; /* Create the pond */
         for(float radius = 0; radius < (floorHeight/2.0f); radius += 0.5f){
             for(float sector = (float)Math.PI * 0.99f; sector < Math.PI * 2.01f; sector += Math.PI / 180){
-                x = (int)(sizeX/2 + Math.cos(sector) * radius);
-                x = Math.max(0, Math.min(sizeX, x));
+                x = (int)(conf.getChunkBlockSize()/2 + Math.cos(sector) * radius);
+                x = Math.max(0, Math.min(conf.getChunkBlockSize(), x));
                 y = (int)(floorHeight + Math.sin(sector) * radius);
-                y = Math.max(0, Math.min(sizeY, y));
+                y = Math.max(0, Math.min(conf.getChunkBlockSize(), y));
                 if(y <= (floorHeight - (floorHeight/4)) && (0 == rnd.nextInt(3)))
                     parent.setUnit(x,y,parent.getUnit(x,y) * 2.5f);
                 setElement(x,y, Material.Elements.Water);
@@ -973,7 +957,7 @@ public class ElementalAspect extends RealityAspect {
         }
 
         /* Create a fire */
-        x = sizeX/4;
+        x = conf.getChunkBlockSize()/4;
         y = floorHeight + 1;
         setElement(x,y, Material.Elements.Fire);
         setElement(x-1,y, Material.Elements.Fire);
@@ -1007,16 +991,16 @@ public class ElementalAspect extends RealityAspect {
 
 
     public Material.Elements getElement(int x, int y){
-        return ElementalAspectStrategy.getElementEnum(x,y,sizeX, elements);
+        return ElementalAspectStrategy.getElementEnum(x,y,conf.getChunkBlockSize(), elements);
     }
 
     public void setElement(int x, int y, Material.Elements element){
-        ElementalAspectStrategy.setElement(x,y,sizeX,elements,element);
+        ElementalAspectStrategy.setElement(x,y,conf.getChunkBlockSize(),elements,element);
     }
 
     public void debugMeasure(World parent){
-//        for(int x = 0;x < sizeX; ++x){ /* create the ground floor */
-//            for(int y = 0; y < sizeY; ++y){
+//        for(int x = 0;x < conf.getChunkBlockSize(); ++x){ /* create the ground floor */
+//            for(int y = 0; y < conf.getChunkBlockSize(); ++y){
 //                unitDebugVariable[x][y] = parent.getUnit(x,y);
 //                if(getElement(x,y) == Material.Elements.Fire){
 //                }
@@ -1048,14 +1032,14 @@ public class ElementalAspect extends RealityAspect {
 //            ) / Math.max(0.001f, parent.getEtherealPlane().aetherValueAt(x,y));
         float unitsDiff = 0;
 //        if( Material.ratioOf(Material.Elements.Fire) > parent.getUnit(x,y))
-        if( x == sizeX/2 &&  y == sizeY / 3)
+        if( x == conf.getChunkBlockSize()/2 &&  y == conf.getChunkBlockSize() / 3)
             unitsDiff = 0.8f;
 
         Color debugColor;
         /* Red <-> Blue: left <-> right */
-        float offsetX = (RealityAspectStrategy.getTargetX(x,y, sizeX, proposedChanges) - x + 1) / 2.0f;
-        float offsetY = (RealityAspectStrategy.getTargetY(x,y, sizeX, proposedChanges) - y + 1) / 2.0f;
-        debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets *///        float prio = getPriority(x,y, sizeX, elements)/maxPrio;
+        float offsetX = (RealityAspectStrategy.getTargetX(x,y, conf.getChunkBlockSize(), proposedChanges) - x + 1) / 2.0f;
+        float offsetY = (RealityAspectStrategy.getTargetY(x,y, conf.getChunkBlockSize(), proposedChanges) - y + 1) / 2.0f;
+        debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets *///        float prio = getPriority(x,y, conf.getChunkBlockSize(), elements)/maxPrio;
 //        Color debugColor = new Color(prio, prio, prio, 1.0f);
 //                    offsetR,
 ////                netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),

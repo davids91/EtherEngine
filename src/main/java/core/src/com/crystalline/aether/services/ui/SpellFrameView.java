@@ -18,14 +18,14 @@ public class SpellFrameView implements DisplayService<Texture> {
     }
     @Override
     public Texture getDisplay() {
-        Pixmap actionImage = new Pixmap(conf.WORLD_BLOCK_NUMBER[0],conf.WORLD_BLOCK_NUMBER[1], Pixmap.Format.RGB888);
+        Pixmap actionImage = new Pixmap(conf.getChunkBlockSize(),conf.getChunkBlockSize(), Pixmap.Format.RGB888);
         actionImage.setBlending(Pixmap.Blending.SourceOver);
         actionImage.setColor(0,0,0,0);
         actionImage.fill();
         float newMaxUsedMana = 0;
         for(SpellAction action : target.getActions()){
             int x = (int)action.pos.x;
-            int y = (conf.WORLD_BLOCK_NUMBER[1] - 1 - (int)action.pos.y);
+            int y = (conf.getChunkBlockSize() - 1 - (int)action.pos.y);
             Color actionColor = SpellUtil.getColorOf(action, target.getMaxUsedMana());
             actionImage.drawPixel(x, y, Color.rgba8888(actionColor));
             if(newMaxUsedMana < Math.abs(action.usedAether))

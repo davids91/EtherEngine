@@ -24,21 +24,21 @@ public class MiscUtils {
     }
 
     public static class MyCell extends Vector2 {
-        private final int sizeX;
+        private final int chunkSize;
 
-        public MyCell(int sizeX_) {
+        public MyCell(int chunkSize_) {
             super();
-            sizeX = sizeX_;
+            chunkSize = chunkSize_;
         }
 
         public MyCell(MyCell other){
             super(other.x,other.y);
-            sizeX = other.sizeX;
+            chunkSize = other.chunkSize;
         }
 
-        public MyCell(float x, float y, int sizeX_) {
+        public MyCell(float x, float y, int chunkSize_) {
             super(x, y);
-            sizeX = sizeX_;
+            chunkSize = chunkSize_;
         }
 
         public int getIX(){
@@ -51,7 +51,7 @@ public class MiscUtils {
 
         @Override
         public int hashCode() {
-            return BufferUtils.map2DTo1D((int)x,(int)y,sizeX);
+            return BufferUtils.map2DTo1D((int)x,(int)y,chunkSize);
         }
     }
 }

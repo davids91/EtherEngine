@@ -6,28 +6,28 @@ import com.crystalline.aether.services.utils.BufferUtils;
 import java.nio.FloatBuffer;
 
 public class RealityAspectStrategy {
-    public static void setPriority(int x, int y, int sizeX, FloatBuffer buffer, float prio){
-        BufferUtils.set(x,y,sizeX, Config.bufferCellSize,3, buffer, prio);
+    public static void setPriority(int x, int y, int chunkSize, FloatBuffer buffer, float prio){
+        BufferUtils.set(x,y,chunkSize, Config.bufferCellSize,3, buffer, prio);
     }
 
-    public static float getPriority(int x, int y, int sizeX, FloatBuffer elements){
-        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,3, elements);
+    public static float getPriority(int x, int y, int chunkSize, FloatBuffer elements){
+        return BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,3, elements);
     }
 
-    public static float getOffsetCode(int x, int y, int sizeX, FloatBuffer buffer){
-        return BufferUtils.get(x,y,sizeX,Config.bufferCellSize,0, buffer);
+    public static float getOffsetCode(int x, int y, int chunkSize, FloatBuffer buffer){
+        return BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,0, buffer);
     }
 
-    public static void setOffsetCode(int x, int y, int sizeX, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y, sizeX,Config.bufferCellSize,0, buffer, value);
+    public static void setOffsetCode(int x, int y, int chunkSize, FloatBuffer buffer, float value){
+        BufferUtils.set(x,y, chunkSize,Config.bufferCellSize,0, buffer, value);
     }
 
-    public static float getToApply(int x, int y, int sizeX, FloatBuffer buffer){
-        return BufferUtils.get(x,y, sizeX,Config.bufferCellSize,3, buffer);
+    public static float getToApply(int x, int y, int chunkSize, FloatBuffer buffer){
+        return BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,3, buffer);
     }
 
-    public static void setToApply(int x, int y, int sizeX, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y,sizeX,Config.bufferCellSize,3, buffer, value);
+    public static void setToApply(int x, int y, int chunkSize, FloatBuffer buffer, float value){
+        BufferUtils.set(x,y,chunkSize,Config.bufferCellSize,3, buffer, value);
     }
 
     public static int getXFromOffsetCode(int x, int code){
@@ -66,11 +66,11 @@ public class RealityAspectStrategy {
         return 0;
     }
 
-    public static int getTargetX(int x, int y, int sizeX, FloatBuffer buffer){
-        return getXFromOffsetCode(x,(int)getOffsetCode(x,y,sizeX,buffer));
+    public static int getTargetX(int x, int y, int chunkSize, FloatBuffer buffer){
+        return getXFromOffsetCode(x,(int)getOffsetCode(x,y,chunkSize,buffer));
     }
 
-    public static int getTargetY(int x, int y, int sizeX, FloatBuffer buffer){
-        return getYFromOffsetCode(y,(int)getOffsetCode(x,y,sizeX,buffer));
+    public static int getTargetY(int x, int y, int chunkSize, FloatBuffer buffer){
+        return getYFromOffsetCode(y,(int)getOffsetCode(x,y,chunkSize,buffer));
     }
 }

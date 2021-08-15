@@ -56,15 +56,11 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     private boolean broadcastActions = true;
     private int spellFrameCounter = 0;
 
-    public WorldCapsule(Scene parent, Config conf_, World world_) throws Exception {
+    public WorldCapsule(Scene parent, World world_){
         super(parent);
-        conf = conf_;
-        spellAction = new SpellAction();
         world = world_;
-        if( /* The size of the world should match the configuration! */
-            (world.getSizeX() != conf.WORLD_BLOCK_NUMBER[0])
-            ||(world.getSizeY() != conf.WORLD_BLOCK_NUMBER[1])
-        ) throw new Exception("World size mismatch");
+        conf = world.getConf();
+        spellAction = new SpellAction();
         camera.setToOrtho(false, width(), height());
         camera.update();
     }
@@ -224,10 +220,10 @@ public class WorldCapsule extends CapsuleService implements DisplayService<Textu
     }
 
     public float width(){
-        return conf.WORLD_BLOCK_NUMBER[0];
+        return conf.getChunkBlockSize();
     }
     public float height(){
-        return conf.WORLD_BLOCK_NUMBER[1];
+        return conf.getChunkBlockSize();
     }
 
     @Override

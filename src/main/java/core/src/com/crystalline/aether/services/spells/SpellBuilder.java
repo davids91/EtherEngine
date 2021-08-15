@@ -15,11 +15,11 @@ public class SpellBuilder extends CapsuleService {
 
     private int activeTimeframe = 0;
 
-    public SpellBuilder(Scene parent, Config conf_, Vector3 spellSize_){
+    public SpellBuilder(Scene parent, Config conf_, int spellSize_){
         super(parent);
         conf = conf_;
-        resultSpell = new Spell(spellSize_);
-        spellSize = spellSize_;
+        resultSpell = new Spell(new Vector3(spellSize_,spellSize_,spellSize_));
+        spellSize = new Vector3(spellSize_,spellSize_,spellSize_);
     }
 
     public void setFrameNumber(int frameNumber){
@@ -48,7 +48,7 @@ public class SpellBuilder extends CapsuleService {
             activeTimeframe = (int)parameters[0];
         }else if(name.equals("lastAction")&&(1 == parameters.length)){
             SpellAction action = ((SpellAction)parameters[0]);
-            int coordinateHash = BufferUtils.map2DTo1D((int)action.pos.x, (int)action.pos.y, conf.WORLD_BLOCK_NUMBER[0]);
+            int coordinateHash = BufferUtils.map2DTo1D((int)action.pos.x, (int)action.pos.y, conf.getChunkBlockSize());
             getCurrentSpell().getFrame(activeTimeframe).addAction(action, coordinateHash);
         }
     }

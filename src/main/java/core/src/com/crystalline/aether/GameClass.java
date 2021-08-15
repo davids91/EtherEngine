@@ -24,7 +24,7 @@ public class GameClass extends ApplicationAdapter {
 			0,
 			new ArrayList<Scene>() {{
 				add(new PlaygroundScene(builder, new Config()));
-				add(new EditorScene(builder, new Config().block_dimensions(16,16)));
+				add(new EditorScene(builder, new Config(16)));
 			}}
 		);
 	}

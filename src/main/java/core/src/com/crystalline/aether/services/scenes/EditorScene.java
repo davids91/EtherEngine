@@ -63,7 +63,7 @@ public class EditorScene extends Scene {
         Skin skin = SkinFactory.getDefaultSkin();
         conf = conf_;
         try {
-            worldCapsule = new WorldCapsule(this,conf, world);
+            worldCapsule = new WorldCapsule(this, world);
             worldCapsule.setPlay(false);
             worldCapsule.setDoActions(false);
         } catch (Exception e) {
@@ -127,7 +127,7 @@ public class EditorScene extends Scene {
 //        spellPanel.add(availableManaInFrame); /*TODO: Maximize the amount of mana to be moved in a frame */
         spellPanel.add(ebrushPanel.getContainer()).row();
 
-        spellBuilder = new SpellBuilder(this, conf, conf.WORLD_DIMENSIONS);
+        spellBuilder = new SpellBuilder(this, conf, conf.getChunkBlockSize());
         /*!Note: The editor is a full world of a relative small size */
         timeframeTable = new TimeframeTable(worldCapsule,numberOfFrames,skin,conf);
         timeframeTable.addListener(new ClickListener(){
@@ -228,13 +228,13 @@ public class EditorScene extends Scene {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(Color.LIME);
         float lineWidth = 5.0f;
-        for(float x = 0; x<conf.WORLD_BLOCK_NUMBER[0]; x+=1.0){
-            float xPos = (stage.getWidth()/conf.WORLD_BLOCK_NUMBER[0]) * x;
-            shapeRenderer.rect(xPos - lineWidth/2.0f,0,lineWidth,conf.WORLD_SIZE[1]);
+        for(float x = 0; x<conf.getChunkBlockSize(); x+=1.0){
+            float xPos = (stage.getWidth()/conf.getChunkBlockSize()) * x;
+            shapeRenderer.rect(xPos - lineWidth/2.0f,0,lineWidth,conf.getChunkSize());
         }
-        for(float y = 0; y<conf.WORLD_BLOCK_NUMBER[1]; y+=1.0){
-            float yPos = (stage.getHeight()/conf.WORLD_BLOCK_NUMBER[0]) * y;
-            shapeRenderer.rect(0,yPos - lineWidth/2.0f,conf.WORLD_SIZE[0],lineWidth);
+        for(float y = 0; y<conf.getChunkBlockSize(); y+=1.0){
+            float yPos = (stage.getHeight()/conf.getChunkBlockSize()) * y;
+            shapeRenderer.rect(0,yPos - lineWidth/2.0f,conf.getChunkSize(),lineWidth);
         }
         shapeRenderer.end();
         if(showActions){

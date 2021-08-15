@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector3;
 import com.crystalline.aether.models.spells.SpellAction;
 import com.crystalline.aether.models.world.RealityAspectStrategy;
-import com.crystalline.aether.services.CPUBackend;
+import com.crystalline.aether.services.computation.CPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.Material;

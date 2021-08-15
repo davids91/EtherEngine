@@ -3,13 +3,11 @@ package com.crystalline.aether.services.world;
 import com.badlogic.gdx.graphics.Color;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.ElementalAspectStrategy;
-import com.crystalline.aether.models.world.EtherealAspectStrategy;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.models.world.RealityAspectStrategy;
-import com.crystalline.aether.services.CPUBackend;
+import com.crystalline.aether.services.computation.CPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
-import com.crystalline.aether.services.utils.MiscUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -212,7 +210,6 @@ public class ElementalAspect extends RealityAspect {
         BufferUtils.copy(backend.getOutput(defineByEtherealPhaseIndex), elements);
     }
 
-
     @Override
     public FloatBuffer determineUnits(World parent) {
         return null; /* Don't modify anything */
@@ -232,8 +229,6 @@ public class ElementalAspect extends RealityAspect {
         backend.runPhase(switchDynamicsPhaseIndex);
         BufferUtils.copy(backend.getOutput(switchDynamicsPhaseIndex), dynamics);
     }
-
-
 
     @Override
     public void processUnits(World parent){

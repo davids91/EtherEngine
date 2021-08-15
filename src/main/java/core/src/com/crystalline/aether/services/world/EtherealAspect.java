@@ -1,12 +1,10 @@
 package com.crystalline.aether.services.world;
 
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.models.world.ElementalAspectStrategy;
 import com.crystalline.aether.models.world.EtherealAspectStrategy;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
-import com.crystalline.aether.models.world.RealityAspectStrategy;
-import com.crystalline.aether.services.CPUBackend;
+import com.crystalline.aether.services.computation.CPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
 
 import java.nio.ByteBuffer;

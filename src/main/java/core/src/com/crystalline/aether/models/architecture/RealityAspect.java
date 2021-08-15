@@ -1,8 +1,6 @@
 package com.crystalline.aether.models.architecture;
 
 import com.crystalline.aether.models.Config;
-import com.crystalline.aether.services.CalculationPlatform;
-import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.services.world.World;
 
 import java.nio.FloatBuffer;

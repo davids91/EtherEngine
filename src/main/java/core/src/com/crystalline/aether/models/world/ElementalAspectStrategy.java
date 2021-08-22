@@ -643,8 +643,8 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
     private static final Vector2 tmpVec = new Vector2();
     public static Vector2 getForce(int x, int y, int chunkSize, FloatBuffer forces){
         tmpVec.set(
-                BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,0, forces),
-                BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,1, forces)
+            BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,0, forces),
+            BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,1, forces)
         );
         return tmpVec;
     }

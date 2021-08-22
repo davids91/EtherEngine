@@ -14,7 +14,7 @@
 
   void main(void){
     vec3 currentPosition = vec3(gl_FragCoord.x/chunkSize, gl_FragCoord.y/chunkSize, gl_FragCoord.z/chunkSize);
-    /*gl_FragColor.r = 0;
+    gl_FragColor.r = 0;
     gl_FragColor.g = 0;
     gl_FragColor.b = 0;
     gl_FragColor.a = 0;
@@ -27,7 +27,6 @@
     }else{
       eth_SetAether(gl_FragColor, 1);
       eth_SetNether(gl_FragColor, world_ratioAir);
-    }*/
-    gl_FragColor.g = world_getUnit(currentPosition.xy, inputs2);
+    }
     gl_FragColor.a = 1;
   }

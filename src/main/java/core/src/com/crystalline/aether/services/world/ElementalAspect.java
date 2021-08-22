@@ -18,34 +18,9 @@ import java.util.Random;
 public class ElementalAspect extends RealityAspect {
     private final Random rnd = new Random();
 
-    /* TODO: Maybe prio doesn't need to be kept... It can be just calculated from coordinates */
-    /**
-     * A texture image representing the elemental properties of reality
-     * - R: block type --> Material.Elements
-     * - G:
-     * - B:
-     * - A: priority --> A unique number to decide arbitration while switching cells
-     */
     private FloatBuffer elements;
+    private FloatBuffer forces;
 
-    /* TODO: GravityCorrection to be moved into proposed changes */
-    /**
-     * A texture image representing the dynamism of a cell
-     * - R: x of the force vector active on the block
-     * - G: y of the force vector active on the block
-     * - B: the velocity tick of the cell ( 0 means the cell would move )
-     * - A: gravity correction amount ( helps to not add gravity in the intermediary steps of the mechanics evaluation )
-     */
-    private FloatBuffer dynamics;
-
-    /**
-     * A texture image representing each cells intention to switch to another cell
-     * - R: the offset code for the target, which is to be used in accordance with the coordinates of the source cell
-     * - G:
-     * - B: acquired velocity tick (to be used to correct it in dynamics buffer when taking over changes)
-     * - A: toApply bit --> whether or not to apply this change, or to try again in the next iteration
-     *          0 - don't apply; 1 - a cell will switch with his cell; 2 - this cell will switch with another cell
-     */
     private final FloatBuffer proposedChanges;
 
     private float[][] touchedByMechanics; /* Debug purposes */
@@ -81,7 +56,7 @@ public class ElementalAspect extends RealityAspect {
     public ElementalAspect(Config conf_){
         super(conf_);
         elements = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
-        dynamics = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
+        forces = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         proposedChanges = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         touchedByMechanics = new float[conf.getChunkBlockSize()][conf.getChunkBlockSize()];
         backend = new CPUBackend();
@@ -108,7 +83,7 @@ public class ElementalAspect extends RealityAspect {
         applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         applyChangesDynamicsPhaseInputs = new FloatBuffer[4];
         mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(strategy::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        mechanicsPostProcessDynamicsPhaseInputs = new FloatBuffer[3];
+        mechanicsPostProcessDynamicsPhaseInputs = new FloatBuffer[4];
         arbitrateInteractionsPhaseIndex = backend.addPhase(strategy::arbitrateInteractionsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         arbitrateInteractionsPhaseInputs = new FloatBuffer[3];
 
@@ -119,7 +94,7 @@ public class ElementalAspect extends RealityAspect {
     protected Object[] getState() {
         return new Object[]{
             BufferUtils.clone(elements),
-            BufferUtils.clone(dynamics),
+            BufferUtils.clone(forces),
             Arrays.copyOf(touchedByMechanics, touchedByMechanics.length)
         };
     }
@@ -127,7 +102,7 @@ public class ElementalAspect extends RealityAspect {
     @Override
     protected void setState(Object[] state) {
         elements = (FloatBuffer) state[0];
-        dynamics = (FloatBuffer) state[1];
+        forces = (FloatBuffer) state[1];
         touchedByMechanics = (float[][]) state[2];
     }
 
@@ -163,7 +138,7 @@ public class ElementalAspect extends RealityAspect {
     private void calculatePrio(){
         Random rnd = new Random();
         for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-            RealityAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat());
+            ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat());
         }}
         while(true){
             int similarities = 0;
@@ -176,9 +151,9 @@ public class ElementalAspect extends RealityAspect {
                 for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
                     if(
                         ((x != ix)&&(y != iy))
-                        &&(500 > Math.abs(RealityAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements) - RealityAspectStrategy.getPriority(ix,iy, conf.getChunkBlockSize(), elements)))
+                        &&(500 > Math.abs(ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements) - ElementalAspectStrategy.getPriority(ix,iy, conf.getChunkBlockSize(), elements)))
                     ){
-                        RealityAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * Float.MAX_VALUE);
+                        ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * Float.MAX_VALUE);
                         ++similarities;
                     }
                 }}
@@ -186,8 +161,8 @@ public class ElementalAspect extends RealityAspect {
             if(0 == similarities)break;
         }
         for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-            if(maxPrio <  RealityAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements)){
-                maxPrio = RealityAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements);
+            if(maxPrio <  ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements)){
+                maxPrio = ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements);
             }
         }}
     }
@@ -195,8 +170,7 @@ public class ElementalAspect extends RealityAspect {
         calculatePrio();
         for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
             setElement(x,y,Material.Elements.Air);
-            ElementalAspectStrategy.setForce(x,y, conf.getChunkBlockSize(), dynamics,0,0);
-            ElementalAspectStrategy.setGravityCorrection(x,y, conf.getChunkBlockSize(), dynamics,0);
+            ElementalAspectStrategy.setForce(x,y, conf.getChunkBlockSize(), forces,0,0);
             ElementalAspectStrategy.setVelocityTick(x,y, conf.getChunkBlockSize(), proposedChanges, ElementalAspectStrategy.velocityMaxTicks);
             touchedByMechanics[x][y] = 0;
         }}
@@ -224,10 +198,10 @@ public class ElementalAspect extends RealityAspect {
         BufferUtils.copy(backend.getOutput(switchElementsPhaseIndex), elements);
 
         switchDynamicsPhaseInputs[0] = proposals;
-        switchDynamicsPhaseInputs[1] = dynamics;
+        switchDynamicsPhaseInputs[1] = forces;
         backend.setInputs(switchDynamicsPhaseInputs);
         backend.runPhase(switchDynamicsPhaseIndex);
-        BufferUtils.copy(backend.getOutput(switchDynamicsPhaseIndex), dynamics);
+        BufferUtils.copy(backend.getOutput(switchDynamicsPhaseIndex), forces);
     }
 
     @Override
@@ -272,7 +246,7 @@ public class ElementalAspect extends RealityAspect {
             /* Propose forces, and apply changes not yet applied from the previous iteration */
             /* Propose changes from forces */
             proposeForcesPhaseInputs[0] = elements;
-            proposeForcesPhaseInputs[1] = dynamics;
+            proposeForcesPhaseInputs[1] = forces;
             parent.provideScalarsTo(proposeForcesPhaseInputs, 2);
             parent.getEtherealPlane().provideEtherTo(proposeForcesPhaseInputs, 3);
             backend.setInputs(proposeForcesPhaseInputs);
@@ -298,13 +272,13 @@ public class ElementalAspect extends RealityAspect {
             parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
             backend.setInputs(applyChangesDynamicsPhaseInputs);
             backend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
-            BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), dynamics); /* TODO: maybe copies can be avoided here? */
+            BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), forces); /* TODO: maybe copies can be avoided here? */
 
             arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
             arbitrateInteractionsPhaseInputs[1] = elements;
             parent.provideScalarsTo(arbitrateInteractionsPhaseInputs, 2);
             backend.setInputs(arbitrateInteractionsPhaseInputs);
-            backend.runPhase(arbitrateInteractionsPhaseIndex);
+            backend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
 
             parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
             if(i == ElementalAspectStrategy.velocityMaxTicks-1){
@@ -313,11 +287,12 @@ public class ElementalAspect extends RealityAspect {
         }
 
         mechanicsPostProcessDynamicsPhaseInputs[0] = elements;
-        mechanicsPostProcessDynamicsPhaseInputs[1] = dynamics;
+        mechanicsPostProcessDynamicsPhaseInputs[1] = forces;
         parent.provideScalarsTo(mechanicsPostProcessDynamicsPhaseInputs, 2);
+        mechanicsPostProcessDynamicsPhaseInputs[3] = proposedChanges;
         backend.setInputs(mechanicsPostProcessDynamicsPhaseInputs);
         backend.runPhase(mechanicsPostProcessDynamicsPhaseIndex);
-        BufferUtils.copy(backend.getOutput(mechanicsPostProcessDynamicsPhaseIndex), dynamics);
+        BufferUtils.copy(backend.getOutput(mechanicsPostProcessDynamicsPhaseIndex), forces);
     }
 
     /* TODO: Make movable objects, depending of the solidness "merge into one another", leaving vacuum behind, which are to resolved at the end of the mechanics round */
@@ -337,7 +312,7 @@ public class ElementalAspect extends RealityAspect {
     public void pondWithGrill(World parent, int floorHeight){
         for(int x = 0;x < conf.getChunkBlockSize(); ++x){ /* create the ground floor */
             for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-                ElementalAspectStrategy.setForce(x,y, conf.getChunkBlockSize(), dynamics,0,0);
+                ElementalAspectStrategy.setForce(x,y, conf.getChunkBlockSize(), forces,0,0);
                 if(
                     (y <= floorHeight)
                     &&(0 < x)&&(conf.getChunkBlockSize()-1 > x)&&(0 < y)&&(conf.getChunkBlockSize()-1 > y)

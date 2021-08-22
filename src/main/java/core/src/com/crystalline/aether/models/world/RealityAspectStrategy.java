@@ -17,28 +17,24 @@ public class RealityAspectStrategy {
     protected static final Includer baseIncluder = new Includer()
             .addSource(materialLibrary).addSource(worldLibrary).addSource(etherealLibrary).addSource(elementalLibrary);
 
-    public static void setPriority(int x, int y, int chunkSize, FloatBuffer buffer, float prio){
-        BufferUtils.set(x,y,chunkSize, Config.bufferCellSize,3, buffer, prio);
-    }
-
-    public static float getPriority(int x, int y, int chunkSize, FloatBuffer elements){
-        return BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,3, elements);
-    }
-
+    /**
+     * A texture image representing each cells intention to switch to another cell
+     * - R: the offset code for the target, which is to be used in accordance with the coordinates of the source cell
+     * - G: toApply bit --> whether to apply this change, or to try again in the next iteration
+     *          0 - don't apply; 1 - a cell will switch with his cell; 2 - this cell will switch with another cell
+     * - B: acquired velocity tick (to be used to correct it in dynamics buffer when taking over changes)
+     */
     public static float getOffsetCode(int x, int y, int chunkSize, FloatBuffer buffer){
         return BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,0, buffer);
     }
-
     public static void setOffsetCode(int x, int y, int chunkSize, FloatBuffer buffer, float value){
         BufferUtils.set(x,y, chunkSize,Config.bufferCellSize,0, buffer, value);
     }
-
     public static float getToApply(int x, int y, int chunkSize, FloatBuffer buffer){
-        return BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,3, buffer);
+        return BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,1, buffer);
     }
-
     public static void setToApply(int x, int y, int chunkSize, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y,chunkSize,Config.bufferCellSize,3, buffer, value);
+        BufferUtils.set(x,y,chunkSize,Config.bufferCellSize,1, buffer, value);
     }
 
     public static int getXFromOffsetCode(int x, int code){

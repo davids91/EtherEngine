@@ -14,22 +14,7 @@ import java.nio.FloatBuffer;
 
 /* TODO: Surplus Ether to modify the force of the Ether vapor in an increased amount */
 public class EtherealAspect extends RealityAspect {
-
-    /**
-     * A texture image representing the ethereal values in the plane
-     * - R: Moving substance
-     * - G: Unsued yet...
-     * - B: Stationary substance
-     * - A: Unsued
-     * Inside the backend there is also another buffer structure used for sharing Ether in-between cells,
-     * which is not declared explicitly as it is part of the backend, and never used outside the calculation phases
-     * - R: Released Nether
-     * - G: Average Released Nether in context
-     * - B: Released Aether
-     * - A: Released Aether in context
-     * */
     private FloatBuffer etherValues;
-
     private final CPUBackend backend;
     private final GPUBackend gpuBackend;
     private final int preprocessPhaseIndex;
@@ -76,9 +61,9 @@ public class EtherealAspect extends RealityAspect {
         }
         switchEtherPhaseIndex = backend.addPhase(strategy::switchEtherPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
 
-        preProcessInputs = new FloatBuffer[]{backend.getOutput(finalizePhaseIndex)};
-        sharingInputs = new FloatBuffer[]{backend.getOutput(preprocessPhaseIndex)};
-        finalizeInputs = new FloatBuffer[]{etherValues, backend.getOutput(sharingPhaseIndex)};
+        preProcessInputs = new FloatBuffer[1];
+        sharingInputs = new FloatBuffer[1];
+        finalizeInputs = new FloatBuffer[3];
         processTypesPhaseInputs = new FloatBuffer[]{etherValues, null, null};
         determineUnitsPhaseInputs = new FloatBuffer[]{etherValues};
         defineByElementalPhaseInputs = new FloatBuffer[]{null, null};
@@ -147,15 +132,19 @@ public class EtherealAspect extends RealityAspect {
 
     private void processEther() {
         /* Pre-process phase: copy the released ether for each buffer */
+        preProcessInputs[0] = etherValues;
         backend.setInputs(preProcessInputs);
         backend.runPhase(preprocessPhaseIndex);
 
         /* sharing phase: released ether to be averaged together */
+        sharingInputs[0] = backend.getOutput(preprocessPhaseIndex);
         backend.setInputs(sharingInputs);
         backend.runPhase(sharingPhaseIndex);
 
         /* finalize phase: final ether to be read and decided */
-        finalizeInputs[0] = etherValues;
+        finalizeInputs[0] = backend.getOutput(preprocessPhaseIndex);
+        finalizeInputs[1] = backend.getOutput(sharingPhaseIndex);
+        finalizeInputs[2] = etherValues;
         backend.setInputs(finalizeInputs);
         backend.runPhase(finalizePhaseIndex);
         BufferUtils.copy(backend.getOutput(finalizePhaseIndex), etherValues);
@@ -220,6 +209,20 @@ public class EtherealAspect extends RealityAspect {
 
     public float netherValueAt(int x, int y){
         return EtherealAspectStrategy.getNetherValue(x,y, conf.getChunkBlockSize(), etherValues);
+    }
+
+    public float getReleasedAether(int x, int y){
+        return EtherealAspectStrategy.getReleasedAether(x,y, conf.getChunkBlockSize(), backend.getOutput(preprocessPhaseIndex));
+    }
+    public float getReleasedNether(int x, int y){
+        return EtherealAspectStrategy.getReleasedNether(x,y, conf.getChunkBlockSize(), backend.getOutput(preprocessPhaseIndex));
+    }
+
+    public float getAvgReleasedAether(int x, int y){
+        return EtherealAspectStrategy.getAvgReleasedAether(x,y, conf.getChunkBlockSize(), backend.getOutput(preprocessPhaseIndex));
+    }
+    public float getAvgReleasedNether(int x, int y){
+        return EtherealAspectStrategy.getAvgReleasedNether(x,y, conf.getChunkBlockSize(), backend.getOutput(preprocessPhaseIndex));
     }
 
     public float getRatio(int x, int y){

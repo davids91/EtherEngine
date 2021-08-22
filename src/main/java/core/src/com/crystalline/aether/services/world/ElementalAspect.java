@@ -385,21 +385,6 @@ public class ElementalAspect extends RealityAspect {
         return Material.getColor(getElement(x,y), parent.getUnit(x,y)).cpy();
     }
 
-    private float netherDebugVal(World parent, int x, int y){
-        return Math.max(0,
-            parent.getEtherealPlane().netherValueAt(x,y)
-            - parent.getEtherealPlane().getMaxNether(x,y)
-        );
-    }
-
-    private float aetherDebugVal(World parent, int x, int y){
-        return Math.max(0,
-            parent.getEtherealPlane().aetherValueAt(x,y)
-            - parent.getEtherealPlane().getMinAether(x,y)
-        );
-    }
-
-
     public Material.Elements getElement(int x, int y){
         return ElementalAspectStrategy.getElementEnum(x,y,conf.getChunkBlockSize(), elements);
     }
@@ -436,12 +421,7 @@ public class ElementalAspect extends RealityAspect {
         Color defColor = getColor(x,y, parent).cpy(); /*  TODO: Use spellUtil getColorOf */
 //        if(0 < touchedByMechanics[x][y]){ /* it was modified.. */
 //            defColor.lerp(Color.GREEN, 0.5f); /* to see if it was touched by the mechanics */
-//            float aetherDebugVal = Math.abs(
-//                parent.getEtherealPlane().getTargetAether(x,y)
-//                - parent.getEtherealPlane().aetherValueAt(x,y)
-//            ) / Math.max(0.001f, parent.getEtherealPlane().aetherValueAt(x,y));
         float unitsDiff = 0;
-//        if( Material.ratioOf(Material.Elements.Fire) > parent.getUnit(x,y))
         if( x == conf.getChunkBlockSize()/2 &&  y == conf.getChunkBlockSize() / 3)
             unitsDiff = 0.8f;
 
@@ -449,17 +429,18 @@ public class ElementalAspect extends RealityAspect {
         /* Red <-> Blue: left <-> right */
         float offsetX = (RealityAspectStrategy.getTargetX(x,y, conf.getChunkBlockSize(), proposedChanges) - x + 1) / 2.0f;
         float offsetY = (RealityAspectStrategy.getTargetY(x,y, conf.getChunkBlockSize(), proposedChanges) - y + 1) / 2.0f;
-        debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets *///        float prio = getPriority(x,y, conf.getChunkBlockSize(), elements)/maxPrio;
-//        Color debugColor = new Color(prio, prio, prio, 1.0f);
-//                    offsetR,
-////                netherDebugVal(parent,x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
-//                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
-////                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
-//                    1f,//unitsDiff,
-////                aetherDebugVal(parent,x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
-//                    offsetB,
-//                1.0f
-//            );
+//        debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets *///        float prio = getPriority(x,y, conf.getChunkBlockSize(), elements)/maxPrio;
+        debugColor = new Color(
+////                prio, prio, prio, 1.0f
+////                    offsetR,
+                parent.getEtherealPlane().getAvgReleasedAether(x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
+////                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
+//////                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
+                    1f,//unitsDiff,
+                parent.getEtherealPlane().getAvgReleasedNether(x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
+////                    offsetB,
+                1.0f
+            );
             defColor.lerp(debugColor,debugViewPercent);
 //        }
         return defColor;

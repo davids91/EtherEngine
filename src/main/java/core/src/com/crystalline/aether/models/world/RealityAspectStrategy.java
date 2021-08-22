@@ -9,6 +9,7 @@ import com.crystalline.aether.services.utils.StringUtils;
 import java.nio.FloatBuffer;
 
 public class RealityAspectStrategy {
+    /* TODO: Use Alpha value multiplier as a was to set resolution to handle enormous / extra small values */
     public static final String materialLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/materialLibrary.fshader"));
     public static final String worldLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/worldLibrary.fshader"));
     public static final String etherealLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/ethLibrary.fshader"));

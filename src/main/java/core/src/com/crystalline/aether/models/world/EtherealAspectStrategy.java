@@ -183,6 +183,14 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
         }
     }
 
+    public static final String determineUnitsPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/ethDetermineUnitsPhase.fshader")
+    ), new Includer(baseIncluder));
+    /**
+     * Calculates the scalar units for the world based on the Ethereal values
+     * @param inputs [0]: etherValues
+     * @param output new scalars for the world to take over
+     */
     public void determineUnitsPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0;x < chunkSize; ++x){
             for(int y = 0; y < chunkSize; ++y){
@@ -338,7 +346,10 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
 
     public static float getUnit(int x, int y,  int chunkBlockSize, FloatBuffer etherValues){
         return ( /* Since Aether is the stabilizer, it shall weigh more */
-            (getAetherValue(x,y, chunkBlockSize, etherValues)* aetherWeightInUnits + getNetherValue(x,y, chunkBlockSize, etherValues)) /(aetherWeightInUnits+1)
+            (
+                getAetherValue(x,y, chunkBlockSize, etherValues) * aetherWeightInUnits
+                + getNetherValue(x,y, chunkBlockSize, etherValues)
+            ) / (aetherWeightInUnits+1)
         );
     }
 }

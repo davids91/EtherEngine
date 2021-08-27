@@ -7,8 +7,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.crystalline.aether.models.Config;
-import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.services.utils.StringUtils;
 
 import java.nio.ByteBuffer;

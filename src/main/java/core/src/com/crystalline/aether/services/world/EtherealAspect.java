@@ -60,12 +60,13 @@ public class EtherealAspect extends RealityAspect {
         preprocessPhaseIndex = backend.addPhase(strategy::preProcessCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         sharingPhaseIndex = backend.addPhase(strategy::sharingCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         finalizePhaseIndex = backend.addPhase(strategy::finalizeCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         if(!useGPU){
+            processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             determineUnitsPhaseIndex = backend.addPhase(strategy::determineUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             defineByElementalPhaseIndex = backend.addPhase(strategy::defineByElementalPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else
         {
+            processTypesPhaseIndex = initKernel(EtherealAspectStrategy.processTypesPhaseKernel);
             determineUnitsPhaseIndex = initKernel(EtherealAspectStrategy.determineUnitsPhaseKernel);
             defineByElementalPhaseIndex = initKernel(EtherealAspectStrategy.defineByElementalPhaseKernel);
         }
@@ -162,9 +163,15 @@ public class EtherealAspect extends RealityAspect {
         processTypesPhaseInputs[0] = etherValues;
         parent.getElementalPlane().provideElementsTo(processTypesPhaseInputs, 1);
         parent.provideScalarsTo(processTypesPhaseInputs,2); /* TODO: This might be needed only once? */
-        backend.setInputs(processTypesPhaseInputs);
-        backend.runPhase(processTypesPhaseIndex);
-        BufferUtils.copy(backend.getOutput(processTypesPhaseIndex), etherValues);
+        if(!useGPU){
+            backend.setInputs(processTypesPhaseInputs);
+            backend.runPhase(processTypesPhaseIndex);
+            BufferUtils.copy(backend.getOutput(processTypesPhaseIndex), etherValues);
+        }else{
+            gpuBackend.setInputs(processTypesPhaseInputs);
+            gpuBackend.runPhase(processTypesPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(processTypesPhaseIndex), etherValues);
+        }
     }
 
     private float getUnit(int x, int y){

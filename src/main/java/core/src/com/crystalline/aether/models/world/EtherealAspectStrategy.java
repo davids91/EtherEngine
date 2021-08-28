@@ -159,6 +159,9 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
         }
     }
 
+    public static final String processTypesPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/ethProcessTypesPhase.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Provides a refined step of the ethereal aspect buffer after processing the ratio differences
      * @param inputs [0]: etherValues; [1]: elements; [2]: scalars
@@ -168,14 +171,13 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
         for(int x = 0;x < chunkSize; ++x){ /* Take over unit changes from Elemental plane */
             for(int y = 0; y < chunkSize; ++y){
                 float oldRatio = getRatio(x,y, chunkSize, inputs[0]);
-                float oldUnit = getUnit(x,y, chunkSize, inputs[0]);
-                Material.Elements oldElement = getElementEnum(x,y,chunkSize,inputs[0]);
-//                Material.Elements oldElement = ElementalAspect.getElementEnum(x,y,chunkSize,inputs[1]);
+                float etherUnit = getUnit(x,y, chunkSize, inputs[0]);
+                float worldUnit = World.getUnit(x,y,chunkSize,inputs[2]);
+                float aeVal = aetherValueAt(x,y, chunkSize, inputs[0]);
+                float neVal = netherValueAt(x,y, chunkSize, inputs[0]);
                 float newAetherValue = (
-                    (
-                        aetherValueAt(x,y, chunkSize, inputs[0])* aetherWeightInUnits + netherValueAt(x,y, chunkSize, inputs[0]))
-                        * World.getUnit(x,y,chunkSize,inputs[2])
-                    ) / (oldUnit * aetherWeightInUnits + oldUnit * oldRatio
+                    (((aeVal * aetherWeightInUnits) + neVal) * worldUnit)
+                    /((etherUnit * aetherWeightInUnits) + (etherUnit * oldRatio))
                 );
                 setAether(x,y, chunkSize, output, newAetherValue);
                 setNether(x,y, chunkSize, output, (newAetherValue * oldRatio));
@@ -207,38 +209,34 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
      * - G: -
      * - B: Stationary substance
      */
-    public static float getMaxNether(int x, int y, int chunkSize, FloatBuffer buffer){
-        return aetherValueAt(x,y, chunkSize, buffer) * Material.ratioOf(Material.Elements.Fire);
+    public static float getMaxNether(int x, int y, int chunkSize, FloatBuffer etherValues){
+        return aetherValueAt(x,y, chunkSize, etherValues) * Material.ratioOf(Material.Elements.Fire);
     }
 
-    public static float getMinAether(int x, int y, int chunkSize, FloatBuffer buffer){
-        return netherValueAt(x,y, chunkSize, buffer) / Material.ratioOf(Material.Elements.Earth);
+    public static float getMinAether(int x, int y, int chunkSize, FloatBuffer etherValues){
+        return netherValueAt(x,y, chunkSize, etherValues) / Material.ratioOf(Material.Elements.Earth);
     }
 
-    public static float getAetherValue(int x, int y, int chunkSize, FloatBuffer buffer){
-        return BufferUtils.get(x, y, chunkSize, Config.bufferCellSize,2, buffer);
+    public static float getAetherValue(int x, int y, int chunkSize, FloatBuffer etherValues){
+        return BufferUtils.get(x, y, chunkSize, Config.bufferCellSize,2, etherValues);
     }
 
-    public static float getNetherValue(int x, int y, int chunkSize, FloatBuffer buffer){
-        return BufferUtils.get(x, y, chunkSize, Config.bufferCellSize,0, buffer);
+    public static float getNetherValue(int x, int y, int chunkSize, FloatBuffer etherValues){
+        return BufferUtils.get(x, y, chunkSize, Config.bufferCellSize,0, etherValues);
     }
 
-    public static float aetherValueAt(int x, int y, int chunkSize, FloatBuffer buffer){
-        return getAetherValue(x,y, chunkSize, buffer);
+    public static float aetherValueAt(int x, int y, int chunkSize, FloatBuffer etherValues){
+        return getAetherValue(x,y, chunkSize, etherValues);
     }
 
-    public static float netherValueAt(int x, int y, int chunkSize, FloatBuffer buffer){
-        return getNetherValue(x,y, chunkSize, buffer);
+    public static float netherValueAt(int x, int y, int chunkSize, FloatBuffer etherValues){
+        return getNetherValue(x,y, chunkSize, etherValues);
     }
 
-    public static float getRatio(int x, int y, int chunkSize, FloatBuffer buffer){
-        if(0 != getAetherValue(x,y, chunkSize, buffer))
-            return (getNetherValue(x,y, chunkSize, buffer) / getAetherValue(x,y, chunkSize, buffer));
+    public static float getRatio(int x, int y, int chunkSize, FloatBuffer etherValues){
+        if(0 != getAetherValue(x,y, chunkSize, etherValues))
+            return (getNetherValue(x,y, chunkSize, etherValues) / getAetherValue(x,y, chunkSize, etherValues));
         else return 0;
-    }
-
-    public static float getElement(int x, int y, int chunkSize, FloatBuffer buffer){
-        return getRatio(x,y, chunkSize, buffer);
     }
 
     public static Material.Elements getElementEnum(int x, int y, int chunkSize, FloatBuffer buffer){

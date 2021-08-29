@@ -8,13 +8,13 @@
   layout(binding=2)uniform sampler2D inputs2; /* elements */
   layout(binding=3)uniform sampler2D inputs3; /* scalars */
 
+  <COORDINATES_LIBRARY>
   <MATERIAL_LIBRARY>
   <WORLD_LIBRARY>
   <ETH_LIBRARY>
   <ELM_LIBRARY>
 
   void main(void){
-    vec3 currentPosition = vec3(gl_FragCoord.x/chunkSize, gl_FragCoord.y/chunkSize, gl_FragCoord.z/chunkSize);
     gl_FragColor.r = 0; gl_FragColor.g = 0; gl_FragColor.b = 0; gl_FragColor.a = 1;
     float oldRatio = eth_getRatio(currentPosition.xy, inputs1);
     float etherUnit = eth_getUnit(currentPosition.xy, inputs1);
@@ -26,6 +26,6 @@
       /((etherUnit * aetherWeightInUnits) + (etherUnit * oldRatio))
     );
     float newNe = newAe * oldRatio;
-    eth_SetAether(gl_FragColor, newAe);
-    eth_SetNether(gl_FragColor, newNe);
+    eth_SetAether(newAe);
+    eth_SetNether(newNe);
   }

@@ -1,18 +1,19 @@
 /* =================== COORDINATES_LIBRARY =================== */
+const vec3 currentPosition = vec3(gl_FragCoord.x/chunkSize, gl_FragCoord.y/chunkSize, gl_FragCoord.z/chunkSize);
+const float unitCoordinate = 1/chunkSize;
 
 int coords_getOffsetCode(vec2 position, sampler2D proposedChanges){
   return int(texture(proposedChanges, position).r);
 }
 
-void coords_setOffsetCode(inout vec4 previous_color, float value){
-  previous_color.r = value;
+void coords_setOffsetCode(float value){
+  gl_FragColor.r = value;
 }
 
 float coords_getToApply(vec2 position, sampler2D proposedChanges){
   return(texture(proposedChanges, position).g);
 }
 
-/*!Note: floating point values mean sampler indices */
 float coords_getXFromOffsetCode(float x, int code){
     const float unitCoordinate = 1/chunkSize;
     switch(code){
@@ -43,14 +44,13 @@ float coords_getTargetY(vec2 position, sampler2D proposedChanges, float chunkSiz
   return coords_getYFromOffsetCode(position.y, offsetCode);
 }
 
-bool coords_insideInnerBounds(vec2 position, float chunkSize){
-  float unitCoordinate = 1/chunkSize;
+bool coords_insideInnerBounds(vec2 position){
   return (
     (unitCoordinate <= position.x)&&(1-unitCoordinate > position.x)
     &&(unitCoordinate <= position.y)&&(1-unitCoordinate > position.y)
   );
 }
 
-bool coords_insideEdges(vec2 position, float chunkSize){
+bool coords_insideEdges(vec2 position){
   return ( (0 <= position.x)&&(1 > position.x)&&(0 <= position.y)&&(1 > position.y) );
 }

@@ -7,12 +7,12 @@ float eth_getNether(vec2 position, sampler2D etherValues){
   return texture(etherValues, position).r;
 }
 
-void eth_SetAether(inout vec4 ethereal, float value){
-  ethereal.b = value;
+void eth_SetAether(float value){
+  gl_FragColor.b = value;
 }
 
-void eth_SetNether(inout vec4 ethereal, float value){
-  ethereal.r = value;
+void eth_SetNether(float value){
+  gl_FragColor.r = value;
 }
 
 const float aetherWeightInUnits = 4;

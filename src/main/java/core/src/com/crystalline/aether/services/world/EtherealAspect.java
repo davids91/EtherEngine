@@ -58,16 +58,20 @@ public class EtherealAspect extends RealityAspect {
         etherValues = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         EtherealAspectStrategy strategy = new EtherealAspectStrategy(conf.getChunkBlockSize());
 
-        preprocessPhaseIndex = backend.addPhase(strategy::preProcessCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        sharingPhaseIndex = backend.addPhase(strategy::sharingCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         finalizePhaseIndex = backend.addPhase(strategy::finalizeCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        sharingPhaseIndex = backend.addPhase(strategy::sharingCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         if(!useGPU){
+            preprocessPhaseIndex = backend.addPhase(strategy::preProcessCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+//            sharingPhaseIndex = backend.addPhase(strategy::sharingCalculationPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+
             processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             determineUnitsPhaseIndex = backend.addPhase(strategy::determineUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             defineByElementalPhaseIndex = backend.addPhase(strategy::defineByElementalPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             switchEtherPhaseIndex = backend.addPhase(strategy::switchEtherPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        }else
-        {
+        }else{
+            preprocessPhaseIndex = initKernel(EtherealAspectStrategy.preProcessPhaseKernel);
+//            sharingPhaseIndex = -1;
+
             processTypesPhaseIndex = initKernel(EtherealAspectStrategy.processTypesPhaseKernel);
             determineUnitsPhaseIndex = initKernel(EtherealAspectStrategy.determineUnitsPhaseKernel);
             defineByElementalPhaseIndex = initKernel(EtherealAspectStrategy.defineByElementalPhaseKernel);
@@ -144,21 +148,39 @@ public class EtherealAspect extends RealityAspect {
     private void processEther() {
         /* Pre-process phase: copy the released ether for each buffer */
         preProcessInputs[0] = etherValues;
-        backend.setInputs(preProcessInputs);
-        backend.runPhase(preprocessPhaseIndex);
+        if(!useGPU){
+            backend.setInputs(preProcessInputs);
+            backend.runPhase(preprocessPhaseIndex);
+        }else{
+            gpuBackend.setInputs(preProcessInputs);
+            gpuBackend.runPhase(preprocessPhaseIndex);
+        }
 
         /* sharing phase: released ether to be averaged together */
-        sharingInputs[0] = backend.getOutput(preprocessPhaseIndex);
-        backend.setInputs(sharingInputs);
-        backend.runPhase(sharingPhaseIndex);
+        if(!useGPU ||true){
+//            sharingInputs[0] = backend.getOutput(preprocessPhaseIndex);
+            sharingInputs[0] = gpuBackend.getOutput(preprocessPhaseIndex);
+            backend.setInputs(sharingInputs);
+            backend.runPhase(sharingPhaseIndex);
+        }
 
         /* finalize phase: final ether to be read and decided */
-        finalizeInputs[0] = backend.getOutput(preprocessPhaseIndex);
-        finalizeInputs[1] = backend.getOutput(sharingPhaseIndex);
-        finalizeInputs[2] = etherValues;
-        backend.setInputs(finalizeInputs);
-        backend.runPhase(finalizePhaseIndex);
-        BufferUtils.copy(backend.getOutput(finalizePhaseIndex), etherValues);
+        if(!useGPU ||true){
+//            finalizeInputs[0] = backend.getOutput(preprocessPhaseIndex);
+            finalizeInputs[0] = gpuBackend.getOutput(preprocessPhaseIndex);
+            finalizeInputs[1] = backend.getOutput(sharingPhaseIndex);
+            finalizeInputs[2] = etherValues;
+            backend.setInputs(finalizeInputs);
+            backend.runPhase(finalizePhaseIndex);
+            BufferUtils.copy(backend.getOutput(finalizePhaseIndex), etherValues);
+        }else{
+            finalizeInputs[0] = gpuBackend.getOutput(preprocessPhaseIndex);
+            finalizeInputs[1] = etherValues;
+            gpuBackend.setInputs(finalizeInputs);
+            gpuBackend.runPhase(finalizePhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(finalizePhaseIndex), etherValues);
+        }
+
     }
 
     @Override

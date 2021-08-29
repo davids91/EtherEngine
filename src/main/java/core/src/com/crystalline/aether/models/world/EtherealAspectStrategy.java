@@ -77,6 +77,9 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
+    public static final String preProcessPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/ethPreProcessPhase.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Calculates the released Ether values based on the current levels
      * @param inputs [0]: Ether values
@@ -86,24 +89,33 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
         for (int x = 0; x < chunkSize; ++x) { /* Preprocess Ether */
             for (int y = 0; y < chunkSize; ++y) {
                 setReleasedNether(x,y,chunkSize,output,0);
-                setAvgReleasedNether(x,y,chunkSize,output,0);
                 setReleasedAether(x,y,chunkSize,output,0);
-                setAvgReleasedAether(x,y,chunkSize,output,0);
                 float currentRatio = getRatio(x,y, chunkSize, inputs[0]);
+                float releasedAe = 0;
+                float releasedNe = 0;
                 if( 0.5 < Math.abs(currentRatio - Material.ratioOf(Material.Elements.Ether)) ){
-                    float aetherToRelease = (aetherValueAt(x,y, chunkSize, inputs[0]) - getMinAether(x,y, chunkSize, inputs[0]));
-                    float netherToRelease = (netherValueAt(x,y, chunkSize, inputs[0]) - getMaxNether(x,y, chunkSize, inputs[0]));
+                    float aeVal = aetherValueAt(x,y, chunkSize, inputs[0]);
+                    float neVal = netherValueAt(x,y, chunkSize, inputs[0]);
+                    releasedAe = (aeVal - getMinAether(x,y, chunkSize, inputs[0]));
+                    releasedNe = (neVal - getMaxNether(x,y, chunkSize, inputs[0]));
                     if(
-                        ( netherValueAt(x,y, chunkSize, inputs[0]) >= (getMaxNether(x,y, chunkSize, inputs[0])) + (aetherValueAt(x,y, chunkSize, inputs[0]) * etherReleaseThreshold) )
-                        || ( aetherValueAt(x,y, chunkSize, inputs[0]) >= (getMinAether(x,y, chunkSize, inputs[0]) + (netherValueAt(x,y,chunkSize, inputs[0]) * etherReleaseThreshold)) )
+                        ( neVal >= (getMaxNether(x,y, chunkSize, inputs[0]) + (aeVal * etherReleaseThreshold)) )
+                        || ( aeVal >= (getMinAether(x,y, chunkSize, inputs[0]) + (neVal * etherReleaseThreshold)) )
                     ){
-                        if(netherToRelease >= aetherToRelease){
-                            setReleasedNether(x,y, chunkSize, output,netherToRelease / 9.0f);
+                        if(releasedNe >= releasedAe){
+                            releasedAe = 0;
+                            releasedNe = releasedNe / 9.0f;
                         }else{
-                            setReleasedAether(x,y, chunkSize, output, aetherToRelease / 9.0f);
+                            releasedAe = releasedAe / 9.0f;
+                            releasedNe = 0;
                         }
+                    }else{
+                        releasedAe = 0;
+                        releasedNe = 0;
                     }
-                }
+                } /* if( 0.5 < Math.abs(currentRatio - ether_ratio) ) */
+                setReleasedNether(x,y,chunkSize,output,releasedNe);
+                setReleasedAether(x,y,chunkSize,output,releasedAe);
             }
         }
     }

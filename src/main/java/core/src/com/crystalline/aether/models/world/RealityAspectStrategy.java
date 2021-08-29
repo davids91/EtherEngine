@@ -19,6 +19,10 @@ public class RealityAspectStrategy {
         .addSource(materialLibrary).addSource(worldLibrary).addSource(coordinatesLibrary)
         .addSource(etherealLibrary).addSource(elementalLibrary);
 
+    protected static String buildKernel(String rawKernelCode, Includer includer){
+        return includer.process(rawKernelCode);
+    }
+
     /**
      * A texture image representing each cells intention to switch to another cell
      * - R: the offset code for the target, which is to be used in accordance with the coordinates of the source cell

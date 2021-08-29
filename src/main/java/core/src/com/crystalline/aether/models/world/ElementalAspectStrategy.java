@@ -1,9 +1,12 @@
 package com.crystalline.aether.models.world;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.services.computation.Includer;
 import com.crystalline.aether.services.utils.BufferUtils;
 import com.crystalline.aether.services.utils.MiscUtils;
+import com.crystalline.aether.services.utils.StringUtils;
 import com.crystalline.aether.services.world.World;
 
 import java.nio.FloatBuffer;
@@ -84,6 +87,9 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         return average_val;
     }
 
+    public static final String defineByEtherealPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/elmDefineByEtherealPhase.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Defines the elemental phase based on the ethereal
      * @param inputs [0]: elements; [1]: ethereal

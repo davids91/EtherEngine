@@ -84,3 +84,20 @@ float eth_getMaxNether(vec2 position, sampler2D etherValues){
 float eth_getMinAether(vec2 position, sampler2D etherValues){
   return eth_getNether(position, etherValues) / world_ratioEarth;
 }
+
+float eth_getElement(vec2 position, sampler2D etherValues){
+  float ratio = eth_getRatio(position, etherValues);
+  if(eth_getUnit(position, etherValues) <= world_ratioFire){
+    return world_indexAir;
+  }else if(0.05 > abs(ratio - world_ratioEther)){
+    return world_indexEther;
+  }else if(ratio <= ((world_ratioEarth + world_ratioWater)/2.0)){
+    return world_indexEarth;
+  }else if(ratio <= ((world_ratioWater + world_ratioAir)/2.0)){
+    return world_indexWater;
+  }else if(ratio <= ((world_ratioAir + world_ratioFire)/2.0)){
+    return world_indexAir;
+  }else{
+    return world_indexFire;
+  }
+}

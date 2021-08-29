@@ -7,6 +7,7 @@ import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
 import com.crystalline.aether.models.world.RealityAspectStrategy;
 import com.crystalline.aether.services.computation.CPUBackend;
+import com.crystalline.aether.services.computation.GPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
 
 import java.nio.ByteBuffer;
@@ -16,6 +17,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class ElementalAspect extends RealityAspect {
+    private static final boolean useGPU = true;
     private final Random rnd = new Random();
 
     private FloatBuffer elements;
@@ -26,6 +28,7 @@ public class ElementalAspect extends RealityAspect {
     private float[][] touchedByMechanics; /* Debug purposes */
 
     private final CPUBackend backend;
+    private final GPUBackend gpuBackend;
     private final int processUnitsPhaseIndex;
     private final int processTypesPhaseIndex;
     private final int processTypeUnitsPhaseIndex;
@@ -60,31 +63,38 @@ public class ElementalAspect extends RealityAspect {
         proposedChanges = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         touchedByMechanics = new float[conf.getChunkBlockSize()][conf.getChunkBlockSize()];
         backend = new CPUBackend();
+        gpuBackend = new GPUBackend(conf.getChunkBlockSize());
         ElementalAspectStrategy strategy = new ElementalAspectStrategy(conf.getChunkBlockSize());
-        processUnitsPhaseInputs = new FloatBuffer[]{elements, null};
+
+        if(!useGPU){
+            defineByEtherealPhaseIndex = backend.addPhase(strategy::defineByEtherealPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        }else{
+            defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
+        }
         processUnitsPhaseIndex = backend.addPhase(strategy::processUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        processTypesPhaseInputs = new FloatBuffer[]{elements,null,null};
         processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        processTypeUnitsPhaseInputs = new FloatBuffer[]{elements,null};
         processTypeUnitsPhaseIndex = backend.addPhase(strategy::processTypeUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        defineByEtherealPhaseInputs = new FloatBuffer[2];
-        defineByEtherealPhaseIndex = backend.addPhase(strategy::defineByEtherealPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         switchElementsPhaseIndex = backend.addPhase(strategy::switchElementsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        switchElementsPhaseInputs = new FloatBuffer[2];
         switchDynamicsPhaseIndex = backend.addPhase(strategy::switchDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        switchDynamicsPhaseInputs = new FloatBuffer[2];
         initChangesPhaseIndex = backend.addPhase(strategy::initChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        proposeForcesPhaseInputs = new FloatBuffer[4];
         proposeChangesFromForcesPhaseIndex = backend.addPhase(strategy::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        proposeChangesFromForcesPhaseInputs = new FloatBuffer[4];
         arbitrateChangesPhaseIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        arbitrateChangesPhaseInputs = new FloatBuffer[4];
         applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        applyChangesDynamicsPhaseInputs = new FloatBuffer[4];
         mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(strategy::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        mechanicsPostProcessDynamicsPhaseInputs = new FloatBuffer[4];
         arbitrateInteractionsPhaseIndex = backend.addPhase(strategy::arbitrateInteractionsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+
+        processUnitsPhaseInputs = new FloatBuffer[]{elements, null};
+        processTypesPhaseInputs = new FloatBuffer[]{elements,null,null};
+        processTypeUnitsPhaseInputs = new FloatBuffer[]{elements,null};
+        defineByEtherealPhaseInputs = new FloatBuffer[2];
+        switchElementsPhaseInputs = new FloatBuffer[2];
+        switchDynamicsPhaseInputs = new FloatBuffer[2];
+        proposeForcesPhaseInputs = new FloatBuffer[4];
+        proposeChangesFromForcesPhaseInputs = new FloatBuffer[4];
+        arbitrateChangesPhaseInputs = new FloatBuffer[4];
+        applyChangesDynamicsPhaseInputs = new FloatBuffer[4];
+        mechanicsPostProcessDynamicsPhaseInputs = new FloatBuffer[4];
         arbitrateInteractionsPhaseInputs = new FloatBuffer[3];
 
         reset();
@@ -178,9 +188,15 @@ public class ElementalAspect extends RealityAspect {
     public void defineBy(EtherealAspect plane){
         defineByEtherealPhaseInputs[0] = elements;
         plane.provideEtherTo(defineByEtherealPhaseInputs, 1);
-        backend.setInputs(defineByEtherealPhaseInputs);
-        backend.runPhase(defineByEtherealPhaseIndex);
-        BufferUtils.copy(backend.getOutput(defineByEtherealPhaseIndex), elements);
+        if(!useGPU){
+            backend.setInputs(defineByEtherealPhaseInputs);
+            backend.runPhase(defineByEtherealPhaseIndex);
+            BufferUtils.copy(backend.getOutput(defineByEtherealPhaseIndex), elements);
+        }else{
+            gpuBackend.setInputs(defineByEtherealPhaseInputs);
+            gpuBackend.runPhase(defineByEtherealPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(defineByEtherealPhaseIndex), elements);
+        }
     }
 
     @Override

@@ -18,10 +18,6 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
         chunkSize = chunkSize_;
     }
 
-    protected static String buildKernel(String rawKernelCode, Includer includer){
-        return includer.process(rawKernelCode);
-    }
-
     public static final String defineByElementalPhaseKernel = buildKernel(StringUtils.readFileAsString(
         Gdx.files.internal("shaders/ethDefineByElementalPhase.fshader")
     ), new Includer(baseIncluder));
@@ -245,14 +241,15 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
     }
 
     public static Material.Elements getElementEnum(int x, int y, int chunkSize, FloatBuffer buffer){
+        float ratio = getRatio(x,y,chunkSize, buffer);
         if(getUnit(x,y, chunkSize, buffer) <= Material.ratioOf(Material.Elements.Fire)) return Material.Elements.Air;
-        else if(0.05f > Math.abs(getRatio(x,y,chunkSize, buffer) - Material.ratioOf(Material.Elements.Ether)))
+        else if(0.05f > Math.abs(ratio - Material.ratioOf(Material.Elements.Ether)))
             return Material.Elements.Ether; /*!Note: Setting the thresholds here will increase the chance of flickering crystals/vapor! */
-        else if(getRatio(x,y,chunkSize, buffer) <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))
+        else if(ratio <= ((Material.ratioOf(Material.Elements.Earth) + Material.ratioOf(Material.Elements.Water))/2.0f))
             return Material.Elements.Earth;
-        else if(getRatio(x,y,chunkSize, buffer) <= ((Material.ratioOf(Material.Elements.Water) + Material.ratioOf(Material.Elements.Air))/2.0f))
+        else if(ratio <= ((Material.ratioOf(Material.Elements.Water) + Material.ratioOf(Material.Elements.Air))/2.0f))
             return Material.Elements.Water;
-        else if(getRatio(x,y,chunkSize, buffer) <= ((Material.ratioOf(Material.Elements.Air) + Material.ratioOf(Material.Elements.Fire))/2.0f))
+        else if(ratio <= ((Material.ratioOf(Material.Elements.Air) + Material.ratioOf(Material.Elements.Fire))/2.0f))
             return Material.Elements.Air;
         else return Material.Elements.Fire;
     }

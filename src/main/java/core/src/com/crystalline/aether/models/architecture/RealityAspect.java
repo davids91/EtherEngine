@@ -1,6 +1,7 @@
 package com.crystalline.aether.models.architecture;
 
 import com.crystalline.aether.models.Config;
+import com.crystalline.aether.services.computation.GPUBackend;
 import com.crystalline.aether.services.world.World;
 
 import java.nio.FloatBuffer;
@@ -24,6 +25,22 @@ public abstract class RealityAspect {
         conf = conf_;
         state = new Stack<>();
     }
+
+    protected int initKernel(String source, GPUBackend gpuBackend){
+        try{
+            return gpuBackend.addPhase(source, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+        } catch (Exception e) {
+            String[] source_ = source.split("\n");
+            int line = 0;
+            for(String s : source_){
+                System.out.println("["+line+"] " + s);
+                ++line;
+            }
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
     public void pushState(){
         state.push(getState());
     }

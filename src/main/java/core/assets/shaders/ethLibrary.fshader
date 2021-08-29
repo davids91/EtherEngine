@@ -17,6 +17,44 @@ void eth_SetNether(float value){
   gl_FragColor.r = value;
 }
 
+float eth_getReleasedAether(vec2 position, sampler2D etherValues){
+  return texture(etherValues, position).b;
+}
+
+float eth_getReleasedNether(vec2 position, sampler2D etherValues){
+  return texture(etherValues, position).r;
+}
+
+float eth_getAvgReleasedAether(vec2 position, sampler2D etherValues){
+  float divisor = 0;
+  float value = 0;
+  for(float x = position.x - unitCoordinate; x <= position.x + unitCoordinate; x += unitCoordinate){
+    for(float y = position.y - unitCoordinate; y <= position.y + unitCoordinate; y += unitCoordinate){
+      vec2 n = vec2(x,y);
+      if(coords_insideEdges(n)){
+        value += eth_getReleasedAether(n, etherValues);
+        divisor += 1;
+      }
+    }
+  }
+  return value / divisor;
+}
+
+float eth_getAvgReleasedNether(vec2 position, sampler2D etherValues){
+  float divisor = 0;
+  float value = 0;
+  for(float x = position.x - unitCoordinate; x <= position.x + unitCoordinate; x += unitCoordinate){
+    for(float y = position.y - unitCoordinate; y <= position.y + unitCoordinate; y += unitCoordinate){
+      vec2 n = vec2(x,y);
+      if(coords_insideEdges(n)){
+        value += eth_getReleasedNether(n, etherValues);
+        divisor += 1;
+      }
+    }
+  }
+  return value / divisor;
+}
+
 void eth_SetReleasedAether(float value){
   gl_FragColor.b = value;
 }

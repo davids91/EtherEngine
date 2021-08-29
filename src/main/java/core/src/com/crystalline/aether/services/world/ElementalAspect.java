@@ -407,11 +407,11 @@ public class ElementalAspect extends RealityAspect {
         debugColor = new Color(
 ////                prio, prio, prio, 1.0f
 ////                    offsetR,
-                parent.getEtherealPlane().getAvgReleasedAether(x,y)/parent.getEtherealPlane().netherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
+                parent.getEtherealPlane().getReleasedNether(x,y)/parent.getEtherealPlane().netherValueAt(x,y),
 ////                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
 //////                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
-                    1f,//unitsDiff,
-                parent.getEtherealPlane().getAvgReleasedNether(x,y)/parent.getEtherealPlane().aetherValueAt(x,y),
+                    0f,//unitsDiff,
+                parent.getEtherealPlane().getReleasedAether(x,y)/parent.getEtherealPlane().aetherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
 ////                    offsetB,
                 1.0f
             );

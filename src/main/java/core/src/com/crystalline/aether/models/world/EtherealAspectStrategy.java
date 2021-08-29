@@ -132,23 +132,12 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
         return (ret / divisor);
     }
 
-    /**
-     * Calculates the shared Ether values through contextual filters ( average )
-     * @param inputs [0]: The Released ether from preprocess phase
-     * @param output the average values of shared Ether
-     */
-    public void sharingCalculationPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for (int x = 0; x < chunkSize; ++x) { /* Sharing released ether */
-            for (int y = 0; y < chunkSize; ++y) { /* calculate shared ether from released ether */
-                setAvgReleasedAether(x,y, chunkSize, output, avgOf(x, y, 2,inputs[0]));
-                setAvgReleasedNether(x,y, chunkSize, output, avgOf(x, y, 0,inputs[0]));
-            }
-        }
-    }
-
+    public static final String finalizePhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/ethFinalizePhase.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Calculates the final Ether based on the released and average calculations
-     * @param inputs [0]: released Ether; [1]: average released Ether; [2]: previous ether values;
+     * @param inputs [0]: released Ether; [1]: previous ether values;
      * @param output processed Ether values
      */
     public void finalizeCalculationPhase(FloatBuffer[] inputs, FloatBuffer output){
@@ -157,12 +146,12 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
                 /* Subtract the released Ether, and add the shared */
                 /* TODO: The more units there is, the more ether is absorbed */
                 float newAetherValue = Math.max( 0.01f, /* Update values with safety cut */
-                    aetherValueAt(x,y, chunkSize, inputs[2]) - getReleasedAether(x,y, chunkSize, inputs[0])
-                    + (getAvgReleasedAether(x,y, chunkSize, inputs[1]) * 0.9f)// / parent.getUnits(x,y));
+                    aetherValueAt(x,y, chunkSize, inputs[1]) - getReleasedAether(x,y, chunkSize, inputs[0])
+                    + (avgOf(x, y, 2,inputs[0]) * 0.9f)// / parent.getUnits(x,y));
                 );
                 float newNetherValue = Math.max( 0.01f,
-                    netherValueAt(x,y, chunkSize, inputs[2]) - getReleasedNether(x,y, chunkSize, inputs[0])
-                    + (getAvgReleasedNether(x,y, chunkSize, inputs[1]) * 0.9f)// / parent.getUnits(x,y));
+                    netherValueAt(x,y, chunkSize, inputs[1]) - getReleasedNether(x,y, chunkSize, inputs[0])
+                    + (avgOf(x, y, 0,inputs[0]) * 0.9f)// / parent.getUnits(x,y));
                 );
 
                 /* TODO: Surplus Nether to goes into other effects?? */

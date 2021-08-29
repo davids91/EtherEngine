@@ -10,12 +10,14 @@ import java.nio.FloatBuffer;
 
 public class RealityAspectStrategy {
     /* TODO: Use Alpha value multiplier as a was to set resolution to handle enormous / extra small values */
-    public static final String materialLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/materialLibrary.fshader"));
-    public static final String worldLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/worldLibrary.fshader"));
-    public static final String etherealLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/ethLibrary.fshader"));
-    public static final String elementalLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/elmLibrary.fshader"));
+    private static final String materialLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/materialLibrary.fshader"));
+    private static final String worldLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/worldLibrary.fshader"));
+    private static final String coordinatesLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/coordinatesLibrary.fshader"));
+    private static final String etherealLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/ethLibrary.fshader"));
+    private static final String elementalLibrary = StringUtils.readFileAsString(Gdx.files.internal("shaders/elmLibrary.fshader"));
     protected static final Includer baseIncluder = new Includer()
-            .addSource(materialLibrary).addSource(worldLibrary).addSource(etherealLibrary).addSource(elementalLibrary);
+        .addSource(materialLibrary).addSource(worldLibrary).addSource(coordinatesLibrary)
+        .addSource(etherealLibrary).addSource(elementalLibrary);
 
     /**
      * A texture image representing each cells intention to switch to another cell

@@ -4,6 +4,7 @@ import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.EtherealAspectStrategy;
 import com.crystalline.aether.models.world.Material;
 import com.crystalline.aether.models.architecture.RealityAspect;
+import com.crystalline.aether.models.world.RealityAspectStrategy;
 import com.crystalline.aether.services.computation.CPUBackend;
 import com.crystalline.aether.services.computation.GPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
@@ -64,13 +65,15 @@ public class EtherealAspect extends RealityAspect {
             processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             determineUnitsPhaseIndex = backend.addPhase(strategy::determineUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             defineByElementalPhaseIndex = backend.addPhase(strategy::defineByElementalPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            switchEtherPhaseIndex = backend.addPhase(strategy::switchEtherPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else
         {
             processTypesPhaseIndex = initKernel(EtherealAspectStrategy.processTypesPhaseKernel);
             determineUnitsPhaseIndex = initKernel(EtherealAspectStrategy.determineUnitsPhaseKernel);
             defineByElementalPhaseIndex = initKernel(EtherealAspectStrategy.defineByElementalPhaseKernel);
+            switchEtherPhaseIndex = initKernel(EtherealAspectStrategy.switchEtherealPhaseKernel);
         }
-        switchEtherPhaseIndex = backend.addPhase(strategy::switchEtherPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+
         preProcessInputs = new FloatBuffer[1];
         sharingInputs = new FloatBuffer[1];
         finalizeInputs = new FloatBuffer[3];
@@ -119,9 +122,15 @@ public class EtherealAspect extends RealityAspect {
     public void switchValues(FloatBuffer proposals) {
         switchEtherPhaseInputs[0] = proposals;
         switchEtherPhaseInputs[1] = etherValues;
-        backend.setInputs(switchEtherPhaseInputs);
-        backend.runPhase(switchEtherPhaseIndex);
-        BufferUtils.copy(backend.getOutput(switchEtherPhaseIndex), etherValues);
+        if(!useGPU){
+            backend.setInputs(switchEtherPhaseInputs);
+            backend.runPhase(switchEtherPhaseIndex);
+            BufferUtils.copy(backend.getOutput(switchEtherPhaseIndex), etherValues);
+        }else{
+            gpuBackend.setInputs(switchEtherPhaseInputs);
+            gpuBackend.runPhase(switchEtherPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(switchEtherPhaseIndex), etherValues);
+        }
     }
 
     public float getMaxNether(int x, int y){

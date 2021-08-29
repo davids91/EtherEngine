@@ -45,31 +45,35 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
         } }
     }
 
+    public static final String switchEtherealPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/ethSwitchEtherealPhase.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Applies the changes proposed from the input proposal buffer
-     * @param inputs [0]: proposed changes;[0]: scalars
+     * @param inputs [0]: proposed changes; [1]: etherValues
      * @param output etherValues buffer
      */
     public void switchEtherPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y){
-            float aetherValue = getAetherValue(x, y, chunkSize, inputs[1]);
-            float netherValue = getNetherValue(x, y, chunkSize, inputs[1]);
-            if(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])){
+            float aeVal = getAetherValue(x, y, chunkSize, inputs[1]);
+            float neVal = getNetherValue(x, y, chunkSize, inputs[1]);
+            if(
+                (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
+                &&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0]))
+                &&(0 < RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]))
+            ){
                 int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);
                 int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
-                int toApply = (int) RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]);
                 if(
-                        (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
-                                &&(0 < toApply)
-                                &&(targetX >= 0)&&(targetX < chunkSize)
-                                &&(targetY >= 0)&&(targetY < chunkSize)
+                    (targetX >= 0)&&(targetX < chunkSize)
+                    &&(targetY >= 0)&&(targetY < chunkSize)
                 ){
-                    aetherValue = getAetherValue(targetX, targetY, chunkSize, inputs[1]);
-                    netherValue = getNetherValue(targetX, targetY, chunkSize, inputs[1]);
+                    aeVal = getAetherValue(targetX, targetY, chunkSize, inputs[1]);
+                    neVal = getNetherValue(targetX, targetY, chunkSize, inputs[1]);
                 }
             }
-            setAether(x,y, chunkSize, output, aetherValue);
-            setNether(x,y, chunkSize, output, netherValue);
+            setAether(x,y, chunkSize, output, aeVal);
+            setNether(x,y, chunkSize, output, neVal);
         }}
     }
 

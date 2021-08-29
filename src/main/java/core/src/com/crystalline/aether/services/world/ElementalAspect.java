@@ -116,7 +116,7 @@ public class ElementalAspect extends RealityAspect {
         parent.setUnit(ox, oy,550);
     }
 
-    public void addOneGrainOfSandForTestingPurposes(World parent){
+    public void addMiniPool(World parent){
         addRock((conf.getChunkBlockSize()/2)-1, (conf.getChunkBlockSize()/2)-1, parent);
         addRock((conf.getChunkBlockSize()/2), (conf.getChunkBlockSize()/2)-1, parent);
         addRock((conf.getChunkBlockSize()/2)+1, (conf.getChunkBlockSize()/2)-1, parent);
@@ -131,7 +131,6 @@ public class ElementalAspect extends RealityAspect {
         addWater((conf.getChunkBlockSize()/2)+1, (conf.getChunkBlockSize()/2)+1, parent);
         addWater((conf.getChunkBlockSize()/2)-1, (conf.getChunkBlockSize()/2), parent);
         addWater((conf.getChunkBlockSize()/2)-1, (conf.getChunkBlockSize()/2)+1, parent);
-
     }
 
     private float maxPrio = 0;

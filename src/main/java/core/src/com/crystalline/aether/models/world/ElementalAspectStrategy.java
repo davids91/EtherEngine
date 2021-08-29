@@ -159,13 +159,18 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
+
+    public static final String processUnitsPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/elmProcessUnitsPhase.fshader")
+    ), new Includer(baseIncluder));
+    /**
+     * Provides the number of units after a refinement step in the elemental phase
+     * @param inputs [0]: elements; [1]: scalars
+     * @param output the scalar units after the refinement step
+     */
     public void processUnitsPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0;x < chunkSize; ++x) { for (int y = 0; y < chunkSize; ++y) { /* Calculate dilution */
-            if(Material.movable(getElementEnum(x,y, chunkSize, inputs[0]), World.getUnit(x,y, chunkSize, inputs[1]))) {
-                World.setUnit(x,y,chunkSize, output, avgOfUnitsWithinDistance(x,y,inputs[0], inputs[1]));
-            }else{
-                World.setUnit(x,y, chunkSize, output, World.getUnit(x,y, chunkSize, inputs[1]));
-            }
+            World.setUnit(x,y, chunkSize, output, World.getUnit(x,y, chunkSize, inputs[1]));
         } }
     }
 

@@ -41,7 +41,7 @@ public class Material {
     /**!Note: The ratio of the two values define the material states. Reality tries to "stick" to given ratios,
      * The difference is radiating away.  */
     public static final float PHI = 1.6f;//1803398875f;
-    public static final float [] netherRatios = {
+    public static final float [] NETHER_RATIOS = {
         /* Ratio of sides of the golden rectangle */
         1.0f, /* Ether *//*!Note: PHI^0 == 1*/
         (PHI), /* Earth */
@@ -52,7 +52,7 @@ public class Material {
     };
 
     public static float ratioOf(Elements element){
-        return netherRatios[element.ordinal()];
+        return NETHER_RATIOS[element.ordinal()];
     }
 
     public static final float[][] TYPE_UNIT_SELECTOR = {
@@ -74,10 +74,10 @@ public class Material {
     };
 
     public static final MechaProperties[][] TYPE_SPECIFIC_STATE = {
-        {MechaProperties.Gas, MechaProperties.Granular}, /* Ether */
+        {MechaProperties.Gas, MechaProperties.Granular}, /* Ether */ /* TODO: Ether to have Crystal state */
         {MechaProperties.Granular, MechaProperties.Granular, MechaProperties.Solid, MechaProperties.Crystal, MechaProperties.Hard, MechaProperties.Superhard}, /* Earth */
         {MechaProperties.Fluid, MechaProperties.Gas, MechaProperties.Fluid},/* Water */
-        {MechaProperties.Negligible, MechaProperties.Negligible}, /* Air */
+        {MechaProperties.Negligible, MechaProperties.Negligible}, /* Air */ /* TODO: Make additional gasses */
         {MechaProperties.Plasma, MechaProperties.Fluid, MechaProperties.Ultrahard}, /* Fire */
         {MechaProperties.Negligible}, /* Nothing */
     };
@@ -100,7 +100,8 @@ public class Material {
     }
 
     public static MechaProperties getState(Elements type, float unit){
-        return TYPE_SPECIFIC_STATE[type.ordinal()][MiscUtils.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()], unit)];
+        int index = MiscUtils.indexIn(TYPE_UNIT_SELECTOR[type.ordinal()], unit);
+        return TYPE_SPECIFIC_STATE[type.ordinal()][index];
     }
 
     public static boolean discardable(Elements type, float unit){

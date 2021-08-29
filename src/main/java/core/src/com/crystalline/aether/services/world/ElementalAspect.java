@@ -68,10 +68,11 @@ public class ElementalAspect extends RealityAspect {
 
         if(!useGPU){
             defineByEtherealPhaseIndex = backend.addPhase(strategy::defineByEtherealPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            processUnitsPhaseIndex = backend.addPhase(strategy::processUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
+            processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
         }
-        processUnitsPhaseIndex = backend.addPhase(strategy::processUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         processTypeUnitsPhaseIndex = backend.addPhase(strategy::processTypeUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         switchElementsPhaseIndex = backend.addPhase(strategy::switchElementsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
@@ -221,11 +222,19 @@ public class ElementalAspect extends RealityAspect {
 
     @Override
     public void processUnits(World parent){
+        /* TODO: Calculate dilution
         processUnitsPhaseInputs[0] = elements;
         parent.provideScalarsTo(processUnitsPhaseInputs,1);
-        backend.setInputs(processUnitsPhaseInputs);
-        backend.runPhase(processUnitsPhaseIndex);
-        parent.setScalars(backend.getOutput(processUnitsPhaseIndex));
+        if(!useGPU ||true){
+            backend.setInputs(processUnitsPhaseInputs);
+            backend.runPhase(processUnitsPhaseIndex);
+            parent.setScalars(backend.getOutput(processUnitsPhaseIndex));
+        }else{
+            gpuBackend.setInputs(processUnitsPhaseInputs);
+            gpuBackend.runPhase(processUnitsPhaseIndex);
+            parent.setScalars(gpuBackend.getOutput(processUnitsPhaseIndex));
+        }
+        */
     }
 
     @Override

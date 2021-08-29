@@ -7,11 +7,66 @@ const float world_ratioWater = (PHI * PHI);
 const float world_ratioAir =   (PHI * PHI * PHI);
 const float world_ratioFire =  (PHI * PHI * PHI * PHI);
 
-const float netherRatios[6] = float[6](
+const float world_stateNegligible   = 0;
+const float world_stateGas          = 1;
+const float world_stateFluid        = 2;
+const float world_statePlasma       = 3;
+const float world_stateGranular     = 4;
+const float world_stateSolid        = 5;
+const float world_stateCrystal      = 6;
+const float world_stateHard         = 7;
+const float world_stateSuperhard    = 8;
+const float world_stateUltrahard    = 9;
+const float world_stateMorningWood  = 10;
+
+const float NETHER_RATIOS[6] = float[6](
   world_ratioEther,
-  world_ratioEarth, world_ratioWater, world_ratioAir, world_ratioFire,
+  world_ratioEarth, world_ratioWater,
+  world_ratioAir, world_ratioFire,
   0.0
 );
+
+const float[6][6] TYPE_UNIT_SELECTOR = {
+/* Ether */   float[6](0,  50, 50,  50,  50,  50),
+/* Earth */   float[6](0,  10, 15,  70,  700, 1000),
+/* Water */   float[6](0,  50, 100, 100, 100, 100),
+/* Air*/      float[6](0,  10, 10,  10,  10,  10),
+/* Fire */    float[6](10, 50, 100, 100, 100, 100),
+/* Nothing */ float[6](0,  0,  0,   0,   0,   0)
+};
+
+const float[6][6] TYPE_SPECIFIC_STATE = {
+  /* Ether */   float[6](
+    world_stateGas,       world_stateGranular,
+    world_stateGranular,  world_stateGranular,
+    world_stateGranular,  world_stateGranular
+  ),
+  /* Earth */   float[6](
+    world_stateGranular,  world_stateGranular,
+    world_stateSolid,     world_stateCrystal,
+    world_stateHard,      world_stateSuperhard
+  ),
+  /* Water */   float[6](
+    world_stateFluid,   world_stateGas,
+    world_stateFluid,   world_stateFluid,
+    world_stateFluid,   world_stateFluid
+  ),
+  /* Air*/      float[6](
+    world_stateNegligible,  world_stateNegligible,
+    world_stateNegligible,  world_stateNegligible,
+    world_stateNegligible,  world_stateNegligible
+  ),
+  /* Fire */    float[6](
+    world_statePlasma,      world_stateFluid,
+    world_stateUltrahard,   world_stateUltrahard,
+    world_stateUltrahard,   world_stateUltrahard
+  ),
+  /* Nothing */ float[6](
+    world_stateNegligible,  world_stateNegligible,
+    world_stateNegligible,  world_stateNegligible,
+    world_stateNegligible,  world_stateNegligible
+  )
+};
 
 const float world_indexEther = 0;
 const float world_indexEarth = 1;
@@ -20,5 +75,20 @@ const float world_indexAir =   3;
 const float world_indexFire =  4;
 
 float world_RatioOf(float element){
-  return netherRatios[int(element)];
+  return NETHER_RATIOS[int(element)];
+}
+
+int world_indexIn(float[6] table, float value){
+  int index = table.length();
+  while((index > 0)&&(table[index] >= value))--index;
+  return index;
+}
+
+float world_getState(float type, float unit){
+  int index = world_indexIn(TYPE_UNIT_SELECTOR[int(type)], unit);
+  return TYPE_SPECIFIC_STATE[int(type)][index];
+}
+
+bool world_isCellMovable(float element, float unit ){
+  return false;
 }

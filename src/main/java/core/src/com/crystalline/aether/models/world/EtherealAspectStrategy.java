@@ -171,7 +171,10 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
     public void processTypesPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0;x < chunkSize; ++x){ /* Take over unit changes from Elemental plane */
             for(int y = 0; y < chunkSize; ++y){
-                float oldRatio = getRatio(x,y, chunkSize, inputs[0]);
+                float oldRatio = (
+                    (0.2f * getRatio(x,y, chunkSize, inputs[0]) )
+                    + (0.8f * Material.ratioOf(ElementalAspectStrategy.getElementEnum(x,y, chunkSize, inputs[1])))
+                );
                 float etherUnit = getUnit(x,y, chunkSize, inputs[0]);
                 float worldUnit = World.getUnit(x,y,chunkSize,inputs[2]);
                 float aeVal = aetherValueAt(x,y, chunkSize, inputs[0]);

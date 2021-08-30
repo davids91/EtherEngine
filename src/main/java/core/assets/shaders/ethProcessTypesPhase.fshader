@@ -16,7 +16,11 @@
 
   void main(void){
     gl_FragColor.r = 0; gl_FragColor.g = 0; gl_FragColor.b = 0; gl_FragColor.a = 1;
-    float oldRatio = eth_getRatio(currentPosition.xy, inputs1);
+
+    float oldRatio = ( /* Ratio shall include a mixture of both Elemental, both Ethereal  targets */
+     (0.8 * eth_getRatio(currentPosition.xy, inputs1))
+     + (0.2 * world_RatioOf(elm_getElement(currentPosition.xy, inputs2)))
+    );
     float etherUnit = eth_getUnit(currentPosition.xy, inputs1);
     float worldUnit = world_getUnit(currentPosition.xy, inputs3);
     float aeVal = eth_getAether(currentPosition.xy, inputs1);

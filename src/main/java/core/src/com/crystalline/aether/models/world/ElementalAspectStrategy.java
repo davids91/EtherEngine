@@ -39,6 +39,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         );
     }
 
+    /* TODO: move avgOf operations to a separate calculation run */
     private float avgOfUnit(int x, int y, FloatBuffer elements, FloatBuffer scalars, Material.Elements type){
         float average_val = 0;
         float division = 0;
@@ -159,7 +160,6 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
-
     public static final String processUnitsPhaseKernel = buildKernel(StringUtils.readFileAsString(
         Gdx.files.internal("shaders/elmProcessUnitsPhase.fshader")
     ), new Includer(baseIncluder));
@@ -174,6 +174,9 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         } }
     }
 
+    public static final String processTypesPhaseKernel = buildKernel(StringUtils.readFileAsString(
+            Gdx.files.internal("shaders/elmProcessTypesPhase.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Provides a refined version of the current elemental aspect
      * @param inputs [0]: elements; [1]: ethereal; [2]: scalars
@@ -183,18 +186,13 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         for(int x = chunkSize - 1;x >= 0; --x)for(int y = chunkSize - 1 ; y >= 0; --y) {
             Material.Elements currentElement = EtherealAspectStrategy.getElementEnum(x,y,chunkSize,inputs[1]);
             float currentUnit = World.getUnit(x,y,chunkSize, inputs[2]);
-            if(Material.Elements.Water == currentElement){ /* TODO: This will be ill-defined in a multi-threaded environment */
-                if(avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Water) < avgOfUnit(x,y, inputs[0],inputs[2], Material.Elements.Fire)){
-                    currentElement = Material.Elements.Air;
-                }
-            }
 
-            if(Material.Elements.Air == currentElement) { /* TODO: make air catch fire! */
+            if(Material.Elements.Water == currentElement){
                 if(
-                    (numOfElements(x,y,inputs[0], Material.Elements.Air) < numOfElements(x,y,inputs[0], Material.Elements.Fire))
-                    &&(0 == avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Water))
+                    avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Water)
+                    < (avgOfUnit(x,y, inputs[0],inputs[2], Material.Elements.Fire) * 1.2f)
                 ){
-                    currentElement = Material.Elements.Fire;
+                    currentElement = Material.Elements.Air;
                 }
             }
 
@@ -202,20 +200,34 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             /* TODO: Make fire springing out from Earth */
             if(Material.Elements.Fire == currentElement){
                 /* TODO: Make lava cool off to earth by heat */
-                if(avgOfUnit(x,y,inputs[0],inputs[2],Material.Elements.Water) > avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Fire)){
+                if(
+                    avgOfUnit(x,y,inputs[0],inputs[2],Material.Elements.Water)
+                    > avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Fire)
+                ){
                     currentElement = Material.Elements.Earth;
                 }
             }
 
-            if(Material.Elements.Earth == currentElement){
-                /* TODO: Make Earth keep track of heat instead of units */
-                if((avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Earth) < avgOfUnit(x,y, inputs[0],inputs[2], Material.Elements.Fire))){
-                    if( /* TODO: Make sand melt "into" glass */
-                        Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, currentUnit).ordinal()
-                        || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, currentUnit).ordinal()
-                    )currentElement = Material.Elements.Fire;
-                }
-            }
+//            if(Material.Elements.Air == currentElement) { /* TODO: make air catch fire! */
+//                if(
+//                    (
+//                        avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Air)
+//                        <= avgOfUnit(x,y,inputs[0] ,inputs[2],Material.Elements.Fire)
+//                    ) && (0 == avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Water))
+//                ){
+//                    currentElement = Material.Elements.Fire;
+//                }
+//            }
+
+//            if(Material.Elements.Earth == currentElement){
+//                /* TODO: Make Earth keep track of heat instead of units */
+//                if((avgOfUnit(x,y,inputs[0],inputs[2], Material.Elements.Earth) < avgOfUnit(x,y, inputs[0],inputs[2], Material.Elements.Fire))){
+//                    if( /* TODO: Make sand melt "into" glass */
+//                        Material.MechaProperties.Solid.ordinal() > Material.getState(Material.Elements.Earth, currentUnit).ordinal()
+//                        || Material.MechaProperties.Plasma.ordinal() < Material.getState(Material.Elements.Fire, currentUnit).ordinal()
+//                    )currentElement = Material.Elements.Fire;
+//                }
+//            }
             setElement(x,y,chunkSize,output,currentElement);
             setPriority(x,y, chunkSize, output, getPriority(x,y, chunkSize, inputs[0]));
         }

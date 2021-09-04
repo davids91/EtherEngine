@@ -15,3 +15,20 @@ float elm_getPriority(vec2 position, sampler2D elements){
 void elm_setPriority(float value){
   gl_FragColor.b = value;
 }
+
+float elm_getAvgElementUnit(vec2 position, sampler2D elements, sampler2D scalars, float elementType){
+  float divisor = 0;
+  float value = 0;
+  for(float x = position.x - unitCoordinate; x <= position.x + unitCoordinate; x += unitCoordinate){
+    for(float y = position.y - unitCoordinate; y <= position.y + unitCoordinate; y += unitCoordinate){
+      vec2 n = vec2(x,y);
+      if(coords_insideEdges(n)){
+        if(elementType == elm_getElement(n, elements)){
+          value += world_getUnit(n, scalars);
+          divisor += 1;
+        }
+      }
+    }
+  }
+  return value / divisor;
+}

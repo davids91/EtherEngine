@@ -69,11 +69,12 @@ public class ElementalAspect extends RealityAspect {
         if(!useGPU){
             defineByEtherealPhaseIndex = backend.addPhase(strategy::defineByEtherealPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             processUnitsPhaseIndex = backend.addPhase(strategy::processUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
             processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
+            processTypesPhaseIndex = initKernel(ElementalAspectStrategy.processTypesPhaseKernel, gpuBackend);
         }
-        processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         processTypeUnitsPhaseIndex = backend.addPhase(strategy::processTypeUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         switchElementsPhaseIndex = backend.addPhase(strategy::switchElementsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         switchDynamicsPhaseIndex = backend.addPhase(strategy::switchDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
@@ -242,9 +243,15 @@ public class ElementalAspect extends RealityAspect {
         processTypesPhaseInputs[0] = elements;
         parent.getEtherealPlane().provideEtherTo(processTypesPhaseInputs,1);
         parent.provideScalarsTo(processTypesPhaseInputs,2);
-        backend.setInputs(processTypesPhaseInputs);
-        backend.runPhase(processTypesPhaseIndex);
-        BufferUtils.copy(backend.getOutput(processTypesPhaseIndex),elements);
+        if(!useGPU){
+            backend.setInputs(processTypesPhaseInputs);
+            backend.runPhase(processTypesPhaseIndex);
+            BufferUtils.copy(backend.getOutput(processTypesPhaseIndex),elements);
+        }else{
+            gpuBackend.setInputs(processTypesPhaseInputs);
+            gpuBackend.runPhase(processTypesPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(processTypesPhaseIndex),elements);
+        }
 
         processTypeUnitsPhaseInputs[0] = elements;
         parent.provideScalarsTo(processTypeUnitsPhaseInputs,1);

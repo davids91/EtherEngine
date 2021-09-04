@@ -103,6 +103,9 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         } }
     }
 
+    public static final String switchElementsPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/elmSwitchElementsPhase.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Applies the changes proposed from the input proposal buffer
      * @param inputs [0]: proposed changes; [1]: elements
@@ -110,21 +113,19 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
      */
     public void switchElementsPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y){
-            Material.Elements element = getElementEnum(x,y, chunkSize, inputs[1]);
-            if(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])){
+            Material.Elements currentElement = getElementEnum(x,y, chunkSize, inputs[1]);
+            if(
+                (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
+                &&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0]))
+                &&(0 < RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]))
+            ){
                 int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);
                 int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
-                int toApply = (int) RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]);
-                if(
-                    (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
-                    &&(0 < toApply)
-                    &&(targetX >= 0)&&(targetX < chunkSize)
-                    &&(targetY >= 0)&&(targetY < chunkSize)
-                ){
-                    element = getElementEnum(targetX,targetY, chunkSize, inputs[1]);
+                if((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)){
+                    currentElement = getElementEnum(targetX,targetY, chunkSize, inputs[1]);
                 }
             }
-            setElement(x,y, chunkSize, output, element);
+            setElement(x,y, chunkSize, output, currentElement);
             setPriority(x,y, chunkSize, output, getPriority(x,y, chunkSize, inputs[1]));
             /*!Note: Priorities serve as an arbitration measure based on coordinates, so they should not be switched
              */

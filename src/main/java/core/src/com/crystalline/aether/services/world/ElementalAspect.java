@@ -71,13 +71,14 @@ public class ElementalAspect extends RealityAspect {
             processUnitsPhaseIndex = backend.addPhase(strategy::processUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             processTypeUnitsPhaseIndex = backend.addPhase(strategy::processTypeUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            switchElementsPhaseIndex = backend.addPhase(strategy::switchElementsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
             processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
             processTypesPhaseIndex = initKernel(ElementalAspectStrategy.processTypesPhaseKernel, gpuBackend);
             processTypeUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processTypesUnitsPhaseKernel, gpuBackend);
+            switchElementsPhaseIndex = initKernel(ElementalAspectStrategy.switchElementsPhaseKernel, gpuBackend);
         }
-        switchElementsPhaseIndex = backend.addPhase(strategy::switchElementsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         switchDynamicsPhaseIndex = backend.addPhase(strategy::switchDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         initChangesPhaseIndex = backend.addPhase(strategy::initChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
@@ -211,9 +212,16 @@ public class ElementalAspect extends RealityAspect {
     public void switchValues(FloatBuffer proposals) {
         switchElementsPhaseInputs[0] = proposals;
         switchElementsPhaseInputs[1] = elements;
-        backend.setInputs(switchElementsPhaseInputs);
-        backend.runPhase(switchElementsPhaseIndex);
-        BufferUtils.copy(backend.getOutput(switchElementsPhaseIndex), elements);
+
+        if(!useGPU){
+            backend.setInputs(switchElementsPhaseInputs);
+            backend.runPhase(switchElementsPhaseIndex);
+            BufferUtils.copy(backend.getOutput(switchElementsPhaseIndex), elements);
+        }else{
+            gpuBackend.setInputs(switchElementsPhaseInputs);
+            gpuBackend.runPhase(switchElementsPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(switchElementsPhaseIndex), elements);
+        }
 
         switchDynamicsPhaseInputs[0] = proposals;
         switchDynamicsPhaseInputs[1] = forces;

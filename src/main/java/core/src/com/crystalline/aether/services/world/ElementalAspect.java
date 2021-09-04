@@ -34,7 +34,7 @@ public class ElementalAspect extends RealityAspect {
     private final int processTypeUnitsPhaseIndex;
     private final int defineByEtherealPhaseIndex;
     private final int switchElementsPhaseIndex;
-    private final int switchDynamicsPhaseIndex;
+    private final int switchForcesPhaseIndex;
     private final int initChangesPhaseIndex;
     private final int proposeForcesPhaseIndex;
     private final int proposeChangesFromForcesPhaseIndex;
@@ -48,7 +48,7 @@ public class ElementalAspect extends RealityAspect {
     private final FloatBuffer[] processTypeUnitsPhaseInputs;
     private final FloatBuffer[] defineByEtherealPhaseInputs;
     private final FloatBuffer[] switchElementsPhaseInputs;
-    private final FloatBuffer[] switchDynamicsPhaseInputs;
+    private final FloatBuffer[] switchForcesPhaseInputs;
     private final FloatBuffer[] proposeForcesPhaseInputs;
     private final FloatBuffer[] proposeChangesFromForcesPhaseInputs;
     private final FloatBuffer[] arbitrateChangesPhaseInputs;
@@ -72,14 +72,15 @@ public class ElementalAspect extends RealityAspect {
             processTypesPhaseIndex = backend.addPhase(strategy::processTypesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             processTypeUnitsPhaseIndex = backend.addPhase(strategy::processTypeUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             switchElementsPhaseIndex = backend.addPhase(strategy::switchElementsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            switchForcesPhaseIndex = backend.addPhase(strategy::switchForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
             processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
             processTypesPhaseIndex = initKernel(ElementalAspectStrategy.processTypesPhaseKernel, gpuBackend);
             processTypeUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processTypesUnitsPhaseKernel, gpuBackend);
             switchElementsPhaseIndex = initKernel(ElementalAspectStrategy.switchElementsPhaseKernel, gpuBackend);
+            switchForcesPhaseIndex = initKernel(ElementalAspectStrategy.switchForcesPhaseKernel, gpuBackend);
         }
-        switchDynamicsPhaseIndex = backend.addPhase(strategy::switchDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         initChangesPhaseIndex = backend.addPhase(strategy::initChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         proposeChangesFromForcesPhaseIndex = backend.addPhase(strategy::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
@@ -93,7 +94,7 @@ public class ElementalAspect extends RealityAspect {
         processTypeUnitsPhaseInputs = new FloatBuffer[]{elements,null};
         defineByEtherealPhaseInputs = new FloatBuffer[2];
         switchElementsPhaseInputs = new FloatBuffer[2];
-        switchDynamicsPhaseInputs = new FloatBuffer[2];
+        switchForcesPhaseInputs = new FloatBuffer[2];
         proposeForcesPhaseInputs = new FloatBuffer[4];
         proposeChangesFromForcesPhaseInputs = new FloatBuffer[4];
         arbitrateChangesPhaseInputs = new FloatBuffer[4];
@@ -223,11 +224,17 @@ public class ElementalAspect extends RealityAspect {
             BufferUtils.copy(gpuBackend.getOutput(switchElementsPhaseIndex), elements);
         }
 
-        switchDynamicsPhaseInputs[0] = proposals;
-        switchDynamicsPhaseInputs[1] = forces;
-        backend.setInputs(switchDynamicsPhaseInputs);
-        backend.runPhase(switchDynamicsPhaseIndex);
-        BufferUtils.copy(backend.getOutput(switchDynamicsPhaseIndex), forces);
+        switchForcesPhaseInputs[0] = proposals;
+        switchForcesPhaseInputs[1] = forces;
+        if(!useGPU){
+            backend.setInputs(switchForcesPhaseInputs);
+            backend.runPhase(switchForcesPhaseIndex);
+            BufferUtils.copy(backend.getOutput(switchForcesPhaseIndex), forces);
+        }else{
+            gpuBackend.setInputs(switchForcesPhaseInputs);
+            gpuBackend.runPhase(switchForcesPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(switchForcesPhaseIndex), forces);
+        }
     }
 
     @Override

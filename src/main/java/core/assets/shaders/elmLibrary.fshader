@@ -16,6 +16,23 @@ void elm_setPriority(float value){
   gl_FragColor.b = value;
 }
 
+vec2 elm_getForce(vec2 position, sampler2D forces){
+  return texture(forces, position).xy;
+}
+
+void elm_setForce(vec2 value){
+  gl_FragColor.r = value.x;
+  gl_FragColor.g = value.y;
+}
+
+float elm_getVelocityTick(vec2 position, sampler2D forces){
+  return texture(forces, position).b;
+}
+
+void elm_setVelocityTick(float value){
+  gl_FragColor.b = value;
+}
+
 float elm_getAvgElementUnit(vec2 position, sampler2D elements, sampler2D scalars, float elementType){
   float divisor = 0;
   float value = 0;

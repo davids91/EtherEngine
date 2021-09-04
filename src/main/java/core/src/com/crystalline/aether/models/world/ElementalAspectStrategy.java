@@ -132,28 +132,34 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
+    public static final String switchForcesPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/elmSwitchForcesPhase.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Applies the changes proposed from the input proposal buffer
      * @param inputs [0]: proposed changes; [1]: forces
      * @param output dynamics buffer
      */
-    public void switchDynamicsPhase(FloatBuffer[] inputs, FloatBuffer output){
+    public void switchForcesPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y){
-            int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);
-            int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
-            int toApply = (int) RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]);
             float forceX = getForceX(x,y, chunkSize, inputs[1]);
             float forceY = getForceY(x,y, chunkSize, inputs[1]);
             int velocityTick = getVelocityTick(x,y, chunkSize, inputs[1]);
             if(
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
-                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0]))
-                &&(targetX >= 0)&&(targetX < chunkSize)
-                &&(targetY >= 0)&&(targetY < chunkSize)
+                &&(0 < RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]))
+                &&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0]))
             ){
-                forceX = getForceX(targetX,targetY, chunkSize, inputs[1]);
-                forceY = getForceY(targetX,targetY, chunkSize, inputs[1]);
-                velocityTick = getVelocityTick(targetX,targetY, chunkSize, inputs[1]);
+                int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);
+                int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
+                if(
+                    (targetX >= 0)&&(targetX < chunkSize)
+                    &&(targetY >= 0)&&(targetY < chunkSize)
+                ){
+                    forceX = getForceX(targetX,targetY, chunkSize, inputs[1]);
+                    forceY = getForceY(targetX,targetY, chunkSize, inputs[1]);
+                    velocityTick = getVelocityTick(targetX,targetY, chunkSize, inputs[1]);
+                }
             }
             setForceX(x,y, chunkSize, output, forceX);
             setForceY(x,y, chunkSize, output, forceY);

@@ -233,27 +233,27 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }
     }
 
+    public static final String processTypesUnitsPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/elmProcessTypesUnitsPhase.fshader")
+    ), new Includer(baseIncluder));
+    /**
+     * Calculates the unit values each cell shall have after this phase
+     * @param inputs [0]: elements; [1]: scalars
+     * @param output the refined unit values
+     */
     public void processTypeUnitsPhase(FloatBuffer[] inputs, FloatBuffer output) {
         for(int x = chunkSize - 1;x >= 0; --x) for(int y = chunkSize - 1 ; y >= 0; --y) {
             Material.Elements currentElement = getElementEnum(x,y,chunkSize,inputs[0]);
             float currentUnit = World.getUnit(x,y,chunkSize, inputs[1]);
-            if(Material.Elements.Water == currentElement){
-                if(y > (chunkSize * 0.9)){
-                    currentUnit -= currentUnit * 0.02f;
-                }
-            }
+            /* TODO Create a pressure modifier to make water get from gas to fluid again */
 
-            if(Material.Elements.Fire == currentElement){
-                if(
-                    (Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit))
-                    && (currentUnit < avgOfUnit(x,y,inputs[0],inputs[1], Material.Elements.Fire))
-                ){
-                    currentUnit -= currentUnit * 0.1f;
-                }else
-                if(
-                    (Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit))
-                ){
-                    currentUnit -= currentUnit * 0.05f;
+            if(Material.Elements.Fire == currentElement){ /* TODO: Make fire disappear */
+                if(Material.MechaProperties.Plasma == Material.getState(currentElement, currentUnit)){
+                    if(currentUnit < avgOfUnit(x,y,inputs[0],inputs[1], Material.Elements.Fire)){
+                        currentUnit -= currentUnit * 0.1f;
+                    }else{
+                        currentUnit -= currentUnit * 0.05f;
+                    }
                 }
             }
 

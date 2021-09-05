@@ -73,6 +73,7 @@ public class ElementalAspect extends RealityAspect {
             processTypeUnitsPhaseIndex = backend.addPhase(strategy::processTypeUnitsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             switchElementsPhaseIndex = backend.addPhase(strategy::switchElementsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             switchForcesPhaseIndex = backend.addPhase(strategy::switchForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            initChangesPhaseIndex = backend.addPhase(strategy::initChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
             processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
@@ -80,8 +81,8 @@ public class ElementalAspect extends RealityAspect {
             processTypeUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processTypesUnitsPhaseKernel, gpuBackend);
             switchElementsPhaseIndex = initKernel(ElementalAspectStrategy.switchElementsPhaseKernel, gpuBackend);
             switchForcesPhaseIndex = initKernel(ElementalAspectStrategy.switchForcesPhaseKernel, gpuBackend);
+            initChangesPhaseIndex = initKernel(ElementalAspectStrategy.initChangesPhaseKernel, gpuBackend);
         }
-        initChangesPhaseIndex = backend.addPhase(strategy::initChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         proposeChangesFromForcesPhaseIndex = backend.addPhase(strategy::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         arbitrateChangesPhaseIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
@@ -214,6 +215,7 @@ public class ElementalAspect extends RealityAspect {
         switchElementsPhaseInputs[0] = proposals;
         switchElementsPhaseInputs[1] = elements;
 
+        if(!useGPU){ /* TODO: change priority value to another random value */
         if(!useGPU){
             backend.setInputs(switchElementsPhaseInputs);
             backend.runPhase(switchElementsPhaseIndex);
@@ -285,10 +287,13 @@ public class ElementalAspect extends RealityAspect {
 
     @Override
     public void processMechanics(World parent) {
-        /* Init Mechanics phase */
-        backend.runPhase(initChangesPhaseIndex);
-        BufferUtils.copy(backend.getOutput(initChangesPhaseIndex), proposedChanges);
-
+        if(!useGPU){ /* Init Mechanics phase */
+            backend.runPhase(initChangesPhaseIndex);
+            BufferUtils.copy(backend.getOutput(initChangesPhaseIndex), proposedChanges);
+        }else{
+            gpuBackend.runPhase(initChangesPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(initChangesPhaseIndex), proposedChanges);
+        }
         for(int x = 1; x < conf.getChunkBlockSize()-1; ++x){
             for(int y = conf.getChunkBlockSize()-2; y > 0; --y){
                 touchedByMechanics[x][y] = 0;

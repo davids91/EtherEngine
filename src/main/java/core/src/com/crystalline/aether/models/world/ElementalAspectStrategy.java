@@ -270,6 +270,10 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }
     }
 
+
+    public static final String initChangesPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/eraseChunk.fshader")
+    ), new Includer(baseIncluder));
     /**
      * A function to propose force updates based on material properties
      * @param inputs: none

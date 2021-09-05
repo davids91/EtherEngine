@@ -49,6 +49,7 @@ public class ElementalAspect extends RealityAspect {
     private final FloatBuffer[] defineByEtherealPhaseInputs;
     private final FloatBuffer[] switchElementsPhaseInputs;
     private final FloatBuffer[] switchForcesPhaseInputs;
+    private final FloatBuffer[] initChangesPhaseInputs;
     private final FloatBuffer[] proposeForcesPhaseInputs;
     private final FloatBuffer[] proposeChangesFromForcesPhaseInputs;
     private final FloatBuffer[] arbitrateChangesPhaseInputs;
@@ -97,6 +98,7 @@ public class ElementalAspect extends RealityAspect {
         switchElementsPhaseInputs = new FloatBuffer[2];
         switchForcesPhaseInputs = new FloatBuffer[2];
         proposeForcesPhaseInputs = new FloatBuffer[4];
+        initChangesPhaseInputs = new FloatBuffer[1];
         proposeChangesFromForcesPhaseInputs = new FloatBuffer[4];
         arbitrateChangesPhaseInputs = new FloatBuffer[4];
         applyChangesDynamicsPhaseInputs = new FloatBuffer[4];
@@ -216,7 +218,6 @@ public class ElementalAspect extends RealityAspect {
         switchElementsPhaseInputs[1] = elements;
 
         if(!useGPU){ /* TODO: change priority value to another random value */
-        if(!useGPU){
             backend.setInputs(switchElementsPhaseInputs);
             backend.runPhase(switchElementsPhaseIndex);
             BufferUtils.copy(backend.getOutput(switchElementsPhaseIndex), elements);
@@ -287,10 +288,13 @@ public class ElementalAspect extends RealityAspect {
 
     @Override
     public void processMechanics(World parent) {
+        initChangesPhaseInputs[0] = proposedChanges;
         if(!useGPU){ /* Init Mechanics phase */
+            backend.setInputs(initChangesPhaseInputs);
             backend.runPhase(initChangesPhaseIndex);
             BufferUtils.copy(backend.getOutput(initChangesPhaseIndex), proposedChanges);
         }else{
+            gpuBackend.setInputs(initChangesPhaseInputs);
             gpuBackend.runPhase(initChangesPhaseIndex);
             BufferUtils.copy(gpuBackend.getOutput(initChangesPhaseIndex), proposedChanges);
         }

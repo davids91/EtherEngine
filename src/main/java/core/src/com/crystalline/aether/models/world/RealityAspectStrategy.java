@@ -28,19 +28,25 @@ public class RealityAspectStrategy {
      * - R: the offset code for the target, which is to be used in accordance with the coordinates of the source cell
      * - G: toApply bit --> whether to apply this change, or to try again in the next iteration
      *          0 - don't apply; 1 - a cell will switch with his cell; 2 - this cell will switch with another cell
-     * - B: acquired velocity tick (to be used to correct it in dynamics buffer when taking over changes)
+     * - B: velocity tick for cells to be able to move with different speeds
      */
-    public static float getOffsetCode(int x, int y, int chunkSize, FloatBuffer buffer){
-        return BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,0, buffer);
+    public static float getOffsetCode(int x, int y, int chunkSize, FloatBuffer proposedChanges){
+        return BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,0, proposedChanges);
     }
-    public static void setOffsetCode(int x, int y, int chunkSize, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y, chunkSize,Config.bufferCellSize,0, buffer, value);
+    public static void setOffsetCode(int x, int y, int chunkSize, FloatBuffer proposedChanges, float value){
+        BufferUtils.set(x,y, chunkSize,Config.bufferCellSize,0, proposedChanges, value);
     }
-    public static float getToApply(int x, int y, int chunkSize, FloatBuffer buffer){
-        return BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,1, buffer);
+    public static float getToApply(int x, int y, int chunkSize, FloatBuffer proposedChanges){
+        return BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,1, proposedChanges);
     }
-    public static void setToApply(int x, int y, int chunkSize, FloatBuffer buffer, float value){
-        BufferUtils.set(x,y,chunkSize,Config.bufferCellSize,1, buffer, value);
+    public static void setToApply(int x, int y, int chunkSize, FloatBuffer proposedChanges, float value){
+        BufferUtils.set(x,y,chunkSize,Config.bufferCellSize,1, proposedChanges, value);
+    }
+    public static int getVelocityTick(int x, int y, int chunkSize, FloatBuffer proposedChanges){
+        return (int)BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,2,proposedChanges);
+    }
+    public static void setVelocityTick(int x, int y, int chunkSize, FloatBuffer proposedChanges, float value){
+        BufferUtils.set(x,y,chunkSize,Config.bufferCellSize,2,proposedChanges, value);
     }
 
     public static int getXFromOffsetCode(int x, int code){

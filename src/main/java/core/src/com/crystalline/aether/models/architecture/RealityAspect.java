@@ -8,6 +8,7 @@ import java.nio.FloatBuffer;
 import java.util.Stack;
 
 public abstract class RealityAspect {
+    protected static final boolean useGPU = true;
     protected abstract Object[] getState();
     protected abstract void setState(Object[] state);
     public abstract void switchValues(FloatBuffer proposals);

@@ -31,5 +31,5 @@
       }
     }
     elm_SetElement(currentElement);
-    elm_setPriority(elm_getPriority(currentPosition.xy, inputs1));
+    elm_setPriority(elm_getPriority(currentPosition.xy, inputs2));
   }

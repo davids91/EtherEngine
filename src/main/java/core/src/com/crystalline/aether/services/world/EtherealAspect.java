@@ -31,7 +31,6 @@ public class EtherealAspect extends RealityAspect {
     private final FloatBuffer[] defineByElementalPhaseInputs;
     private final FloatBuffer[] switchEtherPhaseInputs;
 
-    private final boolean useGPU = true;
     public EtherealAspect(Config conf_){
         super(conf_);
         backend = new CPUBackend();

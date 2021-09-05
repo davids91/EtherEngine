@@ -63,7 +63,7 @@ void main(void){
         force.x *= 1.2;
       }else{
         force.x = (normalizedRandomValue * 6) - 3.0;
-        force.y = 1.001; /* TODO: when 1.01; elements disappear.... */
+        force.y = 1.0;
       }
     }
   }else if(world_statePlasma == currentState){

@@ -1,6 +1,8 @@
 package com.crystalline.aether.services.world;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.ElementalAspectStrategy;
 import com.crystalline.aether.models.world.Material;
@@ -17,7 +19,6 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class ElementalAspect extends RealityAspect {
-    private static final boolean useGPU = true;
     private final Random rnd = new Random();
 
     private FloatBuffer elements;
@@ -163,10 +164,10 @@ public class ElementalAspect extends RealityAspect {
             for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
                 int index_radius = 2;
                 int minIndexX = Math.max((x-index_radius), 0);
-                int maxIndexX = Math.min((x+index_radius), conf.getChunkBlockSize());
+                int maxIndexX = Math.min((x+index_radius), conf.getChunkBlockSize()-1);
                 int minIndexY = Math.max((y-index_radius), 0);
-                int maxIndexY = Math.min((y+index_radius), conf.getChunkBlockSize());
-                for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
+                int maxIndexY = Math.min((y+index_radius), conf.getChunkBlockSize()-1);
+                for(int ix = minIndexX; ix <= maxIndexX; ++ix){ for(int iy = minIndexY; iy <= maxIndexY; ++iy) {
                     if( /* TODO: Re-check priority; make it inside bounds; use it as random function */
                         ((x != ix)&&(y != iy))
                         &&(500 > Math.abs(ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements) - ElementalAspectStrategy.getPriority(ix,iy, conf.getChunkBlockSize(), elements)))
@@ -287,16 +288,6 @@ public class ElementalAspect extends RealityAspect {
 
     }
 
-    private int count(){
-        int number = 0;
-        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-            if(Material.Elements.Water == getElement(x,y)){
-                ++number;
-            }
-        }}
-        return number;
-    }
-
     @Override
     public void processMechanics(World parent) {
         initChangesPhaseInputs[0] = proposedChanges;
@@ -347,11 +338,20 @@ public class ElementalAspect extends RealityAspect {
             }else{
                 arbitrateChangesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
             }
-
             parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
             backend.setInputs(arbitrateChangesPhaseInputs);
             backend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
 
+            arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
+            arbitrateInteractionsPhaseInputs[1] = elements;
+            parent.provideScalarsTo(arbitrateInteractionsPhaseInputs, 2);
+            backend.setInputs(arbitrateInteractionsPhaseInputs);
+            backend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
+            /* TODO: unify toApply and Offset if possible */
+
+            /*!Note: arbitrateInteractions decides whether switches happen, but not whether interactions will happen!
+             * This is why arbitrateChanges is being used here.
+             * */
             applyChangesDynamicsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
             applyChangesDynamicsPhaseInputs[1] = elements;
             if(!useGPU){
@@ -359,17 +359,10 @@ public class ElementalAspect extends RealityAspect {
             }else{
                 applyChangesDynamicsPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
             }
-
             parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
             backend.setInputs(applyChangesDynamicsPhaseInputs);
             backend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
             BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), forces); /* TODO: maybe copies can be avoided here? */
-
-            arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
-            arbitrateInteractionsPhaseInputs[1] = elements;
-            parent.provideScalarsTo(arbitrateInteractionsPhaseInputs, 2);
-            backend.setInputs(arbitrateInteractionsPhaseInputs);
-            backend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
 
             parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
 
@@ -496,7 +489,7 @@ public class ElementalAspect extends RealityAspect {
         /* Red <-> Blue: left <-> right */
         float offsetX = (RealityAspectStrategy.getTargetX(x,y, conf.getChunkBlockSize(), proposedChanges) - x + 1) / 2.0f;
         float offsetY = (RealityAspectStrategy.getTargetY(x,y, conf.getChunkBlockSize(), proposedChanges) - y + 1) / 2.0f;
-        debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets *///        float prio = getPriority(x,y, conf.getChunkBlockSize(), elements)/maxPrio;
+//        debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets *///        float prio = getPriority(x,y, conf.getChunkBlockSize(), elements)/maxPrio;
 //        debugColor = new Color(
 //////                prio, prio, prio, 1.0f
 //////                    offsetR,
@@ -508,7 +501,7 @@ public class ElementalAspect extends RealityAspect {
 //////                    offsetB,
 //                1.0f
 //            );
-            defColor.lerp(debugColor,debugViewPercent);
+//            defColor.lerp(debugColor,debugViewPercent);
 //        }
         return defColor;
     }

@@ -27,12 +27,12 @@ const float NETHER_RATIOS[6] = float[6](
 );
 
 const float[6][6] TYPE_UNIT_SELECTOR = {
-/* Ether */   float[6](0,  50, 50,  50,  50,  50),
-/* Earth */   float[6](0,  10, 15,  70,  700, 1000),
-/* Water */   float[6](0,  50, 100, 100, 100, 100),
-/* Air*/      float[6](0,  10, 10,  10,  10,  10),
-/* Fire */    float[6](10, 50, 100, 100, 100, 100),
-/* Nothing */ float[6](0,  0,  0,   0,   0,   0)
+/* Ether */   float[6](0,  50, 500,   5000,   50000,    500000),
+/* Earth */   float[6](0,  10, 15,    70,     700,      1000),
+/* Water */   float[6](0,  50, 100,   1000,   10000,    100000),
+/* Air*/      float[6](0,  10, 1000,  10000,  100000,   10000000),
+/* Fire */    float[6](10, 50, 100,   1000,   10000,    100000),
+/* Nothing */ float[6](0,  0,  0,     0,      0,        0)
 };
 
 const float[6][6] TYPE_SPECIFIC_STATE = {
@@ -71,24 +71,42 @@ const float[6][6] TYPE_SPECIFIC_STATE = {
 const float world_indexEther = 0;
 const float world_indexEarth = 1;
 const float world_indexWater = 2;
-const float world_indexAir =   3;
-const float world_indexFire =  4;
+const float world_indexAir   = 3;
+const float world_indexFire  = 4;
 
 float world_RatioOf(float element){
   return NETHER_RATIOS[int(element)];
 }
 
 int world_indexIn(float[6] table, float value){
-  int index = table.length();
+  int index = table.length()-1;
   while((index > 0)&&(table[index] >= value))--index;
   return index;
 }
 
-float world_getState(float type, float unit){
-  int index = world_indexIn(TYPE_UNIT_SELECTOR[int(type)], unit);
-  return TYPE_SPECIFIC_STATE[int(type)][index];
+float world_getState(float element, float unit){
+  int index = world_indexIn(TYPE_UNIT_SELECTOR[int(element)], unit);
+  return TYPE_SPECIFIC_STATE[int(element)][index];
 }
 
-bool world_isCellMovable(float element, float unit ){
-  return false;
+bool world_isCellMovable(float element, float unit){
+  float state = world_getState(element, unit);
+  return (
+    (world_stateNegligible < state)
+    &&(world_stateSolid > state)
+  );
+}
+
+bool world_isCellDiscardable(float element, float unit){
+  return (world_stateNegligible == world_getState(element, unit));
+}
+
+bool world_isSameMat(float elementA, float unitA, float elementB, float unitB){
+  return(
+    (elementA == elementB)
+    &&(
+      world_indexIn(TYPE_UNIT_SELECTOR[int(elementA)], unitA)
+      == world_indexIn(TYPE_UNIT_SELECTOR[int(elementA)], unitA)
+    )
+  );
 }

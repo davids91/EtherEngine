@@ -287,29 +287,36 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
+
+    public static final String proposeForcesPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/elmProposeForces.fshader")
+    ), new Includer(baseIncluder));
     /**
      * A function to propose force updates based on material properties
      * @param inputs: [0]: elements; [1]: forces; [2]: scalars; [3]: ethereal
      * @param output the resulting updated dynamics
      */
     public void proposeForcesPhase(FloatBuffer[] inputs, FloatBuffer output){
-        for(int x = 1; x < chunkSize; ++x){ for(int y = 1; y < chunkSize; ++y){
+        for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y){
             float forceX = 0.0f;
             float forceY = 0.0f;
+            Material.Elements currentElement = getElementEnum(x,y, chunkSize, inputs[0]);
+            float currentUnit = World.getUnit(x,y, chunkSize, inputs[2]);
+            Material.MechaProperties materialState = Material.getState(currentElement, currentUnit);
 
             /*!Note: Adding gravity is handled in the post-process phase, not here, to handle collisions correctly */
-            if(!Material.discardable(getElementEnum(x,y, chunkSize, inputs[0]),World.getUnit(x,y, chunkSize, inputs[2]))){
+            if(!Material.discardable(currentElement,currentUnit)){
                 forceX = getForceX(x,y, chunkSize, inputs[1]);
                 forceY = getForceY(x,y, chunkSize, inputs[1]);
             }
 
-            if(Material.Elements.Ether == getElementEnum(x,y, chunkSize, inputs[0])){
+            if(Material.Elements.Ether == currentElement){ /* TODO: Include Nether into forces calculation */
                 for (int nx = (x - 2); nx < (x + 3); ++nx) for (int ny = (y - 2); ny < (y + 3); ++ny) {
                     if ( /* in the bounds of the chunk.. */
                         (0 <= nx)&&(chunkSize > nx)&&(0 <= ny)&&(chunkSize > ny)
                         &&( 1 < (Math.abs(x - nx) + Math.abs(y - ny)) ) /* ..after the not immediate neighbourhood.. */
-                        &&(World.getUnit(x,y, chunkSize, inputs[2]) <= World.getUnit(x,y, chunkSize, inputs[2]))
                         &&(Material.Elements.Ether == getElementEnum(nx,ny, chunkSize, inputs[0]))
+                        &&(currentUnit < World.getUnit(nx,ny, chunkSize, inputs[2])) /* If the current Ether is less dense */
                     ){ /* ..Calculate forces from surplus ethers */
                         float aether_diff = Math.max(-10.5f, Math.min(10.5f,
                             ( EtherealAspectStrategy.aetherValueAt(x,y, chunkSize, inputs[3]) - EtherealAspectStrategy.aetherValueAt(nx,ny, chunkSize, inputs[3]))
@@ -320,21 +327,24 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                 }
             }
 
-            if(Material.MechaProperties.Fluid == Material.getState(getElementEnum(x,y, chunkSize, inputs[0]), World.getUnit(x,y, chunkSize, inputs[2]))){
-                if(Material.isSameMat(
-                    getElementEnum(x,y, chunkSize, inputs[0]), World.getUnit(x,y, chunkSize, inputs[2]),
-                    getElementEnum(x,y-1, chunkSize, inputs[0]), World.getUnit(x,y, chunkSize, inputs[2])
-                )){ /* TODO: define the water cell force behavior correctly: each water cell aims to be 1.5 cells from one another */
+            if(Material.MechaProperties.Fluid == materialState){ /* TODO: Granular as well */
+                if(
+                    (0 < y)&& Material.isSameMat(
+                        currentElement, World.getUnit(x,y, chunkSize, inputs[2]),
+                        getElementEnum(x,y-1, chunkSize, inputs[0]), World.getUnit(x,y-1, chunkSize, inputs[2])
+                    )
+                ){ /* TODO: define the water cell force behavior correctly: each water cell aims to be 1.5 cells from one another */
                     /* the cell is a liquid on top of another liquid, so it must move. */
-                    if((0.0f < forceX)&&(6.0f > forceX))forceX *= 1.2f;
-                    else{
+                    if((0.0f < forceX)&&(6.0f > forceX)) {
+                        forceX *= 1.2f;
+                    }else{ /* TODO: set max force of liquids */
                         forceX = rnd.nextInt(6) - 3;
-                        forceY = 1.00f;
+                        forceY = 1.01f;
                     }
                 }
-            }else if(Material.MechaProperties.Plasma == Material.getState(getElementEnum(x,y, chunkSize, inputs[0]), World.getUnit(x,y, chunkSize, inputs[2]))){
+            }else if(Material.MechaProperties.Plasma == materialState){
                 forceX += rnd.nextInt(4) - 2;
-            }/* TODO: Make gases loom, instead of staying still ( move about a bit maybe? )  */
+            }/* TODO: Make some gases loom, instead of staying still ( move about a bit maybe? )  */
 
             setForce(x,y, chunkSize, output,forceX,forceY);
         } }
@@ -712,18 +722,15 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         BufferUtils.set(x,y,chunkSize,Config.bufferCellSize,1,forces, getForceY(x,y, chunkSize,  forces) + valueY);
     }
 
-    
-
     /* TODO: Weight to include pressure somehow? or at least the same materials on top */
     public static float getWeight(int x, int y, int chunkSize, FloatBuffer elements, FloatBuffer scalars){
+        int currentElement = (int)(getElement(x,y, chunkSize, elements));
+        float currentUnit = World.getUnit(x,y, chunkSize, scalars);
         return (
-                World.getUnit(x,y, chunkSize, scalars)
-                        * Material.TYPE_SPECIFIC_GRAVITY
-                        [(int)getElement(x,y, chunkSize, elements)]
-                        [MiscUtils.indexIn(
-                        Material.TYPE_UNIT_SELECTOR[(int)getElement(x,y, chunkSize, elements)],
-                        World.getUnit(x,y, chunkSize, scalars)
-                )]
+            World.getUnit(x,y, chunkSize, scalars)
+            * Material.TYPE_SPECIFIC_GRAVITY[currentElement][
+                MiscUtils.indexIn(Material.TYPE_UNIT_SELECTOR[currentElement], currentUnit)
+            ]
         );
     }
 }

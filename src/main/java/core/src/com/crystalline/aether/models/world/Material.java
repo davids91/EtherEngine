@@ -110,7 +110,7 @@ public class Material {
 
     public static boolean movable(Elements type, float unit){
         MechaProperties state = getState(type,unit);
-        return (
+        return ( /* TODO: Make movability regardless of material state ( store a flag inside the element instead )  */
             (MechaProperties.Negligible.ordinal() < state.ordinal())
             &&(MechaProperties.Solid.ordinal() > state.ordinal())
         );

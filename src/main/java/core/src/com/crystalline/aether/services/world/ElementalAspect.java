@@ -75,6 +75,7 @@ public class ElementalAspect extends RealityAspect {
             switchElementsPhaseIndex = backend.addPhase(strategy::switchElementsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             switchForcesPhaseIndex = backend.addPhase(strategy::switchForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             initChangesPhaseIndex = backend.addPhase(strategy::initChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
             processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
@@ -83,8 +84,8 @@ public class ElementalAspect extends RealityAspect {
             switchElementsPhaseIndex = initKernel(ElementalAspectStrategy.switchElementsPhaseKernel, gpuBackend);
             switchForcesPhaseIndex = initKernel(ElementalAspectStrategy.switchForcesPhaseKernel, gpuBackend);
             initChangesPhaseIndex = initKernel(ElementalAspectStrategy.initChangesPhaseKernel, gpuBackend);
+            proposeForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeForcesPhaseKernel, gpuBackend);
         }
-        proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         proposeChangesFromForcesPhaseIndex = backend.addPhase(strategy::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         arbitrateChangesPhaseIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
@@ -166,11 +167,11 @@ public class ElementalAspect extends RealityAspect {
                 int minIndexY = Math.max((y-index_radius), 0);
                 int maxIndexY = Math.min((y+index_radius), conf.getChunkBlockSize());
                 for(int ix = minIndexX; ix < maxIndexX; ++ix){ for(int iy = minIndexY; iy < maxIndexY; ++iy) {
-                    if(
+                    if( /* TODO: Re-check priority; make it inside bounds; use it as random function */
                         ((x != ix)&&(y != iy))
                         &&(500 > Math.abs(ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements) - ElementalAspectStrategy.getPriority(ix,iy, conf.getChunkBlockSize(), elements)))
                     ){
-                        ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * Float.MAX_VALUE);
+                        ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * 1000000.0f);
                         ++similarities;
                     }
                 }}
@@ -286,6 +287,16 @@ public class ElementalAspect extends RealityAspect {
 
     }
 
+    private int count(){
+        int number = 0;
+        for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+            if(Material.Elements.Water == getElement(x,y)){
+                ++number;
+            }
+        }}
+        return number;
+    }
+
     @Override
     public void processMechanics(World parent) {
         initChangesPhaseInputs[0] = proposedChanges;
@@ -306,32 +317,49 @@ public class ElementalAspect extends RealityAspect {
 
         /* Main Mechanic phase */
         for(int i = 0; i < ElementalAspectStrategy.velocityMaxTicks; ++i){
-            /* Propose forces, and apply changes not yet applied from the previous iteration */
-            /* Propose changes from forces */
             proposeForcesPhaseInputs[0] = elements;
             proposeForcesPhaseInputs[1] = forces;
             parent.provideScalarsTo(proposeForcesPhaseInputs, 2);
             parent.getEtherealPlane().provideEtherTo(proposeForcesPhaseInputs, 3);
-            backend.setInputs(proposeForcesPhaseInputs);
-            backend.runPhase(proposeForcesPhaseIndex); /* output: new dynamics */
+            if(!useGPU){
+                backend.setInputs(proposeForcesPhaseInputs);
+                backend.runPhase(proposeForcesPhaseIndex); /* output: new proposed forces */
+            }else{
+                gpuBackend.setInputs(proposeForcesPhaseInputs);
+                gpuBackend.runPhase(proposeForcesPhaseIndex); /* output: new proposed forces */
+            }
 
             proposeChangesFromForcesPhaseInputs[0] = proposedChanges;
             proposeChangesFromForcesPhaseInputs[1] = elements;
-            proposeChangesFromForcesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+            if(!useGPU){
+                proposeChangesFromForcesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+            }else{
+                proposeChangesFromForcesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
+            }
             parent.provideScalarsTo(proposeChangesFromForcesPhaseInputs, 3);
             backend.setInputs(proposeChangesFromForcesPhaseInputs);
             backend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
 
             arbitrateChangesPhaseInputs[0] = backend.getOutput(proposeChangesFromForcesPhaseIndex);
             arbitrateChangesPhaseInputs[1] = elements;
-            arbitrateChangesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+            if(!useGPU){
+                arbitrateChangesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+            }else{
+                arbitrateChangesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
+            }
+
             parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
             backend.setInputs(arbitrateChangesPhaseInputs);
             backend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
 
             applyChangesDynamicsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
             applyChangesDynamicsPhaseInputs[1] = elements;
-            applyChangesDynamicsPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+            if(!useGPU){
+                applyChangesDynamicsPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+            }else{
+                applyChangesDynamicsPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
+            }
+
             parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
             backend.setInputs(applyChangesDynamicsPhaseInputs);
             backend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
@@ -344,6 +372,7 @@ public class ElementalAspect extends RealityAspect {
             backend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
 
             parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
+
             if(i == ElementalAspectStrategy.velocityMaxTicks-1){
                 BufferUtils.copy(backend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
             }
@@ -467,18 +496,18 @@ public class ElementalAspect extends RealityAspect {
         /* Red <-> Blue: left <-> right */
         float offsetX = (RealityAspectStrategy.getTargetX(x,y, conf.getChunkBlockSize(), proposedChanges) - x + 1) / 2.0f;
         float offsetY = (RealityAspectStrategy.getTargetY(x,y, conf.getChunkBlockSize(), proposedChanges) - y + 1) / 2.0f;
-//        debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets *///        float prio = getPriority(x,y, conf.getChunkBlockSize(), elements)/maxPrio;
-        debugColor = new Color(
-////                prio, prio, prio, 1.0f
-////                    offsetR,
-                parent.getEtherealPlane().getReleasedNether(x,y)/parent.getEtherealPlane().netherValueAt(x,y),
-////                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
-//////                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
-                    0f,//unitsDiff,
-                parent.getEtherealPlane().getReleasedAether(x,y)/parent.getEtherealPlane().aetherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
-////                    offsetB,
-                1.0f
-            );
+        debugColor = new Color(1.0f - offsetX, offsetY, offsetX, 1.0f); /* <-- proposed offsets *///        float prio = getPriority(x,y, conf.getChunkBlockSize(), elements)/maxPrio;
+//        debugColor = new Color(
+//////                prio, prio, prio, 1.0f
+//////                    offsetR,
+//                parent.getEtherealPlane().getReleasedNether(x,y)/parent.getEtherealPlane().netherValueAt(x,y),
+//////                //-Math.max(0.0f, Math.min(-5.0f, forces[x][y].y))/5.0f,
+////////                    (0 == touchedByMechanics[x][y])?0.0f:1.0f,
+//                    0f,//unitsDiff,
+//                parent.getEtherealPlane().getReleasedAether(x,y)/parent.getEtherealPlane().aetherValueAt(x,y),//Math.max(1.0f, Math.min(0.0f, forces[x][y].x)),
+//////                    offsetB,
+//                1.0f
+//            );
             defColor.lerp(debugColor,debugViewPercent);
 //        }
         return defColor;

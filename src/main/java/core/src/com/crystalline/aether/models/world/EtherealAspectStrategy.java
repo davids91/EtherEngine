@@ -55,7 +55,7 @@ public class EtherealAspectStrategy extends RealityAspectStrategy{
             float neVal = getNetherValue(x, y, chunkSize, inputs[1]);
             if(
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
-                &&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0]))
+                &&(0 != RealityAspectStrategy.getOffsetCodeFromOffsetVector(x,y,chunkSize, inputs[0]))
                 &&(0 < RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]))
             ){
                 int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);

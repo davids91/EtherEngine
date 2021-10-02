@@ -116,7 +116,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             Material.Elements currentElement = getElementEnum(x,y, chunkSize, inputs[1]);
             if(
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
-                &&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0]))
+                &&(0 != RealityAspectStrategy.getOffsetCodeFromOffsetVector(x,y,chunkSize, inputs[0]))
                 &&(0 < RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]))
             ){
                 int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);
@@ -148,7 +148,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             if(
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
                 &&(0 < RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]))
-                &&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0]))
+                &&(0 != RealityAspectStrategy.getOffsetCodeFromOffsetVector(x,y,chunkSize, inputs[0]))
             ){
                 int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);
                 int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
@@ -287,7 +287,6 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
-
     public static final String proposeForcesPhaseKernel = buildKernel(StringUtils.readFileAsString(
         Gdx.files.internal("shaders/elmProposeForces.fshader")
     ), new Includer(baseIncluder));
@@ -350,6 +349,9 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         } }
     }
 
+    public static final String proposeChangesFromForcesPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/elmProposeChangesFromForces.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Provides proposed cell switches based on Forces
      * @param inputs [0]: previously proposed changes; [1]: elements; [2]: forces; [3]: scalars
@@ -357,56 +359,59 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
      */
     public void proposeChangesFromForcesPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y){
+            Material.Elements currentElement = getElementEnum(x,y, chunkSize, inputs[1]);
+            float currentUnit = World.getUnit(x,y, chunkSize, inputs[3]);
             int velocityTick = getVelocityTick(x,y, chunkSize, inputs[0]);
             int targetX = RealityAspectStrategy.getTargetX(x,y, chunkSize, inputs[0]);
             int targetY = RealityAspectStrategy.getTargetY(x,y, chunkSize, inputs[0]);
-            int toApply = (int) RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]); /* a previously proposed change would overwrite a current loop change */
+            float forceX = getForceX(x,y, chunkSize, inputs[2]);
+            float forceY = getForceY(x,y, chunkSize, inputs[2]);
 
-            if(0 == toApply){ /* if no switch was arbitrated in the previously proposed changes */
-                /* a target was not proposed previously for this cell, which would overwrite any switch proposed from forces */
-                if(
-                    !Material.discardable(getElementEnum(x,y, chunkSize, inputs[1]), World.getUnit(x,y, chunkSize, inputs[3]))
-                    && (1 <= getForce(x,y, chunkSize, inputs[2]).len())
-                ){
-                    /* propose to change to the direction of the force */
-                    if(1 < Math.abs(getForceX(x,y, chunkSize, inputs[2])))targetX = (int)(x + Math.max(-1, Math.min(getForceX(x,y, chunkSize, inputs[2]),1)));
-                    if(1 < Math.abs(getForceY(x,y, chunkSize, inputs[2])))targetY = (int)(y + Math.max(-1, Math.min(getForceY(x,y, chunkSize, inputs[2]),1)));
-                    targetX = Math.max(0, Math.min(chunkSize-1, targetX));
-                    targetY = Math.max(0, Math.min(chunkSize-1, targetY));
+            /* a previously proposed change might overwrite a current loop change */
+            if( /* a target was not proposed previously for this cell, which would overwrite any switch proposed from forces */
+                (0 == RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]))  /* if no switch was arbitrated in the previously proposed changes */
+                &&!Material.discardable(currentElement, currentUnit)
+                && (1 <= getForce(x,y, chunkSize, inputs[2]).len())
+            ){
+                /* propose to change to the direction of the force */
+                if(1 < Math.abs(forceX))targetX = (int)(x + Math.max(-1, Math.min(1,forceX)));
+                if(1 < Math.abs(forceY))targetY = (int)(y + Math.max(-1, Math.min(1,forceY)));
+                targetX = Math.max(0, Math.min(chunkSize-1, targetX));
+                targetY = Math.max(0, Math.min(chunkSize-1, targetY));
 
-                    /* calculate the final position of the intended target cell */
-                    int targetFinalPosX = targetX;
-                    int targetFinalPosY = targetY;
-                    if(1 < Math.abs(getForceX(targetX,targetY, chunkSize, inputs[2])))
-                        targetFinalPosX = (int)(targetX + Math.max(-1.1f, Math.min(getForceX(targetX, targetY, chunkSize, inputs[2]),1.1f)));
-                    if(1 < Math.abs(getForceY(targetX,targetY, chunkSize, inputs[2])))
-                        targetFinalPosY = (int)(targetY + Math.max(-1.1f, Math.min(getForceY(targetX,targetY, chunkSize, inputs[2]),1.1f)));
+                /* calculate the final position of the intended target cell */
+                int targetFinalPosX = targetX;
+                int targetFinalPosY = targetY;
+                if(1 < Math.abs(getForceX(targetX,targetY, chunkSize, inputs[2])))
+                    targetFinalPosX = (int)(targetX + Math.max(-1.1f, Math.min(1.1f, getForceX(targetX, targetY, chunkSize, inputs[2]))));
+                if(1 < Math.abs(getForceY(targetX,targetY, chunkSize, inputs[2])))
+                    targetFinalPosY = (int)(targetY + Math.max(-1.1f, Math.min(1.1f, getForceY(targetX,targetY, chunkSize, inputs[2]))));
 
-                    /* see if the two cells still intersect with forces included */
-                    if(2 > MiscUtils.distance(x,y,targetFinalPosX,targetFinalPosY)){
-                        if(
-                            !((x == targetX) && (y == targetY))
-                            &&( /* In case both is discardable, then no operations shall commence */
-                                Material.discardable(getElementEnum(x,y, chunkSize, inputs[1]),World.getUnit(x,y, chunkSize, inputs[3]))
-                                &&Material.discardable(getElementEnum(targetX,targetY, chunkSize, inputs[1]),World.getUnit(targetX,targetY, chunkSize, inputs[3]))
-                            )
-                        ){ /* both cells are discardable, so don't switch */
-                            targetX = x;
-                            targetY = y;
-                        }else if (velocityMaxTicks > velocityTick){ /* propose a switch with the target only if the velocity ticks are at threshold */
-                            ++velocityTick;
-                            targetX = x;
-                            targetY = y;
-                        }
-                    }else{ /* the two cells don't intersect by transition, so don't update the target */
+                /* see if the two cells still intersect with forces included */
+                if(2 > MiscUtils.distance(x,y,targetFinalPosX,targetFinalPosY)){
+                    if(
+                        !((x == targetX) && (y == targetY))
+                        &&( /* In case both is discardable, then no operations shall commence */
+                            Material.discardable(currentElement,currentUnit)
+                            &&Material.discardable(getElementEnum(targetX,targetY, chunkSize, inputs[1]),World.getUnit(targetX,targetY, chunkSize, inputs[3]))
+                        )
+                    ){ /* both cells are discardable, so don't switch */
+                        targetX = x;
+                        targetY = y;
+                    }else if (velocityMaxTicks > velocityTick){ /* propose a switch with the target only if the velocity ticks are at threshold */
+                        ++velocityTick;
                         targetX = x;
                         targetY = y;
                     }
+                }else{ /* the two cells don't intersect by transition, so don't update the target */
+                    targetX = x;
+                    targetY = y;
                 }
             }
+
             setVelocityTick(x,y, chunkSize, output, velocityTick);
             /* TODO: Try to have everything go TOP RIGHT direction: Bottom left corner will duplicate cells somehow... */
-            setOffsetCode(x,y,chunkSize,output, RealityAspectStrategy.getOffsetCode((targetX - x), (targetY - y)));
+            setOffsetCode(x,y,chunkSize,output, RealityAspectStrategy.getOffsetCodeFromOffsetVector((targetX - x), (targetY - y)));
             setToApply(x,y, chunkSize,output, 0);
         }}
     }
@@ -519,10 +524,10 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                     if(((x == highestPrioX)&&(y == highestPrioY)) || ((x == highestTargetX)&&(y == highestTargetY))){
                         if((x == highestPrioX)&&(y == highestPrioY)){
                             toApply = 2;
-                            offsetCode = RealityAspectStrategy.getOffsetCode((highestTargetX - x), (highestTargetY - y));
+                            offsetCode = RealityAspectStrategy.getOffsetCodeFromOffsetVector((highestTargetX - x), (highestTargetY - y));
                         }else{ /* if((x == highestTargetX)&&(y == highestTargetY)){ /* This is always true here.. */
                             toApply = 1;
-                            offsetCode = RealityAspectStrategy.getOffsetCode((highestPrioX - x), (highestPrioY - y));
+                            offsetCode = RealityAspectStrategy.getOffsetCodeFromOffsetVector((highestPrioX - x), (highestPrioY - y));
                         }
                     }
                     /*!Note: Only set the target if the current cell is actually the highest priority;
@@ -555,7 +560,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
             if( /* Check for swaps */
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when cell is inside bounds.. */
-                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..and it wants to switch..  */
+                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCodeFromOffsetVector(x,y,chunkSize, inputs[0])) /* ..and it wants to switch..  */
                 &&((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)) /* ..but only if the target is also inside the bounds of the chunk */
             ){
                 if(
@@ -572,7 +577,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                     toApply = 0;
                 }
             }
-            RealityAspectStrategy.setOffsetCode(x,y, chunkSize, output, RealityAspectStrategy.getOffsetCode(x,y, chunkSize, inputs[0]));
+            RealityAspectStrategy.setOffsetCode(x,y, chunkSize, output, RealityAspectStrategy.getOffsetCodeFromOffsetVector(x,y, chunkSize, inputs[0]));
             RealityAspectStrategy.setToApply(x,y, chunkSize,output, toApply);
             setVelocityTick(x,y, chunkSize, output, velocityTick);
         }}
@@ -594,7 +599,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
 
             if( /* Update the forces on a cell.. */
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when it is inside bounds.. */
-                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..only if it wants to switch..  */
+                &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCodeFromOffsetVector(x,y,chunkSize, inputs[0])) /* ..only if it wants to switch..  */
                 &&((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)) /* ..but only if the target is also inside the bounds of the chunk */
             ){
                 if( aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[3]) ){ /* The cells swap, decreasing forces on both *//* TODO: Also decrease the force based on the targets weight */

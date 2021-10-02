@@ -14,12 +14,24 @@ float coords_getToApply(vec2 position, sampler2D proposedChanges){
   return(texture(proposedChanges, position).g);
 }
 
+float coords_getOffsetCodeFromOffsetVector(vec2 v){
+   if((v.x < 0)&&(v.y < 0)) return 1;
+   if((v.x == 0)&&(v.y < 0)) return 2;
+   if((v.x > 0)&&(v.y < 0)) return 3;
+   if((v.x > 0)&&(v.y == 0)) return 4;
+   if((v.x > 0)/*&&(v.y > 0)*/) return 5;
+   if((v.x == 0)&&(v.y > 0)) return 6;
+   if((v.x < 0)&&(v.y > 0)) return 7;
+   if((v.x < 0)/*&&(v.y == 0)*/) return 8;
+   return 0;
+}
+
 float coords_getXFromOffsetCode(float x, int code){
     const float unitCoordinate = 1/chunkSize;
     switch(code){
-        case 1: case 8: case 7: return (x-(1/chunkSize));
+        case 1: case 8: case 7: return (x-unitCoordinate);
         case 2: case 0: case 6: return (x);
-        case 3: case 4: case 5: return (x+(1/chunkSize));
+        case 3: case 4: case 5: return (x+unitCoordinate);
     }
     return x;
 }

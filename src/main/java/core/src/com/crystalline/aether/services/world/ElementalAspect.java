@@ -77,6 +77,7 @@ public class ElementalAspect extends RealityAspect {
             switchForcesPhaseIndex = backend.addPhase(strategy::switchForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             initChangesPhaseIndex = backend.addPhase(strategy::initChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            proposeChangesFromForcesPhaseIndex = backend.addPhase(strategy::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
             processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
@@ -86,8 +87,8 @@ public class ElementalAspect extends RealityAspect {
             switchForcesPhaseIndex = initKernel(ElementalAspectStrategy.switchForcesPhaseKernel, gpuBackend);
             initChangesPhaseIndex = initKernel(ElementalAspectStrategy.initChangesPhaseKernel, gpuBackend);
             proposeForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeForcesPhaseKernel, gpuBackend);
+            proposeChangesFromForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeChangesFromForcesPhaseKernel, gpuBackend);
         }
-        proposeChangesFromForcesPhaseIndex = backend.addPhase(strategy::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         arbitrateChangesPhaseIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(strategy::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
@@ -322,23 +323,26 @@ public class ElementalAspect extends RealityAspect {
 
             proposeChangesFromForcesPhaseInputs[0] = proposedChanges;
             proposeChangesFromForcesPhaseInputs[1] = elements;
+            parent.provideScalarsTo(proposeChangesFromForcesPhaseInputs, 3);
             if(!useGPU){
                 proposeChangesFromForcesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+                backend.setInputs(proposeChangesFromForcesPhaseInputs);
+                backend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
             }else{
                 proposeChangesFromForcesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
+                gpuBackend.setInputs(proposeChangesFromForcesPhaseInputs);
+                gpuBackend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
             }
-            parent.provideScalarsTo(proposeChangesFromForcesPhaseInputs, 3);
-            backend.setInputs(proposeChangesFromForcesPhaseInputs);
-            backend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
 
-            arbitrateChangesPhaseInputs[0] = backend.getOutput(proposeChangesFromForcesPhaseIndex);
             arbitrateChangesPhaseInputs[1] = elements;
+            parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
             if(!useGPU){
+                arbitrateChangesPhaseInputs[0] = backend.getOutput(proposeChangesFromForcesPhaseIndex);
                 arbitrateChangesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
             }else{
+                arbitrateChangesPhaseInputs[0] = gpuBackend.getOutput(proposeChangesFromForcesPhaseIndex);
                 arbitrateChangesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
             }
-            parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
             backend.setInputs(arbitrateChangesPhaseInputs);
             backend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
 

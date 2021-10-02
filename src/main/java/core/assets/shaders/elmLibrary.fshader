@@ -25,8 +25,16 @@ void elm_setForce(vec2 value){
   gl_FragColor.g = value.y;
 }
 
-float elm_getVelocityTick(vec2 position, sampler2D forces){
-  return texture(forces, position).b;
+float elm_getToApply(vec2 position, sampler2D forces){
+  return texture(forces, position).g;
+}
+
+void elm_setToApply(float value){
+  gl_FragColor.g = value;
+}
+
+float elm_getVelocityTick(vec2 position, sampler2D proposals){
+  return texture(proposals, position).b;
 }
 
 void elm_setVelocityTick(float value){

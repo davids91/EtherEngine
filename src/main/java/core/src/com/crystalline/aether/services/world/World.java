@@ -75,7 +75,7 @@ public class World {
     private void switchScalarsPhase(FloatBuffer[] inputs, FloatBuffer output){
         for(int x = 0; x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
             float unit = getUnit(x,y, conf.getChunkBlockSize(), inputs[1]);
-            if(0 != RealityAspectStrategy.getOffsetCode(x,y, conf.getChunkBlockSize(), inputs[0])){
+            if(0 != RealityAspectStrategy.getOffsetCodeFromOffsetVector(x,y, conf.getChunkBlockSize(), inputs[0])){
                 int targetX = RealityAspectStrategy.getTargetX(x,y, conf.getChunkBlockSize(), inputs[0]);
                 int targetY = RealityAspectStrategy.getTargetY(x,y, conf.getChunkBlockSize(), inputs[0]);
                 int toApply = (int) RealityAspectStrategy.getToApply(x,y, conf.getChunkBlockSize(), inputs[0]);

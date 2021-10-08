@@ -1,4 +1,6 @@
 /* =================== ETH_LIBRARY =================== */
+<MATERIAL_LIBRARY>
+
 const float etherReleaseThreshold = 0.1;
 
 float eth_getAether(vec2 position, sampler2D etherValues){

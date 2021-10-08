@@ -6,8 +6,8 @@
   uniform float chunkSize;
   layout(binding=1)uniform sampler2D inputs1; /* previously proposed changes */
   layout(binding=2)uniform sampler2D inputs2; /* elements */
-  layout(binding=2)uniform sampler2D inputs3; /* forces */
-  layout(binding=2)uniform sampler2D inputs4; /* scalars */
+  layout(binding=3)uniform sampler2D inputs3; /* forces */
+  layout(binding=4)uniform sampler2D inputs4; /* scalars */
 
   <COORDINATES_LIBRARY>
   <MATERIAL_LIBRARY>

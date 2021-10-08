@@ -1,4 +1,5 @@
 /* =================== ELM_LIBRARY =================== */
+<MATERIAL_LIBRARY>
 
 float elm_getElement(vec2 position, sampler2D elements){
   return texture(elements, position).r;
@@ -56,4 +57,14 @@ float elm_getAvgElementUnit(vec2 position, sampler2D elements, sampler2D scalars
     }
   }
   return value / divisor;
+}
+
+float elm_getWeight(vec2 position, sampler2D elements, sampler2D scalars){
+    float currentElement = elm_getElement(position, elements);
+    float currentUnit = world_getUnit(position, scalars);
+    return(
+      currentUnit * TYPE_SPECIFIC_GRAVITY[int(currentElement)][
+        world_indexIn(TYPE_UNIT_SELECTOR[int(currentElement)], currentUnit)
+      ]
+    );
 }

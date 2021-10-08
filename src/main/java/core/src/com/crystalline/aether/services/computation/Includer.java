@@ -21,7 +21,7 @@ public class Includer {
     public Includer addSource(String source){
         Matcher m = Pattern.compile("\\/\\* *=* *(([A-Z_])*) *=* *\\*\\/").matcher(source);
         if(m.find()){
-            libraries.put(m.group(1), process(source));
+            libraries.put(m.group(1), source);
         }
         return this;
     }
@@ -32,9 +32,9 @@ public class Includer {
         while(m.find()){
             String tag = m.group(1);
             if(libraries.containsKey(tag)&&(!includedTags.contains(tag))){
-                processed = processed.replace("<"+tag+">", libraries.get(tag));
+                processed = processed.replace("<"+tag+">", process(libraries.get(tag)));
                 includedTags.add(tag);
-            }else processed.replace("<"+tag+">", "");
+            }else processed = processed.replace("<"+tag+">", "");
         }
         return processed;
     }

@@ -23,8 +23,8 @@
         &&(0 < coords_getToApply(currentPosition.xy, inputs1))
     ){
       vec2 target = vec2(
-        coords_getTargetX(currentPosition.xy, inputs1, chunkSize),
-        coords_getTargetY(currentPosition.xy, inputs1, chunkSize)
+        coords_getTargetX(currentPosition.xy, inputs1),
+        coords_getTargetY(currentPosition.xy, inputs1)
       );
       if( coords_insideEdges(target) ){
         currentElement = elm_getElement(target, inputs2);

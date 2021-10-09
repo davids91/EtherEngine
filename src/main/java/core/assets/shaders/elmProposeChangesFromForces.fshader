@@ -22,8 +22,8 @@
     float currentUnit = world_getUnit(currentPosition.xy, inputs4);
     float velocityTick = elm_getVelocityTick(currentPosition.xy, inputs1);
     vec2 target = vec2(
-      coords_getTargetX(currentPosition.xy, inputs1, chunkSize),
-      coords_getTargetY(currentPosition.xy, inputs1, chunkSize)
+      coords_getTargetX(currentPosition.xy, inputs1),
+      coords_getTargetY(currentPosition.xy, inputs1)
     );
     vec2 force = elm_getForce(currentPosition.xy, inputs3);
 

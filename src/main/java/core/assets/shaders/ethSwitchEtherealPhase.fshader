@@ -24,14 +24,13 @@
       &&(0 < coords_getToApply(currentPosition.xy, inputs1))
     ){
       vec2 target = vec2(
-        coords_getTargetX(currentPosition.xy, inputs1, chunkSize),
-        coords_getTargetY(currentPosition.xy, inputs1, chunkSize)
+        coords_getTargetX(currentPosition.xy, inputs1),
+        coords_getTargetY(currentPosition.xy, inputs1)
       );
       if( coords_insideEdges(target) ){
         aeVal = eth_getAether(target, inputs2);
         neVal = eth_getNether(target, inputs2);
       }
-      gl_FragColor.g = coords_getTargetX(currentPosition.xy, inputs1, chunkSize);
     }
 
     eth_SetAether(aeVal);

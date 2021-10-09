@@ -81,8 +81,8 @@ vec2 coords_getTarget(vec2 position, sampler2D proposedChanges){
 
 bool coords_insideInnerBounds(vec2 position){
   return (
-    (unitCoordinate <= position.x)&&(1-unitCoordinate > position.x)
-    &&(unitCoordinate <= position.y)&&(1-unitCoordinate > position.y)
+    (unitCoordinate < position.x)&&(1-unitCoordinate > position.x)
+    &&(unitCoordinate < position.y)&&(1-unitCoordinate > position.y)
   );
 }
 

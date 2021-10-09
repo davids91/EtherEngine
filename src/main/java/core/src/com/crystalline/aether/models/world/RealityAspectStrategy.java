@@ -30,7 +30,7 @@ public class RealityAspectStrategy {
      *          0 - don't apply; 1 - a cell will switch with his cell; 2 - this cell will switch with another cell
      * - B: velocity tick for cells to be able to move with different speeds
      */
-    public static float getOffsetCodeFromOffsetVector(int x, int y, int chunkSize, FloatBuffer proposedChanges){
+    public static float getOffsetCode(int x, int y, int chunkSize, FloatBuffer proposedChanges){
         return BufferUtils.get(x,y,chunkSize,Config.bufferCellSize,0, proposedChanges);
     }
     public static void setOffsetCode(int x, int y, int chunkSize, FloatBuffer proposedChanges, float value){
@@ -86,10 +86,10 @@ public class RealityAspectStrategy {
     }
 
     public static int getTargetX(int x, int y, int chunkSize, FloatBuffer buffer){
-        return getXFromOffsetCode(x,(int) getOffsetCodeFromOffsetVector(x,y,chunkSize,buffer));
+        return getXFromOffsetCode(x,(int) getOffsetCode(x,y,chunkSize,buffer));
     }
 
     public static int getTargetY(int x, int y, int chunkSize, FloatBuffer buffer){
-        return getYFromOffsetCode(y,(int) getOffsetCodeFromOffsetVector(x,y,chunkSize,buffer));
+        return getYFromOffsetCode(y,(int) getOffsetCode(x,y,chunkSize,buffer));
     }
 }

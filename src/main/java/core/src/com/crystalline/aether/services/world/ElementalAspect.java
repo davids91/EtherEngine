@@ -58,6 +58,7 @@ public class ElementalAspect extends RealityAspect {
     private final FloatBuffer[] mechanicsPostProcessDynamicsPhaseInputs;
     private final FloatBuffer[] arbitrateInteractionsPhaseInputs;
 
+    private final int debugIndex;
     public ElementalAspect(Config conf_){
         super(conf_);
         elements = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
@@ -78,6 +79,7 @@ public class ElementalAspect extends RealityAspect {
             initChangesPhaseIndex = backend.addPhase(strategy::initChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             proposeChangesFromForcesPhaseIndex = backend.addPhase(strategy::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            arbitrateChangesPhaseIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
             processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
@@ -88,8 +90,9 @@ public class ElementalAspect extends RealityAspect {
             initChangesPhaseIndex = initKernel(ElementalAspectStrategy.initChangesPhaseKernel, gpuBackend);
             proposeForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeForcesPhaseKernel, gpuBackend);
             proposeChangesFromForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeChangesFromForcesPhaseKernel, gpuBackend);
+            arbitrateChangesPhaseIndex = initKernel(ElementalAspectStrategy.arbitrateChangesPhaseKernel, gpuBackend);
+            debugIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }
-        arbitrateChangesPhaseIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(strategy::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         arbitrateInteractionsPhaseIndex = backend.addPhase(strategy::arbitrateInteractionsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
@@ -289,6 +292,32 @@ public class ElementalAspect extends RealityAspect {
 
     }
 
+    private void check(FloatBuffer cpu, FloatBuffer gpu, boolean stop){
+        int chunkSize = conf.getChunkBlockSize();
+        for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y) {
+            if(
+                (BufferUtils.get(x,y, chunkSize, 4, 0, cpu) != BufferUtils.get(x,y, chunkSize, 4, 0, gpu))
+               // ||(BufferUtils.get(x,y, chunkSize, 4, 1, a) != BufferUtils.get(x,y, chunkSize, 4, 1, b))
+               // ||(BufferUtils.get(x,y, chunkSize, 4, 2, cpu) != BufferUtils.get(x,y, chunkSize, 4, 2, gpu))
+            ){
+                System.out.println(
+                "["+x+"]["+y+"]not equal! "
+                + "("
+                + BufferUtils.get(x,y, chunkSize, 4, 0, cpu) + ","
+                + BufferUtils.get(x,y, chunkSize, 4, 1, cpu) + ","
+                + BufferUtils.get(x,y, chunkSize, 4, 2, cpu)
+                +") != "
+                + "("
+                + BufferUtils.get(x,y, chunkSize, 4, 0, gpu) + ","
+                + BufferUtils.get(x,y, chunkSize, 4, 1, gpu) + ","
+                + BufferUtils.get(x,y, chunkSize, 4, 2, gpu)
+                +");"
+                );
+                if(stop)System.exit(1);
+            }
+        }}
+    }
+
     @Override
     public void processMechanics(World parent) {
         initChangesPhaseInputs[0] = proposedChanges;
@@ -339,14 +368,20 @@ public class ElementalAspect extends RealityAspect {
             if(!useGPU){
                 arbitrateChangesPhaseInputs[0] = backend.getOutput(proposeChangesFromForcesPhaseIndex);
                 arbitrateChangesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+                backend.setInputs(arbitrateChangesPhaseInputs);
+                backend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
             }else{
                 arbitrateChangesPhaseInputs[0] = gpuBackend.getOutput(proposeChangesFromForcesPhaseIndex);
                 arbitrateChangesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
+                gpuBackend.setInputs(arbitrateChangesPhaseInputs);
+                gpuBackend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
             }
-            backend.setInputs(arbitrateChangesPhaseInputs);
-            backend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
 
-            arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
+            if(!useGPU){
+                arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
+            }else{
+                arbitrateInteractionsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
+            }
             arbitrateInteractionsPhaseInputs[1] = elements;
             parent.provideScalarsTo(arbitrateInteractionsPhaseInputs, 2);
             backend.setInputs(arbitrateInteractionsPhaseInputs);
@@ -356,11 +391,12 @@ public class ElementalAspect extends RealityAspect {
             /*!Note: arbitrateInteractions decides whether switches happen, but not whether interactions will happen!
              * This is why arbitrateChanges is being used here.
              * */
-            applyChangesDynamicsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
             applyChangesDynamicsPhaseInputs[1] = elements;
             if(!useGPU){
+                applyChangesDynamicsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
                 applyChangesDynamicsPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
             }else{
+                applyChangesDynamicsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
                 applyChangesDynamicsPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
             }
             parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
@@ -490,6 +526,15 @@ public class ElementalAspect extends RealityAspect {
             unitsDiff = 0.8f;
 
         Color debugColor;
+        debugColor = new Color(
+        ElementalAspectStrategy.getVelocityTick(x,y, conf.getChunkBlockSize(), gpuBackend.getOutput(arbitrateChangesPhaseIndex))
+            /(float)ElementalAspectStrategy.velocityMaxTicks,
+        RealityAspectStrategy.getOffsetCode(x,y, conf.getChunkBlockSize(), gpuBackend.getOutput(arbitrateChangesPhaseIndex))
+            /8.0f,
+        0.5f * ElementalAspectStrategy.getToApply(x,y, conf.getChunkBlockSize(), gpuBackend.getOutput(arbitrateChangesPhaseIndex)),
+        1
+        );
+
         /* Red <-> Blue: left <-> right */
         float offsetX = (RealityAspectStrategy.getTargetX(x,y, conf.getChunkBlockSize(), proposedChanges) - x + 1) / 2.0f;
         float offsetY = (RealityAspectStrategy.getTargetY(x,y, conf.getChunkBlockSize(), proposedChanges) - y + 1) / 2.0f;
@@ -505,7 +550,7 @@ public class ElementalAspect extends RealityAspect {
 //////                    offsetB,
 //                1.0f
 //            );
-//            defColor.lerp(debugColor,debugViewPercent);
+             defColor.lerp(debugColor,debugViewPercent);
 //        }
         return defColor;
     }

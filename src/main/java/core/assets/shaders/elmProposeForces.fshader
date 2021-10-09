@@ -63,12 +63,11 @@ void main(void){
         force.x *= 1.2;
       }else{
         force.x = (normalizedRandomValue * 6) - 3.0;
-        force.y = 1.0;
+        force.y = 1.01;
       }
     }
   }else if(world_statePlasma == currentState){
     force.x += (normalizedRandomValue * 4) - 2;
   }
   elm_setForce(force);
-  gl_FragColor.b = normalizedRandomValue;
 }

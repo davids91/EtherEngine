@@ -69,12 +69,12 @@ const float[6][6] TYPE_SPECIFIC_STATE = {
 };
 
 const float[6][6] TYPE_SPECIFIC_GRAVITY = {
-/* Ether */   float[6](0,       0,      0,    0,  0,    0),
-/* Earth */   float[6](8,       16,     32,   64, 128,  256),
-/* Water */   float[6](2.5,     -10,    4,    0,  0,    0),
-/* Air*/      float[6](-0.002,  -0.001, 0,    0,  0,    0),
-/* Fire */    float[6](-0.05,   80,     160,  0,  0,    0),
-/* Nothing */ float[6](0,       0,      0,    0,  0,    0)
+/* Ether */   float[6](0,       0,      0,    0,    0,    0),
+/* Earth */   float[6](8,       16,     32,   64,   128,  256),
+/* Water */   float[6](2.5,     -10,    4,    4,    4,    4),
+/* Air*/      float[6](-0.002,  -0.001, 0,    0,    0,    0),
+/* Fire */    float[6](-0.05,   80,     160,  160,  160,  160),
+/* Nothing */ float[6](0,       0,      0,    0,    0,    0)
 };
 
 const float world_indexEther = 0;

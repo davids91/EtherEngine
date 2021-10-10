@@ -59,6 +59,7 @@ float elm_getAvgElementUnit(vec2 position, sampler2D elements, sampler2D scalars
   return value / divisor;
 }
 
+/* TODO: Make an interpolation instead of an index lookup */
 float elm_getWeight(vec2 position, sampler2D elements, sampler2D scalars){
     float currentElement = elm_getElement(position, elements);
     float currentUnit = world_getUnit(position, scalars);

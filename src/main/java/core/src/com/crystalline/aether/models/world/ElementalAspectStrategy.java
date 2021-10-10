@@ -338,7 +338,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                         forceX *= 1.2f;
                     }else{ /* TODO: set max force of liquids */
                         forceX = rnd.nextInt(6) - 3;
-                        forceY = 1.01f;
+                        forceY = 1.0f;
                     }
                 }
             }else if(Material.MechaProperties.Plasma == materialState){
@@ -439,14 +439,47 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             int maxIndexX = Math.min((x + indexRadius), chunkSize-1);
             int minIndexY = Math.max((y - indexRadius), 0);
             int maxIndexY = Math.min((y + indexRadius), chunkSize-1);
+            int targetOfCX = RealityAspectStrategy.getTargetX(x,y,chunkSize,inputs[0]);
+            int targetOfCY = RealityAspectStrategy.getTargetY(x,y,chunkSize,inputs[0]);
+            priority[indexRadius][indexRadius] = ( /* The priority of the given cell consist of..  */
+                getForce(x,y, chunkSize, inputs[2]).len() /* ..the power of the force on it.. */
+                + Math.abs(getWeight(x,y, chunkSize, inputs[1], inputs[3])) /* ..and its weight */
+            );
+            changed[indexRadius][indexRadius] = false;
             for(int ix = minIndexX; ix <= maxIndexX; ++ix){ for(int iy = minIndexY; iy <= maxIndexY; ++iy) {
-                int sx = ix - x + (indexRadius);
-                int sy = iy - y + (indexRadius); /* TODO: Include Velocity tick into arbitration logic*/
-                priority[sx][sy] = ( /* The priority of the given cell consist of..  */
-                    getForce(ix,iy, chunkSize, inputs[2]).len() /* ..the power of the force on it.. */
-                    + getWeight(ix,iy, chunkSize, inputs[1], inputs[3]) /* .. and its weight */
-                );
-                changed[sx][sy] = false;
+                int targetOfTX = RealityAspectStrategy.getTargetX(ix,iy,chunkSize,inputs[0]);
+                int targetOfTY = RealityAspectStrategy.getTargetY(ix,iy,chunkSize,inputs[0]);
+                if((ix != x)||(iy != y)){
+                    int sx = ix - x + (indexRadius);
+                    int sy = iy - y + (indexRadius); /* TODO: Include Velocity tick into arbitration logic*/
+                    priority[sx][sy] = ( /* The priority of the given cell consist of..  */
+                        getForce(ix,iy, chunkSize, inputs[2]).len() /* ..the power of the force on it.. */
+                        + Math.abs(getWeight(ix,iy, chunkSize, inputs[1], inputs[3])) /* ..and its weight */
+                    );
+                    if(priority[sx][sy] < priority[indexRadius][indexRadius]) { /* if priority is lower than c mark it changed, because it's irrelevant to the calculation.. */
+                        if( (targetOfCX != ix) || (targetOfCY != iy) ){ /* ..but only if C is not targeting it */
+                            changed[sx][sy] = true;
+                        }else{
+                            changed[sx][sy] = false;
+                        }
+                    }else if(priority[sx][sy] > priority[indexRadius][indexRadius]){ /* if priority is higher than C.. */
+                        int targetOfTTX = RealityAspectStrategy.getTargetX(targetOfTX,targetOfTY,chunkSize,inputs[0]);
+                        int targetOfTTY = RealityAspectStrategy.getTargetY(targetOfTX,targetOfTY,chunkSize,inputs[0]);
+                        if(
+                            ((ix != targetOfCX) || (iy != targetOfCY)) /* ..but only if it's the target of C */
+
+                            &&((targetOfTX != x) || (targetOfTY != y)) /* ..and target is not c, then mark it changed.. */
+                            &&((targetOfTX != targetOfCX) || (targetOfTY != targetOfCY)) /* ..but only if it's not targeting the target of C */
+
+                            &&((targetOfTTX != x) || (targetOfTTY != y)) /* The same goes for the target of the target of the target */
+                            &&((targetOfTTX != targetOfCX) || (targetOfTTY != targetOfCY))
+                        ){
+                            changed[sx][sy] = true;
+                        }else{
+                            changed[sx][sy] = false;
+                        }
+                    }
+                }
             }}
 
             int highestPrioX;
@@ -467,21 +500,16 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                 int highestPrioTargetLocalX = -2;
                 int highestPrioTargetLocalY = -2;
                 for(int ix = minIndexX; ix <= maxIndexX; ++ix){ for(int iy = minIndexY; iy <= maxIndexY; ++iy) {
-                    int targetOfCX = RealityAspectStrategy.getTargetX(ix,iy,chunkSize,inputs[0]);
-                    int targetOfCY = RealityAspectStrategy.getTargetY(ix,iy,chunkSize,inputs[0]);
+                    targetOfCX = RealityAspectStrategy.getTargetX(ix,iy,chunkSize,inputs[0]);
+                    targetOfCY = RealityAspectStrategy.getTargetY(ix,iy,chunkSize,inputs[0]);
                     localSourceX = ix - x + indexRadius;
                     localSourceY = iy - y + indexRadius;
                     localTargetOfCX = targetOfCX - x + indexRadius;
                     localTargetOfCY = targetOfCY - y + indexRadius;
+                    if(changed[localSourceX][localSourceY]) continue;
                     if( /* The highest priority swap request is.. */
-                        ( /* ..the one which isn't changed yet (only higher priority changes occurred prior to this loop )  */
-                            (!changed[localSourceX][localSourceY])
-                            &&( /* And either the target is out of bounds.. */
-                                (localTargetOfCX < 0)||(localTargetOfCX >= indexTableSize)
-                                ||(localTargetOfCY < 0)||(localTargetOfCY >= indexTableSize)
-                                ||(!changed[localTargetOfCX][localTargetOfCY]) /* ..or not changed yet */
-                            )
-                        )&&( /* ..and of course the currently examined index has to have a higher prio target, then the previous highest one */
+                        (!changed[localSourceX][localSourceY]) /* ..the one which isn't changed yet (only higher priority changes occurred prior to this loop )  */
+                        &&( /* ..and of course the currently examined index has to have a higher prio target, then the previous highest one */
                             ((-2 == highestPrioLocalX)||(-2 == highestPrioLocalY))
                             ||(
                                 (priority[highestPrioLocalX][highestPrioLocalY] < priority[localSourceX][localSourceY])
@@ -508,19 +536,23 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
 
                 /* If c was reached; or no changes are proposed; break! */
                 if(
-                    ((x == highestPrioX)&&(y == highestPrioY))
-                    ||((x == highestTargetX)&&(y == highestTargetY))
-                    ||((-2 == highestPrioX)&&(-2 == highestPrioY))
+                    ((-2 == highestPrioX)&&(-2 == highestPrioY))
                     ||((-2 == highestTargetX)&&(-2 == highestTargetY))
+                    ||(
+                        (
+                            ((x == highestPrioX)&&(y == highestPrioY))
+                            ||((x == highestTargetX)&&(y == highestTargetY))
+                        )
+                        &&(!changed[highestPrioLocalX][highestPrioLocalY])
+                        &&(!changed[highestPrioTargetLocalX][highestPrioTargetLocalY])
+                    )
                 ){
                     if((x == highestPrioX)&&(y == highestPrioY)){
                         toApply = 2;
                         offsetCode = RealityAspectStrategy.getOffsetCodeFromOffsetVector((highestTargetX - x), (highestTargetY - y));
-                        //debugx = (highestTargetX); debugy = (highestTargetY);
                     }else if((x == highestTargetX)&&(y == highestTargetY)){
                         toApply = 1;
                         offsetCode = RealityAspectStrategy.getOffsetCodeFromOffsetVector((highestPrioX - x), (highestPrioY - y));
-                        //debugx = (highestPrioX); debugy = (highestPrioY);
                     }
                     /*!Note: Only set the target if the current cell is actually the highest priority;
                      * because the swap will be decided for the target(other cell) based on this information
@@ -561,10 +593,13 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             int velocityTick = getVelocityTick(x,y, chunkSize, inputs[0]);
             int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);
             int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
+            int targetTX = RealityAspectStrategy.getTargetX(targetX,targetY,chunkSize, inputs[0]);
+            int targetTY = RealityAspectStrategy.getTargetY(targetX,targetY,chunkSize, inputs[0]);
             if( /* Check for swaps */
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when cell is inside bounds.. */
                 &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..and it wants to switch..  */
                 &&((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)) /* ..but only if the target is also inside the bounds of the chunk */
+                &&((x == targetTX) && (y == targetTY)) /* and the target is mutual --> no conflicts are found */
             ){
                 if(
                     ((2 == toApply)&&(!aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[2])))
@@ -599,11 +634,15 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             float forceX = getForceX(x,y, chunkSize, inputs[2]);
             float forceY = getForceY(x,y, chunkSize, inputs[2]);
             float weight = getWeight(x,y, chunkSize, inputs[1], inputs[3]);
+            int targetTX = RealityAspectStrategy.getTargetX(targetX,targetY,chunkSize, inputs[0]);
+            int targetTY = RealityAspectStrategy.getTargetY(targetX,targetY,chunkSize, inputs[0]);
 
             if( /* Update the forces on a cell.. */
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when it is inside bounds.. */
                 &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..only if it wants to switch..  */
                 &&((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)) /* ..but only if the target is also inside the bounds of the chunk */
+                &&((x == targetTX) && (y == targetTY)) /* and the target is mutual --> no conflicts are found */
+
             ){
                 if( aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[3]) ){ /* The cells swap, decreasing forces on both *//* TODO: Also decrease the force based on the targets weight */
                     forceX += -forceX * 0.7f * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceX))) );

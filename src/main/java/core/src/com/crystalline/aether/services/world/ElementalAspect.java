@@ -158,32 +158,29 @@ public class ElementalAspect extends RealityAspect {
     private void calculatePrio(){
         Random rnd = new Random();
         float multiplier = 1000000.0f;
-        float num = 0;
         for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-//            ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * multiplier);
-            ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,num);
-            num += 1.0;
+            ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * multiplier);
         }}
-//        while(true){
-//            int similarities = 0;
-//            for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-//                int index_radius = 2;
-//                int minIndexX = Math.max((x-index_radius), 0);
-//                int maxIndexX = Math.min((x+index_radius), conf.getChunkBlockSize()-1);
-//                int minIndexY = Math.max((y-index_radius), 0);
-//                int maxIndexY = Math.min((y+index_radius), conf.getChunkBlockSize()-1);
-//                for(int ix = minIndexX; ix <= maxIndexX; ++ix){ for(int iy = minIndexY; iy <= maxIndexY; ++iy) {
-//                    if( /* TODO: Re-check priority; make it inside bounds; use it as random function */
-//                        ((x != ix)&&(y != iy))
-//                        &&(500 > Math.abs(ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements) - ElementalAspectStrategy.getPriority(ix,iy, conf.getChunkBlockSize(), elements)))
-//                    ){
-//                        ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * multiplier);
-//                        ++similarities;
-//                    }
-//                }}
-//            }}
-//            if(0 == similarities)break;
-//        }
+        while(true){
+            int similarities = 0;
+            for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+                int index_radius = 2;
+                int minIndexX = Math.max((x-index_radius), 0);
+                int maxIndexX = Math.min((x+index_radius), conf.getChunkBlockSize()-1);
+                int minIndexY = Math.max((y-index_radius), 0);
+                int maxIndexY = Math.min((y+index_radius), conf.getChunkBlockSize()-1);
+                for(int ix = minIndexX; ix <= maxIndexX; ++ix){ for(int iy = minIndexY; iy <= maxIndexY; ++iy) {
+                    if( /* TODO: Re-check priority; make it inside bounds; use it as random function */
+                        ((x != ix)&&(y != iy))
+                        &&(500 > Math.abs(ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements) - ElementalAspectStrategy.getPriority(ix,iy, conf.getChunkBlockSize(), elements)))
+                    ){
+                        ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * multiplier);
+                        ++similarities;
+                    }
+                }}
+            }}
+            if(0 == similarities)break;
+        }
         for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
             if(maxPrio <  ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements)){
                 maxPrio = ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements);

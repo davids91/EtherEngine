@@ -441,10 +441,11 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             int maxIndexY = Math.min((y + indexRadius), chunkSize-1);
             int targetOfCX = RealityAspectStrategy.getTargetX(x,y,chunkSize,inputs[0]);
             int targetOfCY = RealityAspectStrategy.getTargetY(x,y,chunkSize,inputs[0]);
-            priority[indexRadius][indexRadius] = ( /* The priority of the given cell consist of..  */
-                getForce(x,y, chunkSize, inputs[2]).len() /* ..the power of the force on it.. */
-                + Math.abs(getWeight(x,y, chunkSize, inputs[1], inputs[3])) /* ..and its weight */
-            );
+            for(int ix = 0; ix < indexTableSize; ++ix){ for(int iy = 0; iy < indexTableSize; ++iy) {
+                changed[ix][iy] = true;
+            }}
+
+            priority[indexRadius][indexRadius] = getDynamicPrio(x,y, chunkSize, inputs[1], inputs[2],inputs[3]);
             changed[indexRadius][indexRadius] = false;
             for(int ix = minIndexX; ix <= maxIndexX; ++ix){ for(int iy = minIndexY; iy <= maxIndexY; ++iy) {
                 int targetOfTX = RealityAspectStrategy.getTargetX(ix,iy,chunkSize,inputs[0]);
@@ -452,10 +453,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                 if((ix != x)||(iy != y)){
                     int sx = ix - x + (indexRadius);
                     int sy = iy - y + (indexRadius); /* TODO: Include Velocity tick into arbitration logic*/
-                    priority[sx][sy] = ( /* The priority of the given cell consist of..  */
-                        getForce(ix,iy, chunkSize, inputs[2]).len() /* ..the power of the force on it.. */
-                        + Math.abs(getWeight(ix,iy, chunkSize, inputs[1], inputs[3])) /* ..and its weight */
-                    );
+                    priority[sx][sy] = getDynamicPrio(ix,iy, chunkSize, inputs[1], inputs[2],inputs[3]);
                     if(priority[sx][sy] < priority[indexRadius][indexRadius]) { /* if priority is lower than c mark it changed, because it's irrelevant to the calculation.. */
                         if( (targetOfCX != ix) || (targetOfCY != iy) ){ /* ..but only if C is not targeting it */
                             changed[sx][sy] = true;
@@ -478,7 +476,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                         }else{
                             changed[sx][sy] = false;
                         }
-                    }
+                    }else changed[sx][sy] = false;
                 }
             }}
 
@@ -486,6 +484,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             int highestPrioY;
             int highestTargetX;
             int highestTargetY;
+            int loopCounter = 0;
             while(true){ /* Until all requests with priority above are found  */
                 highestPrioX = -2;
                 highestPrioY = -2;
@@ -507,6 +506,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                     localTargetOfCX = targetOfCX - x + indexRadius;
                     localTargetOfCY = targetOfCY - y + indexRadius;
                     if(changed[localSourceX][localSourceY]) continue;
+
                     if( /* The highest priority swap request is.. */
                         (!changed[localSourceX][localSourceY]) /* ..the one which isn't changed yet (only higher priority changes occurred prior to this loop )  */
                         &&( /* ..and of course the currently examined index has to have a higher prio target, then the previous highest one */
@@ -570,8 +570,10 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                         changed[highestPrioTargetLocalX][highestPrioTargetLocalY] = true;
                     }
                 }
+                if(loopCounter < (indexTableSize*indexTableSize))++loopCounter;
+                else break;
             }
-
+            
             /*!Note: At this point highestPrio* and highestTarget*
              * should contain either -2 or the highest priority switch request involving c
              * */
@@ -636,7 +638,6 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             float weight = getWeight(x,y, chunkSize, inputs[1], inputs[3]);
             int targetTX = RealityAspectStrategy.getTargetX(targetX,targetY,chunkSize, inputs[0]);
             int targetTY = RealityAspectStrategy.getTargetY(targetX,targetY,chunkSize, inputs[0]);
-
             if( /* Update the forces on a cell.. */
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when it is inside bounds.. */
                 &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..only if it wants to switch..  */
@@ -771,5 +772,13 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                 MiscUtils.indexIn(Material.TYPE_UNIT_SELECTOR[currentElement], currentUnit)
             ]
         );
+    }
+
+    public static float getDynamicPrio(int x, int y, int chunkSize, FloatBuffer elements, FloatBuffer forces, FloatBuffer scalars){
+        float priority = ( /* The priority of the given cell consist of..  */
+            (float)((int)(getForce(x,y, chunkSize, forces).len() * 100.0f)/100) /* ..the power of the force on it.. */
+            + Math.abs(getWeight(x,y, chunkSize, elements, scalars)) /* ..and its weight */
+        );
+        return (float)(Math.round(priority * 1000.0f)/100);
     }
 }

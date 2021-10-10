@@ -69,3 +69,11 @@ float elm_getWeight(vec2 position, sampler2D elements, sampler2D scalars){
       ]
     );
 }
+
+float elm_getDynamicPrio(vec2 position, sampler2D elements, sampler2D forces, sampler2D scalars){
+  float priority = ( /* The priority of the given cell consist of..  */
+    float(int((length(elm_getForce(position, forces))*100.0))/100) /* ..the power of the force on it.. */
+    + abs(elm_getWeight(position, elements, scalars)) /* .. and its weight */
+  );
+  return float(int(round(priority * 1000.0f))/100);
+}

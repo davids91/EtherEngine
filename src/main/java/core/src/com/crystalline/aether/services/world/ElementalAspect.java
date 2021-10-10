@@ -1,8 +1,6 @@
 package com.crystalline.aether.services.world;
 
-import com.badlogic.gdx.Application;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.math.Vector2;
 import com.crystalline.aether.models.Config;
 import com.crystalline.aether.models.world.ElementalAspectStrategy;
 import com.crystalline.aether.models.world.Material;
@@ -12,6 +10,7 @@ import com.crystalline.aether.services.computation.CPUBackend;
 import com.crystalline.aether.services.computation.GPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -58,7 +57,6 @@ public class ElementalAspect extends RealityAspect {
     private final FloatBuffer[] mechanicsPostProcessDynamicsPhaseInputs;
     private final FloatBuffer[] arbitrateInteractionsPhaseInputs;
 
-    private final int debugIndex;
     public ElementalAspect(Config conf_){
         super(conf_);
         elements = ByteBuffer.allocateDirect(Float.BYTES * Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
@@ -91,7 +89,6 @@ public class ElementalAspect extends RealityAspect {
             proposeForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeForcesPhaseKernel, gpuBackend);
             proposeChangesFromForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeChangesFromForcesPhaseKernel, gpuBackend);
             arbitrateChangesPhaseIndex = initKernel(ElementalAspectStrategy.arbitrateChangesPhaseKernel, gpuBackend);
-            debugIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }
         applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(strategy::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
@@ -130,12 +127,12 @@ public class ElementalAspect extends RealityAspect {
         touchedByMechanics = (float[][]) state[2];
     }
 
-    private void addWater(int ox, int oy, World parent){
+    public void addWater(int ox, int oy, World parent){
         setElement(ox, oy, Material.Elements.Water);
         parent.setUnit(ox, oy,16);
     }
 
-    private void addRock(int ox, int oy, World parent){
+    public void addRock(int ox, int oy, World parent){
         setElement(ox, oy, Material.Elements.Earth);
         parent.setUnit(ox, oy,550);
     }
@@ -160,29 +157,33 @@ public class ElementalAspect extends RealityAspect {
     private float maxPrio = 0;
     private void calculatePrio(){
         Random rnd = new Random();
+        float multiplier = 1000000.0f;
+        float num = 0;
         for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-            ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat());
+//            ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * multiplier);
+            ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,num);
+            num += 1.0;
         }}
-        while(true){
-            int similarities = 0;
-            for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
-                int index_radius = 2;
-                int minIndexX = Math.max((x-index_radius), 0);
-                int maxIndexX = Math.min((x+index_radius), conf.getChunkBlockSize()-1);
-                int minIndexY = Math.max((y-index_radius), 0);
-                int maxIndexY = Math.min((y+index_radius), conf.getChunkBlockSize()-1);
-                for(int ix = minIndexX; ix <= maxIndexX; ++ix){ for(int iy = minIndexY; iy <= maxIndexY; ++iy) {
-                    if( /* TODO: Re-check priority; make it inside bounds; use it as random function */
-                        ((x != ix)&&(y != iy))
-                        &&(500 > Math.abs(ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements) - ElementalAspectStrategy.getPriority(ix,iy, conf.getChunkBlockSize(), elements)))
-                    ){
-                        ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * 1000000.0f);
-                        ++similarities;
-                    }
-                }}
-            }}
-            if(0 == similarities)break;
-        }
+//        while(true){
+//            int similarities = 0;
+//            for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
+//                int index_radius = 2;
+//                int minIndexX = Math.max((x-index_radius), 0);
+//                int maxIndexX = Math.min((x+index_radius), conf.getChunkBlockSize()-1);
+//                int minIndexY = Math.max((y-index_radius), 0);
+//                int maxIndexY = Math.min((y+index_radius), conf.getChunkBlockSize()-1);
+//                for(int ix = minIndexX; ix <= maxIndexX; ++ix){ for(int iy = minIndexY; iy <= maxIndexY; ++iy) {
+//                    if( /* TODO: Re-check priority; make it inside bounds; use it as random function */
+//                        ((x != ix)&&(y != iy))
+//                        &&(500 > Math.abs(ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements) - ElementalAspectStrategy.getPriority(ix,iy, conf.getChunkBlockSize(), elements)))
+//                    ){
+//                        ElementalAspectStrategy.setPriority(x,y,conf.getChunkBlockSize(),elements,rnd.nextFloat() * multiplier);
+//                        ++similarities;
+//                    }
+//                }}
+//            }}
+//            if(0 == similarities)break;
+//        }
         for(int x = 0;x < conf.getChunkBlockSize(); ++x){ for(int y = 0; y < conf.getChunkBlockSize(); ++y){
             if(maxPrio <  ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements)){
                 maxPrio = ElementalAspectStrategy.getPriority(x,y, conf.getChunkBlockSize(), elements);
@@ -292,28 +293,30 @@ public class ElementalAspect extends RealityAspect {
 
     }
 
-    private void check(FloatBuffer cpu, FloatBuffer gpu, boolean stop){
+    private void compareBuffers(FloatBuffer cpu, FloatBuffer gpu){
+        System.out.print("...");
         int chunkSize = conf.getChunkBlockSize();
-        for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y) {
+        for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y){
             if(
-                (BufferUtils.get(x,y, chunkSize, 4, 0, cpu) != BufferUtils.get(x,y, chunkSize, 4, 0, gpu))
-               // ||(BufferUtils.get(x,y, chunkSize, 4, 1, a) != BufferUtils.get(x,y, chunkSize, 4, 1, b))
-               // ||(BufferUtils.get(x,y, chunkSize, 4, 2, cpu) != BufferUtils.get(x,y, chunkSize, 4, 2, gpu))
+                (BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,0, cpu)
+                    != BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,0, gpu))
+                ||(BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,1, cpu)
+                    != BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,1, gpu))
+                ||(BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,2, cpu)
+                    != BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,2, gpu))
             ){
                 System.out.println(
-                "["+x+"]["+y+"]not equal! "
-                + "("
-                + BufferUtils.get(x,y, chunkSize, 4, 0, cpu) + ","
-                + BufferUtils.get(x,y, chunkSize, 4, 1, cpu) + ","
-                + BufferUtils.get(x,y, chunkSize, 4, 2, cpu)
-                +") != "
-                + "("
-                + BufferUtils.get(x,y, chunkSize, 4, 0, gpu) + ","
-                + BufferUtils.get(x,y, chunkSize, 4, 1, gpu) + ","
-                + BufferUtils.get(x,y, chunkSize, 4, 2, gpu)
-                +");"
+                    "["+x+"]["+y+"]:("
+                    + BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,0, cpu) + ","
+                    + BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,1, cpu) + ","
+                    + BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,2, cpu)
+                    +") <> ("
+                    + BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,0, gpu) + ","
+                    + BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,1, gpu) + ","
+                    + BufferUtils.get(x,y, chunkSize,Config.bufferCellSize,2, gpu)
+                    +")!"
                 );
-                if(stop)System.exit(1);
+                System.exit(1);
             }
         }}
     }
@@ -337,15 +340,16 @@ public class ElementalAspect extends RealityAspect {
         }
 
         /* Main Mechanic phase */
-        for(int i = 0; i < ElementalAspectStrategy.velocityMaxTicks; ++i){
+        /* TODO: every run where (0 < (i%2)) only previous proposals are evaluated */
+        for(int i = 0; i < ElementalAspectStrategy.velocityMaxTicks; ++i) {
             proposeForcesPhaseInputs[0] = elements;
             proposeForcesPhaseInputs[1] = forces;
             parent.provideScalarsTo(proposeForcesPhaseInputs, 2);
             parent.getEtherealPlane().provideEtherTo(proposeForcesPhaseInputs, 3);
-            if(!useGPU){
+            if (!useGPU) {
                 backend.setInputs(proposeForcesPhaseInputs);
                 backend.runPhase(proposeForcesPhaseIndex); /* output: new proposed forces */
-            }else{
+            } else {
                 gpuBackend.setInputs(proposeForcesPhaseInputs);
                 gpuBackend.runPhase(proposeForcesPhaseIndex); /* output: new proposed forces */
             }
@@ -353,11 +357,11 @@ public class ElementalAspect extends RealityAspect {
             proposeChangesFromForcesPhaseInputs[0] = proposedChanges;
             proposeChangesFromForcesPhaseInputs[1] = elements;
             parent.provideScalarsTo(proposeChangesFromForcesPhaseInputs, 3);
-            if(!useGPU){
+            if (!useGPU) {
                 proposeChangesFromForcesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
                 backend.setInputs(proposeChangesFromForcesPhaseInputs);
                 backend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
-            }else{
+            } else {
                 proposeChangesFromForcesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
                 gpuBackend.setInputs(proposeChangesFromForcesPhaseInputs);
                 gpuBackend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
@@ -365,21 +369,21 @@ public class ElementalAspect extends RealityAspect {
 
             arbitrateChangesPhaseInputs[1] = elements;
             parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
-            if(!useGPU){
+            if (!useGPU) {
                 arbitrateChangesPhaseInputs[0] = backend.getOutput(proposeChangesFromForcesPhaseIndex);
                 arbitrateChangesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
                 backend.setInputs(arbitrateChangesPhaseInputs);
                 backend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
-            }else{
+            } else {
                 arbitrateChangesPhaseInputs[0] = gpuBackend.getOutput(proposeChangesFromForcesPhaseIndex);
                 arbitrateChangesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
                 gpuBackend.setInputs(arbitrateChangesPhaseInputs);
                 gpuBackend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
             }
 
-            if(!useGPU){
+            if (!useGPU) {
                 arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
-            }else{
+            } else {
                 arbitrateInteractionsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
             }
             arbitrateInteractionsPhaseInputs[1] = elements;
@@ -392,10 +396,10 @@ public class ElementalAspect extends RealityAspect {
              * This is why arbitrateChanges is being used here.
              * */
             applyChangesDynamicsPhaseInputs[1] = elements;
-            if(!useGPU){
+            if (!useGPU) {
                 applyChangesDynamicsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
                 applyChangesDynamicsPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
-            }else{
+            } else {
                 applyChangesDynamicsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
                 applyChangesDynamicsPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
             }
@@ -405,10 +409,8 @@ public class ElementalAspect extends RealityAspect {
             BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), forces); /* TODO: maybe copies can be avoided here? */
 
             parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
-
-            if(i == ElementalAspectStrategy.velocityMaxTicks-1){
-                BufferUtils.copy(backend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
-            }
+            BufferUtils.copy(backend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
+            /* TODO: Copies can be avioded here ^^^  */
         }
 
         mechanicsPostProcessDynamicsPhaseInputs[0] = elements;

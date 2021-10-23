@@ -589,6 +589,9 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
+    public static final String arbitrateInteractionsPhaseKernel = buildKernel(StringUtils.readFileAsString(
+            Gdx.files.internal("shaders/elmArbitrateInteractions.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Decides whether the proposed changes are swaps or collisions
      * @param inputs [0]: proposed changes; [1]: elements; [2]:  scalars
@@ -598,6 +601,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         /* Note: At this point the switches are supposed to be mutual: If a <> b, then every time b <> a  */
         for(int x = 0; x < chunkSize; ++x){ for(int y = 0; y < chunkSize; ++y){
             float toApply = RealityAspectStrategy.getToApply(x,y, chunkSize, inputs[0]);
+            float offsetCode  = RealityAspectStrategy.getOffsetCode(x,y, chunkSize, inputs[0]);
             int velocityTick = getVelocityTick(x,y, chunkSize, inputs[0]);
             int targetX = RealityAspectStrategy.getTargetX(x,y,chunkSize, inputs[0]);
             int targetY = RealityAspectStrategy.getTargetY(x,y,chunkSize, inputs[0]);
@@ -614,16 +618,14 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                     ||((1 == toApply)&&(!aCanMoveB(targetX,targetY, x,y, chunkSize, inputs[1], inputs[2])))
                     ||(
                         (!aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[2]))
-                        &&(
-                            (x != RealityAspectStrategy.getTargetX(targetX,targetY, chunkSize, inputs[0]))
-                            ||(y != RealityAspectStrategy.getTargetY(targetX,targetY, chunkSize, inputs[0]))
-                        )
+                        &&((x != targetTX)||(y != targetTY))
                     )
                 ){
                     toApply = 0;
                 }
             }
-            RealityAspectStrategy.setOffsetCode(x,y, chunkSize, output, RealityAspectStrategy.getOffsetCode(x,y, chunkSize, inputs[0]));
+
+            RealityAspectStrategy.setOffsetCode(x,y, chunkSize, output, offsetCode);
             RealityAspectStrategy.setToApply(x,y, chunkSize,output, toApply);
             setVelocityTick(x,y, chunkSize, output, velocityTick);
         }}

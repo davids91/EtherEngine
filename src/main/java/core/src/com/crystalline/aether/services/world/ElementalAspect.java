@@ -10,7 +10,6 @@ import com.crystalline.aether.services.computation.CPUBackend;
 import com.crystalline.aether.services.computation.GPUBackend;
 import com.crystalline.aether.services.utils.BufferUtils;
 
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -78,6 +77,7 @@ public class ElementalAspect extends RealityAspect {
             proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             proposeChangesFromForcesPhaseIndex = backend.addPhase(strategy::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             arbitrateChangesPhaseIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            arbitrateInteractionsPhaseIndex = backend.addPhase(strategy::arbitrateInteractionsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
@@ -90,10 +90,10 @@ public class ElementalAspect extends RealityAspect {
             proposeForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeForcesPhaseKernel, gpuBackend);
             proposeChangesFromForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeChangesFromForcesPhaseKernel, gpuBackend);
             arbitrateChangesPhaseIndex = initKernel(ElementalAspectStrategy.arbitrateChangesPhaseKernel, gpuBackend);
+            arbitrateInteractionsPhaseIndex = initKernel(ElementalAspectStrategy.arbitrateInteractionsPhaseKernel, gpuBackend);
             applyChangesDynamicsPhaseIndex = initKernel(ElementalAspectStrategy.applyChangesDynamicsPhaseKernel, gpuBackend);
         }
         mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(strategy::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
-        arbitrateInteractionsPhaseIndex = backend.addPhase(strategy::arbitrateInteractionsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
 
         processUnitsPhaseInputs = new FloatBuffer[]{elements, null};
         processTypesPhaseInputs = new FloatBuffer[]{elements,null,null};
@@ -379,15 +379,17 @@ public class ElementalAspect extends RealityAspect {
                 gpuBackend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
             }
 
-            if (!useGPU) {
-                arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
-            } else {
-                arbitrateInteractionsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
-            }
             arbitrateInteractionsPhaseInputs[1] = elements;
             parent.provideScalarsTo(arbitrateInteractionsPhaseInputs, 2);
-            backend.setInputs(arbitrateInteractionsPhaseInputs);
-            backend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
+            if (!useGPU) {
+                arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
+                backend.setInputs(arbitrateInteractionsPhaseInputs);
+                backend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
+            } else {
+                arbitrateInteractionsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
+                gpuBackend.setInputs(arbitrateInteractionsPhaseInputs);
+                gpuBackend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
+            }
             /* TODO: unify toApply and Offset if possible */
 
             /*!Note: arbitrateInteractions decides whether switches happen, but not whether interactions will happen!
@@ -409,8 +411,13 @@ public class ElementalAspect extends RealityAspect {
                 BufferUtils.copy(gpuBackend.getOutput(applyChangesDynamicsPhaseIndex), forces); /* TODO: maybe copies can be avoided here? */
             }
 
-            parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
-            BufferUtils.copy(backend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
+            if(!useGPU){
+                parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
+                BufferUtils.copy(backend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
+            }else{
+                parent.switchValues(gpuBackend.getOutput(arbitrateInteractionsPhaseIndex));
+                BufferUtils.copy(gpuBackend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
+            }
             /* TODO: Copies can be avioded here ^^^  */
         }
 

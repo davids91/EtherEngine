@@ -678,6 +678,9 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
+    public static final String mechanicsPostProcessPhaseKernel = buildKernel(StringUtils.readFileAsString(
+            Gdx.files.internal("shaders/elmMechanicsPostProcess.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Post-processing with the dynamics:basically corrects with the gravity based on GravityCorrection
      * @param inputs [0]: elements; [1]: forces; [2]: scalars; [3]: Proposed changes
@@ -694,6 +697,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y)
                 &&(0 < gravityCorrection)&&Material.movable(getElementEnum(x,y, chunkSize, inputs[0]), World.getUnit(x,y, chunkSize, inputs[2]))
             ){
+                gravityCorrection = Math.min(1, gravityCorrection); /* TODO: Include weight! */
                 forceX += gravityCorrection * myMiscUtils.getGravity(x,y).x;
                 forceY += gravityCorrection * myMiscUtils.getGravity(x,y).y;
             }

@@ -79,6 +79,7 @@ public class ElementalAspect extends RealityAspect {
             arbitrateChangesPhaseIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             arbitrateInteractionsPhaseIndex = backend.addPhase(strategy::arbitrateInteractionsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(strategy::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
             processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
@@ -92,8 +93,8 @@ public class ElementalAspect extends RealityAspect {
             arbitrateChangesPhaseIndex = initKernel(ElementalAspectStrategy.arbitrateChangesPhaseKernel, gpuBackend);
             arbitrateInteractionsPhaseIndex = initKernel(ElementalAspectStrategy.arbitrateInteractionsPhaseKernel, gpuBackend);
             applyChangesDynamicsPhaseIndex = initKernel(ElementalAspectStrategy.applyChangesDynamicsPhaseKernel, gpuBackend);
+            mechanicsPostProcessDynamicsPhaseIndex = initKernel(ElementalAspectStrategy.mechanicsPostProcessPhaseKernel, gpuBackend);
         }
-        mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(strategy::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
 
         processUnitsPhaseInputs = new FloatBuffer[]{elements, null};
         processTypesPhaseInputs = new FloatBuffer[]{elements,null,null};
@@ -425,9 +426,15 @@ public class ElementalAspect extends RealityAspect {
         mechanicsPostProcessDynamicsPhaseInputs[1] = forces;
         parent.provideScalarsTo(mechanicsPostProcessDynamicsPhaseInputs, 2);
         mechanicsPostProcessDynamicsPhaseInputs[3] = proposedChanges;
-        backend.setInputs(mechanicsPostProcessDynamicsPhaseInputs);
-        backend.runPhase(mechanicsPostProcessDynamicsPhaseIndex);
-        BufferUtils.copy(backend.getOutput(mechanicsPostProcessDynamicsPhaseIndex), forces);
+        if(!useGPU){
+            backend.setInputs(mechanicsPostProcessDynamicsPhaseInputs);
+            backend.runPhase(mechanicsPostProcessDynamicsPhaseIndex);
+            BufferUtils.copy(backend.getOutput(mechanicsPostProcessDynamicsPhaseIndex), forces);
+        }else{
+            gpuBackend.setInputs(mechanicsPostProcessDynamicsPhaseInputs);
+            gpuBackend.runPhase(mechanicsPostProcessDynamicsPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(mechanicsPostProcessDynamicsPhaseIndex), forces);
+        }
     }
 
     /* TODO: Make movable objects, depending of the solidness "merge into one another", leaving vacuum behind, which are to resolved at the end of the mechanics round */

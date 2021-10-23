@@ -322,115 +322,122 @@ public class ElementalAspect extends RealityAspect {
 
     @Override
     public void processMechanics(World parent) {
-        initChangesPhaseInputs[0] = proposedChanges;
-        if(!useGPU){ /* Init Mechanics phase */
-            backend.setInputs(initChangesPhaseInputs);
-            backend.runPhase(initChangesPhaseIndex);
-            BufferUtils.copy(backend.getOutput(initChangesPhaseIndex), proposedChanges);
-        }else{
-            gpuBackend.setInputs(initChangesPhaseInputs);
-            gpuBackend.runPhase(initChangesPhaseIndex);
-            BufferUtils.copy(gpuBackend.getOutput(initChangesPhaseIndex), proposedChanges);
-        }
         for(int x = 1; x < conf.getChunkBlockSize()-1; ++x){
             for(int y = conf.getChunkBlockSize()-2; y > 0; --y){
                 touchedByMechanics[x][y] = 0;
             }
         }
 
-        /* Main Mechanic phase */
-        /* TODO: every run where (0 < (i%2)) only previous proposals are evaluated */
-        for(int i = 0; i < ElementalAspectStrategy.velocityMaxTicks; ++i) {
-            proposeForcesPhaseInputs[0] = elements;
-            proposeForcesPhaseInputs[1] = forces;
-            parent.provideScalarsTo(proposeForcesPhaseInputs, 2);
-            parent.getEtherealPlane().provideEtherTo(proposeForcesPhaseInputs, 3);
-            if (!useGPU) {
+        if(!useGPU) {
+            initChangesPhaseInputs[0] = proposedChanges;
+            backend.setInputs(initChangesPhaseInputs);
+            backend.runPhase(initChangesPhaseIndex);
+            BufferUtils.copy(backend.getOutput(initChangesPhaseIndex), proposedChanges);
+
+            for(int i = 0; i < ElementalAspectStrategy.velocityMaxTicks; ++i){
+                proposeForcesPhaseInputs[0] = elements;
+                proposeForcesPhaseInputs[1] = forces;
+                parent.provideScalarsTo(proposeForcesPhaseInputs, 2);
+                parent.getEtherealPlane().provideEtherTo(proposeForcesPhaseInputs, 3);
                 backend.setInputs(proposeForcesPhaseInputs);
                 backend.runPhase(proposeForcesPhaseIndex); /* output: new proposed forces */
-            } else {
-                gpuBackend.setInputs(proposeForcesPhaseInputs);
-                gpuBackend.runPhase(proposeForcesPhaseIndex); /* output: new proposed forces */
-            }
 
-            proposeChangesFromForcesPhaseInputs[0] = proposedChanges;
-            proposeChangesFromForcesPhaseInputs[1] = elements;
-            parent.provideScalarsTo(proposeChangesFromForcesPhaseInputs, 3);
-            if (!useGPU) {
+                proposeChangesFromForcesPhaseInputs[0] = proposedChanges;
+                proposeChangesFromForcesPhaseInputs[1] = elements;
+                parent.provideScalarsTo(proposeChangesFromForcesPhaseInputs, 3);
                 proposeChangesFromForcesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
                 backend.setInputs(proposeChangesFromForcesPhaseInputs);
                 backend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
-            } else {
-                proposeChangesFromForcesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
-                gpuBackend.setInputs(proposeChangesFromForcesPhaseInputs);
-                gpuBackend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
-            }
 
-            arbitrateChangesPhaseInputs[1] = elements;
-            parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
-            if (!useGPU) {
+                arbitrateChangesPhaseInputs[1] = elements;
+                parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
                 arbitrateChangesPhaseInputs[0] = backend.getOutput(proposeChangesFromForcesPhaseIndex);
                 arbitrateChangesPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
                 backend.setInputs(arbitrateChangesPhaseInputs);
                 backend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
-            } else {
-                arbitrateChangesPhaseInputs[0] = gpuBackend.getOutput(proposeChangesFromForcesPhaseIndex);
-                arbitrateChangesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
-                gpuBackend.setInputs(arbitrateChangesPhaseInputs);
-                gpuBackend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
-            }
 
-            arbitrateInteractionsPhaseInputs[1] = elements;
-            parent.provideScalarsTo(arbitrateInteractionsPhaseInputs, 2);
-            if (!useGPU) {
+                arbitrateInteractionsPhaseInputs[1] = elements;
+                parent.provideScalarsTo(arbitrateInteractionsPhaseInputs, 2);
                 arbitrateInteractionsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
                 backend.setInputs(arbitrateInteractionsPhaseInputs);
                 backend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
-            } else {
-                arbitrateInteractionsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
-                gpuBackend.setInputs(arbitrateInteractionsPhaseInputs);
-                gpuBackend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
-            }
-            /* TODO: unify toApply and Offset if possible */
 
-            /*!Note: arbitrateInteractions decides whether switches happen, but not whether interactions will happen!
-             * This is why arbitrateChanges is being used here.
-             * */
-            applyChangesDynamicsPhaseInputs[1] = elements;
-            parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
-            if (!useGPU) {
+                applyChangesDynamicsPhaseInputs[1] = elements;
+                parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
                 applyChangesDynamicsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
                 applyChangesDynamicsPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
                 backend.setInputs(applyChangesDynamicsPhaseInputs);
                 backend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
                 BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), forces); /* TODO: maybe copies can be avoided here? */
-            } else {
+
+                parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
+                BufferUtils.copy(backend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
+            }
+
+            mechanicsPostProcessDynamicsPhaseInputs[0] = elements;
+            mechanicsPostProcessDynamicsPhaseInputs[1] = forces;
+            parent.provideScalarsTo(mechanicsPostProcessDynamicsPhaseInputs, 2);
+            mechanicsPostProcessDynamicsPhaseInputs[3] = proposedChanges;
+            backend.setInputs(mechanicsPostProcessDynamicsPhaseInputs);
+            backend.runPhase(mechanicsPostProcessDynamicsPhaseIndex);
+            BufferUtils.copy(backend.getOutput(mechanicsPostProcessDynamicsPhaseIndex), forces);
+        }else{
+            initChangesPhaseInputs[0] = proposedChanges;
+            gpuBackend.setInputs(initChangesPhaseInputs);
+            gpuBackend.runPhase(initChangesPhaseIndex);
+            BufferUtils.copy(gpuBackend.getOutput(initChangesPhaseIndex), proposedChanges);
+
+            /* Main Mechanic phase */
+            /* TODO: every run where (0 < (i%2)) only previous proposals are evaluated */
+            for(int i = 0; i < ElementalAspectStrategy.velocityMaxTicks; ++i) {
+                proposeForcesPhaseInputs[0] = elements;
+                proposeForcesPhaseInputs[1] = forces;
+                parent.provideScalarsTo(proposeForcesPhaseInputs, 2);
+                parent.getEtherealPlane().provideEtherTo(proposeForcesPhaseInputs, 3);
+                gpuBackend.setInputs(proposeForcesPhaseInputs);
+                gpuBackend.runPhase(proposeForcesPhaseIndex); /* output: new proposed forces */
+
+                proposeChangesFromForcesPhaseInputs[0] = proposedChanges;
+                proposeChangesFromForcesPhaseInputs[1] = elements;
+                parent.provideScalarsTo(proposeChangesFromForcesPhaseInputs, 3);
+                proposeChangesFromForcesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
+                gpuBackend.setInputs(proposeChangesFromForcesPhaseInputs);
+                gpuBackend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
+
+                arbitrateChangesPhaseInputs[1] = elements;
+                parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
+                arbitrateChangesPhaseInputs[0] = gpuBackend.getOutput(proposeChangesFromForcesPhaseIndex);
+                arbitrateChangesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
+                gpuBackend.setInputs(arbitrateChangesPhaseInputs);
+                gpuBackend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */
+
+                arbitrateInteractionsPhaseInputs[1] = elements;
+                parent.provideScalarsTo(arbitrateInteractionsPhaseInputs, 2);
+                arbitrateInteractionsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
+                gpuBackend.setInputs(arbitrateInteractionsPhaseInputs);
+                gpuBackend.runPhase(arbitrateInteractionsPhaseIndex); /* Output: proposed changes, toApply where switches will happen */
+                /* TODO: unify toApply and Offset if possible */
+
+                /*!Note: arbitrateInteractions decides whether switches happen, but not whether interactions will happen!
+                 * This is why arbitrateChanges is being used here.
+                 * */
+                applyChangesDynamicsPhaseInputs[1] = elements;
+                parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
                 applyChangesDynamicsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
                 applyChangesDynamicsPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
                 gpuBackend.setInputs(applyChangesDynamicsPhaseInputs);
                 gpuBackend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
                 BufferUtils.copy(gpuBackend.getOutput(applyChangesDynamicsPhaseIndex), forces); /* TODO: maybe copies can be avoided here? */
-            }
 
-            if(!useGPU){
-                parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
-                BufferUtils.copy(backend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
-            }else{
                 parent.switchValues(gpuBackend.getOutput(arbitrateInteractionsPhaseIndex));
                 BufferUtils.copy(gpuBackend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);
+                /* TODO: Copies can be avioded here ^^^  */
             }
-            /* TODO: Copies can be avioded here ^^^  */
-        }
 
-        mechanicsPostProcessDynamicsPhaseInputs[0] = elements;
-        mechanicsPostProcessDynamicsPhaseInputs[1] = forces;
-        parent.provideScalarsTo(mechanicsPostProcessDynamicsPhaseInputs, 2);
-        mechanicsPostProcessDynamicsPhaseInputs[3] = proposedChanges;
-        if(!useGPU){
-            backend.setInputs(mechanicsPostProcessDynamicsPhaseInputs);
-            backend.runPhase(mechanicsPostProcessDynamicsPhaseIndex);
-            BufferUtils.copy(backend.getOutput(mechanicsPostProcessDynamicsPhaseIndex), forces);
-        }else{
+            mechanicsPostProcessDynamicsPhaseInputs[0] = elements;
+            mechanicsPostProcessDynamicsPhaseInputs[1] = forces;
+            parent.provideScalarsTo(mechanicsPostProcessDynamicsPhaseInputs, 2);
+            mechanicsPostProcessDynamicsPhaseInputs[3] = proposedChanges;
             gpuBackend.setInputs(mechanicsPostProcessDynamicsPhaseInputs);
             gpuBackend.runPhase(mechanicsPostProcessDynamicsPhaseIndex);
             BufferUtils.copy(gpuBackend.getOutput(mechanicsPostProcessDynamicsPhaseIndex), forces);

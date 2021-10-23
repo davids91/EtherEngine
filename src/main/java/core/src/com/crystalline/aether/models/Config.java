@@ -6,7 +6,7 @@ public class Config {
     public final float maxMana = 100.0f;
 
     public Config(){
-        CHUNK_BLOCK_NUMBER = 100;
+        CHUNK_BLOCK_NUMBER = 200;
     }
     public Config(int chunkSize){
         CHUNK_BLOCK_NUMBER = chunkSize;

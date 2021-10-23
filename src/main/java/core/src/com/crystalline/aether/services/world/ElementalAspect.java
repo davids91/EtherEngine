@@ -41,6 +41,7 @@ public class ElementalAspect extends RealityAspect {
     private final int applyChangesDynamicsPhaseIndex;
     private final int mechanicsPostProcessDynamicsPhaseIndex;
     private final int arbitrateInteractionsPhaseIndex;
+    private final int selectNewInteractionsPhaseIndex;
 
     private final FloatBuffer[] processUnitsPhaseInputs;
     private final FloatBuffer[] processTypesPhaseInputs;
@@ -55,6 +56,7 @@ public class ElementalAspect extends RealityAspect {
     private final FloatBuffer[] applyChangesDynamicsPhaseInputs;
     private final FloatBuffer[] mechanicsPostProcessDynamicsPhaseInputs;
     private final FloatBuffer[] arbitrateInteractionsPhaseInputs;
+    private final FloatBuffer[] selectNewInteractionsPhaseInputs;
 
     public ElementalAspect(Config conf_){
         super(conf_);
@@ -94,6 +96,7 @@ public class ElementalAspect extends RealityAspect {
             arbitrateInteractionsPhaseIndex = initKernel(ElementalAspectStrategy.arbitrateInteractionsPhaseKernel, gpuBackend);
             applyChangesDynamicsPhaseIndex = initKernel(ElementalAspectStrategy.applyChangesDynamicsPhaseKernel, gpuBackend);
             mechanicsPostProcessDynamicsPhaseIndex = initKernel(ElementalAspectStrategy.mechanicsPostProcessPhaseKernel, gpuBackend);
+            selectNewInteractionsPhaseIndex = initKernel(ElementalAspectStrategy.selectNewInteractionsPhaseKernel, gpuBackend);
         }
 
         processUnitsPhaseInputs = new FloatBuffer[]{elements, null};
@@ -109,7 +112,7 @@ public class ElementalAspect extends RealityAspect {
         applyChangesDynamicsPhaseInputs = new FloatBuffer[4];
         mechanicsPostProcessDynamicsPhaseInputs = new FloatBuffer[4];
         arbitrateInteractionsPhaseInputs = new FloatBuffer[3];
-
+        selectNewInteractionsPhaseInputs = new FloatBuffer[1];
         reset();
     }
 
@@ -385,23 +388,33 @@ public class ElementalAspect extends RealityAspect {
             /* Main Mechanic phase */
             /* TODO: every run where (0 < (i%2)) only previous proposals are evaluated */
             for(int i = 0; i < ElementalAspectStrategy.velocityMaxTicks; ++i) {
-                proposeForcesPhaseInputs[0] = elements;
-                proposeForcesPhaseInputs[1] = gpuBackend.getOutput(mechanicsPostProcessDynamicsPhaseIndex);
-                parent.provideScalarsTo(proposeForcesPhaseInputs, 2);
-                parent.getEtherealPlane().provideEtherTo(proposeForcesPhaseInputs, 3);
-                gpuBackend.setInputs(proposeForcesPhaseInputs);
-                gpuBackend.runPhase(proposeForcesPhaseIndex); /* output: new proposed forces */
+                if(0 == (i%2)){
+                    proposeForcesPhaseInputs[0] = elements;
+                    proposeForcesPhaseInputs[1] = gpuBackend.getOutput(mechanicsPostProcessDynamicsPhaseIndex);
+                    parent.provideScalarsTo(proposeForcesPhaseInputs, 2);
+                    parent.getEtherealPlane().provideEtherTo(proposeForcesPhaseInputs, 3);
+                    gpuBackend.setInputs(proposeForcesPhaseInputs);
+                    gpuBackend.runPhase(proposeForcesPhaseIndex); /* output: new proposed forces */
 
-                proposeChangesFromForcesPhaseInputs[0] = gpuBackend.getOutput(initChangesPhaseIndex);
-                proposeChangesFromForcesPhaseInputs[1] = elements;
-                parent.provideScalarsTo(proposeChangesFromForcesPhaseInputs, 3);
-                proposeChangesFromForcesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
-                gpuBackend.setInputs(proposeChangesFromForcesPhaseInputs);
-                gpuBackend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
+                    proposeChangesFromForcesPhaseInputs[0] = gpuBackend.getOutput(initChangesPhaseIndex);
+                    proposeChangesFromForcesPhaseInputs[1] = elements;
+                    parent.provideScalarsTo(proposeChangesFromForcesPhaseInputs, 3);
+                    proposeChangesFromForcesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
+                    gpuBackend.setInputs(proposeChangesFromForcesPhaseInputs);
+                    gpuBackend.runPhase(proposeChangesFromForcesPhaseIndex); /* output: newly proposed changes */
+
+                    arbitrateChangesPhaseInputs[0] = gpuBackend.getOutput(proposeChangesFromForcesPhaseIndex);
+                }else{ /* Keep proposals from the last loop */
+                    /* New phase to see the applied changes */
+                    selectNewInteractionsPhaseInputs[0] = gpuBackend.getOutput(arbitrateInteractionsPhaseIndex);
+                    gpuBackend.setInputs(selectNewInteractionsPhaseInputs);
+                    gpuBackend.runPhase(selectNewInteractionsPhaseIndex); /* output: newly proposed changes */
+
+                    arbitrateChangesPhaseInputs[0] = gpuBackend.getOutput(selectNewInteractionsPhaseIndex);
+                }
 
                 arbitrateChangesPhaseInputs[1] = elements;
                 parent.provideScalarsTo(arbitrateChangesPhaseInputs, 3);
-                arbitrateChangesPhaseInputs[0] = gpuBackend.getOutput(proposeChangesFromForcesPhaseIndex);
                 arbitrateChangesPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
                 gpuBackend.setInputs(arbitrateChangesPhaseInputs);
                 gpuBackend.runPhase(arbitrateChangesPhaseIndex); /* output: newly proposed changes */

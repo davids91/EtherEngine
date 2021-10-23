@@ -589,8 +589,12 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
+    public static final String selectNewInteractionsPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/selectNewInteractionsPhase.fshader")
+    ), new Includer(baseIncluder));
+
     public static final String arbitrateInteractionsPhaseKernel = buildKernel(StringUtils.readFileAsString(
-            Gdx.files.internal("shaders/elmArbitrateInteractions.fshader")
+        Gdx.files.internal("shaders/elmArbitrateInteractions.fshader")
     ), new Includer(baseIncluder));
     /**
      * Decides whether the proposed changes are swaps or collisions

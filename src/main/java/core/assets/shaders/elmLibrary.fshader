@@ -26,8 +26,8 @@ void elm_setForce(vec2 value){
   gl_FragColor.g = value.y;
 }
 
-float elm_getToApply(vec2 position, sampler2D forces){
-  return texture(forces, position).g;
+float elm_getToApply(vec2 position, sampler2D proposals){
+  return texture(proposals, position).g;
 }
 
 void elm_setToApply(float value){
@@ -76,4 +76,21 @@ float elm_getDynamicPrio(vec2 position, sampler2D elements, sampler2D forces, sa
     + abs(elm_getWeight(position, elements, scalars)) /* .. and its weight */
   );
   return float(int(round(priority * 1000.0f))/100);
+}
+
+bool elm_ACanMoveB(vec2 positionA, vec2 positionB, sampler2D elements, sampler2D scalars){
+  float elementA = elm_getElement(positionA, elements);
+  float elementB = elm_getElement(positionB, elements);
+  float unitA = world_getUnit(positionA, scalars);
+  float unitB = world_getUnit(positionB, scalars);
+  float weightA = elm_getWeight(positionA, elements, scalars);
+  float weightB = elm_getWeight(positionB, elements, scalars);
+  return(
+    world_isCellDiscardable(elementB, unitB)
+    ||(
+      (weightA >= weightB)
+      &&(world_isCellMovable(elementA, unitA))
+      &&(world_isCellMovable(elementB, unitB))
+    )
+  );
 }

@@ -78,6 +78,7 @@ public class ElementalAspect extends RealityAspect {
             proposeForcesPhaseIndex = backend.addPhase(strategy::proposeForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             proposeChangesFromForcesPhaseIndex = backend.addPhase(strategy::proposeChangesFromForcesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
             arbitrateChangesPhaseIndex = backend.addPhase(strategy::arbitrateChangesPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
+            applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         }else{
             defineByEtherealPhaseIndex = initKernel(ElementalAspectStrategy.defineByEtherealPhaseKernel, gpuBackend);
             processUnitsPhaseIndex = initKernel(ElementalAspectStrategy.processUnitsPhaseKernel, gpuBackend);
@@ -89,8 +90,8 @@ public class ElementalAspect extends RealityAspect {
             proposeForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeForcesPhaseKernel, gpuBackend);
             proposeChangesFromForcesPhaseIndex = initKernel(ElementalAspectStrategy.proposeChangesFromForcesPhaseKernel, gpuBackend);
             arbitrateChangesPhaseIndex = initKernel(ElementalAspectStrategy.arbitrateChangesPhaseKernel, gpuBackend);
+            applyChangesDynamicsPhaseIndex = initKernel(ElementalAspectStrategy.applyChangesDynamicsPhaseKernel, gpuBackend);
         }
-        applyChangesDynamicsPhaseIndex = backend.addPhase(strategy::applyChangesDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         mechanicsPostProcessDynamicsPhaseIndex = backend.addPhase(strategy::mechanicsPostProcessDynamicsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
         arbitrateInteractionsPhaseIndex = backend.addPhase(strategy::arbitrateInteractionsPhase, (Config.bufferCellSize * conf.getChunkBlockSize() * conf.getChunkBlockSize()));
 
@@ -393,17 +394,20 @@ public class ElementalAspect extends RealityAspect {
              * This is why arbitrateChanges is being used here.
              * */
             applyChangesDynamicsPhaseInputs[1] = elements;
+            parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
             if (!useGPU) {
                 applyChangesDynamicsPhaseInputs[0] = backend.getOutput(arbitrateChangesPhaseIndex);
                 applyChangesDynamicsPhaseInputs[2] = backend.getOutput(proposeForcesPhaseIndex);
+                backend.setInputs(applyChangesDynamicsPhaseInputs);
+                backend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
+                BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), forces); /* TODO: maybe copies can be avoided here? */
             } else {
                 applyChangesDynamicsPhaseInputs[0] = gpuBackend.getOutput(arbitrateChangesPhaseIndex);
                 applyChangesDynamicsPhaseInputs[2] = gpuBackend.getOutput(proposeForcesPhaseIndex);
+                gpuBackend.setInputs(applyChangesDynamicsPhaseInputs);
+                gpuBackend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
+                BufferUtils.copy(gpuBackend.getOutput(applyChangesDynamicsPhaseIndex), forces); /* TODO: maybe copies can be avoided here? */
             }
-            parent.provideScalarsTo(applyChangesDynamicsPhaseInputs, 3);
-            backend.setInputs(applyChangesDynamicsPhaseInputs);
-            backend.runPhase(applyChangesDynamicsPhaseIndex); /* output: dynamics before the swaps in light of the proposed ones */
-            BufferUtils.copy(backend.getOutput(applyChangesDynamicsPhaseIndex), forces); /* TODO: maybe copies can be avoided here? */
 
             parent.switchValues(backend.getOutput(arbitrateInteractionsPhaseIndex));
             BufferUtils.copy(backend.getOutput(arbitrateInteractionsPhaseIndex), proposedChanges);

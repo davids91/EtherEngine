@@ -29,12 +29,18 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
 
     /*TODO: include forces into the logic ( e.g. a big force can force a switch ) */
     public static boolean aCanMoveB(int ax, int ay, int bx, int by, int chunkSize, FloatBuffer elements, FloatBuffer scalars){
+        Material.Elements elementA = getElementEnum(ax,ay, chunkSize, elements);
+        Material.Elements elementB = getElementEnum(bx,by, chunkSize, elements);
+        float unitA = World.getUnit(ax,ay, chunkSize, scalars);
+        float unitB = World.getUnit(bx,by, chunkSize, scalars);
+        float weightA = getWeight(ax,ay, chunkSize, elements, scalars);
+        float weightB = getWeight(bx,by, chunkSize, elements, scalars);
         return(
             Material.discardable(getElementEnum(bx, by, chunkSize, elements), World.getUnit(bx, by, chunkSize, scalars))
             ||(
-                (getWeight(ax,ay, chunkSize, elements, scalars) >= getWeight(bx, by, chunkSize, elements, scalars))
-                && Material.movable(getElementEnum(ax,ay, chunkSize, elements), World.getUnit(ax,ay, chunkSize, scalars))
-                && Material.movable(getElementEnum(bx,by, chunkSize, elements), World.getUnit(bx,by, chunkSize, scalars))
+                (weightA >= weightB)
+                && Material.movable(elementA, unitA)
+                && Material.movable(elementB, unitB)
             )
         );
     }
@@ -623,6 +629,9 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
         }}
     }
 
+    public static final String applyChangesDynamicsPhaseKernel = buildKernel(StringUtils.readFileAsString(
+        Gdx.files.internal("shaders/elmApplyChangesDynamics.fshader")
+    ), new Includer(baseIncluder));
     /**
      * Applies the changes to forces proposed from the input proposal buffer
      * @param inputs [0]: proposed changes; [1]: elements; [2]: forces; [3]: scalars
@@ -636,14 +645,10 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             float forceX = getForceX(x,y, chunkSize, inputs[2]);
             float forceY = getForceY(x,y, chunkSize, inputs[2]);
             float weight = getWeight(x,y, chunkSize, inputs[1], inputs[3]);
-            int targetTX = RealityAspectStrategy.getTargetX(targetX,targetY,chunkSize, inputs[0]);
-            int targetTY = RealityAspectStrategy.getTargetY(targetX,targetY,chunkSize, inputs[0]);
             if( /* Update the forces on a cell.. */
                 (0 < x)&&(chunkSize-1 > x)&&(0 < y)&&(chunkSize-1 > y) /* ..when it is inside bounds.. */
                 &&(0 < toApply)&&(0 != RealityAspectStrategy.getOffsetCode(x,y,chunkSize, inputs[0])) /* ..only if it wants to switch..  */
                 &&((targetX >= 0)&&(targetX < chunkSize)&&(targetY >= 0)&&(targetY < chunkSize)) /* ..but only if the target is also inside the bounds of the chunk */
-                &&((x == targetTX) && (y == targetTY)) /* and the target is mutual --> no conflicts are found */
-
             ){
                 if( aCanMoveB(x,y,targetX,targetY, chunkSize, inputs[1], inputs[3]) ){ /* The cells swap, decreasing forces on both *//* TODO: Also decrease the force based on the targets weight */
                     forceX += -forceX * 0.7f * ( Math.abs(weight) / Math.max(0.00001f, Math.max(Math.abs(weight),Math.abs(forceX))) );
@@ -654,8 +659,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
                     Vector2 u1 = getForce(x,y, chunkSize, inputs[2]).cpy().nor();
                     float m2 = getWeight(targetX, targetY, chunkSize, inputs[1], inputs[3]);
                     Vector2 u2 = getForce(targetX, targetY, chunkSize, inputs[2]).cpy().nor();
-                    Vector2 result_speed = new Vector2();
-                    result_speed.set( /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
+                    Vector2 result_speed = new Vector2().set( /*!Note: https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian */
                         ((weight - m2)/(weight+m2)*u1.x) + (2*m2/(weight+m2))*u2.x,
                         ((weight - m2)/(weight+m2)*u1.y) + (2*m2/(weight+m2))*u2.y
                     );
@@ -669,7 +673,6 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             }
             setForceX(x,y, chunkSize, output, forceX);
             setForceY(x,y, chunkSize, output, forceY);
-            setVelocityTick(x,y, chunkSize, output, getVelocityTick(x,y, chunkSize, inputs[2]));
         }}
     }
 
@@ -694,7 +697,6 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
             }
             setForceX(x,y, chunkSize, output, forceX);
             setForceY(x,y, chunkSize, output, forceY);
-            setVelocityTick(x,y, chunkSize, output, getVelocityTick(x,y, chunkSize, inputs[1]));
         }}
     }
 
@@ -704,7 +706,7 @@ public class ElementalAspectStrategy extends RealityAspectStrategy{
      * A texture image representing the elemental properties of reality
      * - R: block type --> Material.Elements
      * - G:
-     * - B:priority --> A unique number to decide arbitration while switching cells
+     * - B: priority --> A unique number to decide arbitration while switching cells
      */
     public static Material.Elements getElementEnum(int x, int y, int chunkSize, FloatBuffer elements){
         return Material.Elements.get((int)getElement(x,y,chunkSize,elements));
